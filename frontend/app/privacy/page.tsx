@@ -23,6 +23,15 @@ export default function PrivacyPage() {
         with counts of accepted and rejected records used to detect abuse. Contributors appear publicly only as
         &ldquo;Observer A&rdquo;, &ldquo;Observer B&rdquo; and so on, per run.
       </p>
+      <h2 className="font-display text-xl text-gold">The desktop app</h2>
+      <p>
+        After you log out, exit or type /reload, the ForeverTracker desktop app reads one file, the addon&apos;s saved data,
+        and uploads the runs recorded there over HTTPS: the dungeon, the characters in your group, boss kills, deaths,
+        damage-meter totals and equipment, plus the addon&apos;s check of which game features work and its installation
+        ID. Once a day it also asks for a newer version of itself, sending only its version number. It sends no account
+        names, e-mail addresses, chat or information about your computer, and never changes anything in your game folder.
+        The installer shows this before it installs anything.
+      </p>
       <h2 className="font-display text-xl text-gold">What we do not keep</h2>
       <p>
         IP addresses are not stored or logged; they are held briefly in memory to enforce upload rate limits. Reports sent
@@ -37,6 +46,14 @@ export default function PrivacyPage() {
       <p>
         You can hide a character&apos;s profile with the <Link href="/report" className="underline">report form</Link>. You can stop
         contributing at any time by disabling the addon or the uploader, and delete your local data with /ft purge confirm.
+      </p>
+      <p>
+        For the desktop app: turn off starting with Windows in Settings → Apps → Startup; pause uploads with{" "}
+        <code className="text-text">ForeverTrackerUploader.exe pause</code>; see exactly what would be sent with{" "}
+        <code className="text-text">ForeverTrackerUploader.exe disclose</code>; turn off self-updates by setting{" "}
+        <code className="text-text">&quot;auto_update&quot;: false</code> in{" "}
+        <code className="text-text">%APPDATA%\ForeverTracker\uploader\config.json</code>; or uninstall it from Settings →
+        Apps, which stops all uploads.
       </p>
     </article>
   );

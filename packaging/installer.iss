@@ -33,6 +33,13 @@ AppId={{B8F2C1A4-6E3D-4E7A-9C2B-7F1A2D3E4B50}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyPublisher}
+AppPublisherURL=https://github.com/obelisk2u/ForeverTracker
+VersionInfoVersion={#MyAppVersion}
+VersionInfoProductName={#MyAppName}
+VersionInfoDescription={#MyAppName} installer
+; What the app uploads, shown before anything is installed (SignPath Foundation requires this for
+; software that sends data).
+InfoBeforeFile=privacy.txt
 DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes

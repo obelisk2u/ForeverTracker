@@ -32,16 +32,23 @@ The helper only ever **reads** the game's SavedVariables file; it never writes t
 
 ## Build
 
-From the repo root, in a Python 3.11+ environment:
+**Release builds come from GitHub Actions** ([`windows-app.yml`](../.github/workflows/windows-app.yml)): every push
+to `main` that touches the app, addon or packaging, and every `v*` tag, builds both exes on a clean Windows runner
+and uploads them as the `ForeverTracker-windows-unsigned` artifact. That is what SignPath signs: it only signs
+builds made from the public source by CI. Once the SignPath project exists, add its
+`signpath/github-action-submit-signing-request` step after the upload, using the upload step's `artifact-id`.
+
+To build locally instead, from the repo root in a Python 3.11+ environment:
 
 ```powershell
-pip install -e uploader -e packages/savedvariables pyinstaller
+pip install ./packages/savedvariables ./uploader pyinstaller==6.11.1
 .\packaging\build.ps1
 ```
 
 Outputs land in `dist\`:
-- `ForeverTrackerUploader.exe` — the helper
-- `ForeverTracker-Setup-<version>.exe` — the installer (needs [Inno Setup 6](https://jrsoftware.org/isdl.php))
+- `ForeverTrackerUploader.exe` — the helper (product name and version are stamped from `__version__`)
+- `ForeverTracker-Setup-<version>.exe` — the installer (needs [Inno Setup 6](https://jrsoftware.org/isdl.php)); it
+  shows [`privacy.txt`](privacy.txt) before installing
 
 ## Before you publish — one required edit and signing
 

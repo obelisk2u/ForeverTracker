@@ -1,13 +1,16 @@
 # Build the ForeverTracker uploader exe and the Windows installer.
 # Run from the repo root in a Python environment that has the uploader installed:
-#     pip install -e uploader -e packages/savedvariables pyinstaller
+#     pip install ./packages/savedvariables ./uploader pyinstaller
 #     .\packaging\build.ps1
 #
 # Produces:
 #     dist\ForeverTrackerUploader.exe          (windowless helper)
-#     dist\ForeverTracker-Setup-<version>.exe  (installer; only if Inno Setup is installed)
+#     dist\ForeverTracker-Setup-<version>.exe  (installer; only if Inno Setup is installed,
+#                                               or always with -RequireInstaller, as CI uses)
 #
-# Sign BOTH exes before distributing (see README.md in this folder).
+# Release builds come from GitHub Actions (.github/workflows/windows-app.yml), which SignPath signs.
+
+param([switch]$RequireInstaller)
 
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
@@ -31,6 +34,8 @@ if ($iscc) {
     & $iscc "/DMyAppVersion=$version" packaging\installer.iss
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
     Write-Host "==> Done: dist\ForeverTracker-Setup-$version.exe (sign it, then see 'Releasing an update' in packaging\README.md)"
+} elseif ($RequireInstaller) {
+    throw "Inno Setup (ISCC.exe) not found"
 } else {
     Write-Warning "Inno Setup (ISCC.exe) not found; built the exe only. Install Inno Setup 6 to build the installer."
 }

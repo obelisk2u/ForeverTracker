@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { DownloadButton } from "@/components/DownloadButton";
 import { Notice } from "@/components/States";
@@ -25,7 +26,11 @@ export default async function DownloadPage() {
           <DownloadButton release={release} />
           <p className="text-sm text-muted">
             Installs the desktop app, plus the addon if you don&apos;t have it yet. The app keeps itself up to date; the
-            addon updates through CurseForge.
+            addon updates through CurseForge. See the{" "}
+            <Link href="/code-signing" className="underline">
+              code signing policy
+            </Link>
+            .
           </p>
         </div>
       )}

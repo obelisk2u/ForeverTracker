@@ -22,9 +22,9 @@ frontend/coverage/
 # Generated data
 fixtures/generated/
 
-# Packaging build output (PyInstaller / Inno Setup)
+# Packaging build output (PyInstaller / Inno Setup, and setuptools when installing a package non-editable)
 /dist/
-/build/
+build/
 
 # OS / editors
 .DS_Store

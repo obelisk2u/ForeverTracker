@@ -1,0 +1,34 @@
+ForeverTracker desktop app: privacy
+
+WHAT IT DOES
+After you log out, exit or type /reload, the app reads one file: the ForeverTracker addon's saved
+data (ForeverTracker.lua in your World of Warcraft folder). It uploads the dungeon runs recorded
+there to the ForeverTracker server over HTTPS, and keeps a copy of each version of that file in its
+own folder so nothing is lost if the game overwrites it. It never changes anything in your WoW
+folder and reads no other files there.
+
+WHAT IT SENDS
+- The runs the addon recorded: the dungeon, the characters in your group (names, class, race,
+  level, role), boss kills, deaths, damage-meter totals and equipment.
+- The addon's check of which game features work, with the game's version and realm.
+- A random installation ID created by the addon. The server keeps only a keyed hash of it.
+- Once a day, an update check that sends only the app's version number.
+
+It sends no account names, e-mail addresses, chat or information about your computer. Like any
+connection, uploads reveal your IP address; ForeverTracker uses it briefly to limit upload rates
+and never stores it.
+
+WHAT BECOMES PUBLIC
+Character histories on the ForeverTracker website. You appear only as "Observer A", "Observer B"
+and so on, per run.
+
+YOUR CHOICES
+- Untick "Start ForeverTracker when I sign in to Windows" on a later page, or turn it off any
+  time in Settings > Apps > Startup.
+- Pause uploads: ForeverTrackerUploader.exe pause (and resume to continue).
+- See exactly what would be sent: ForeverTrackerUploader.exe disclose
+- Turn off self-updates: set "auto_update": false in
+  %APPDATA%\ForeverTracker\uploader\config.json
+- Uninstall from Settings > Apps. This stops all uploads.
+
+The full privacy notice is on the ForeverTracker website, under Privacy.

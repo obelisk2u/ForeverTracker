@@ -66,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <Link href="/about" className="hover:text-text">Data collection</Link>
               <Link href="/privacy" className="hover:text-text">Privacy</Link>
+              <Link href="/code-signing" className="hover:text-text">Code signing</Link>
               <Link href="/report" className="hover:text-text">Report a problem</Link>
             </div>
           </div>

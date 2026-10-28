@@ -62,5 +62,26 @@ SavedVariables files, and checks reconciliation, conflicts and statistics throug
   [deployment](docs/DEPLOYMENT.md)
 * [Launch-day validation](docs/FOREVER_LAUNCH_VALIDATION.md), [readiness](docs/READINESS.md)
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)
+
+ForeverTracker is joining SignPath Foundation's free signing program for open-source projects; until signed
+releases are out, the Windows installer is unsigned.
+
+The Windows desktop app (`ForeverTrackerUploader.exe`) and its installer are built from this repository by GitHub
+Actions ([`windows-app.yml`](.github/workflows/windows-app.yml)), and a maintainer approves every signing request.
+The addon is plain Lua source and is not signed.
+
+| Role | Members |
+|---|---|
+| Authors (change the source code without further review) | Jordan Stout ([obelisk2u](https://github.com/obelisk2u)) |
+| Reviewers (review every change from outside contributors) | Jordan Stout |
+| Approvers (approve each signing request) | Jordan Stout |
+
+**Privacy:** the desktop app uploads the dungeon runs recorded by the addon to the ForeverTracker server, and checks
+once a day for a newer version. [`packaging/privacy.txt`](packaging/privacy.txt) lists exactly what it sends and how
+to turn it off; the installer shows it before installing anything.
+
 ForeverTracker is not affiliated with or endorsed by Blizzard Entertainment. World of Warcraft is a trademark of
 Blizzard Entertainment, Inc.

@@ -1,0 +1,49 @@
+name: Windows app
+
+# Builds the desktop app and its installer from this repository's source on GitHub's servers.
+# Releases are signed through SignPath from the uploaded artifact (see packaging/README.md).
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "uploader/**"
+      - "packages/savedvariables/**"
+      - "addon/**"
+      - "packaging/**"
+      - ".github/workflows/windows-app.yml"
+  pull_request:
+    paths:
+      - "uploader/**"
+      - "packages/savedvariables/**"
+      - "addon/**"
+      - "packaging/**"
+      - ".github/workflows/windows-app.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install the uploader and PyInstaller
+        run: pip install ./packages/savedvariables ./uploader pyinstaller==6.11.1
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build the app and installer
+        shell: pwsh
+        run: .\packaging\build.ps1 -RequireInstaller
+      - name: Upload the unsigned build
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverTracker-windows-unsigned
+          path: |
+            dist/ForeverTrackerUploader.exe
+            dist/ForeverTracker-Setup-*.exe
+          if-no-files-found: error

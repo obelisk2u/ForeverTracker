@@ -52,3 +52,19 @@ describe("download page", () => {
     expect(screen.getByText(/pip install \.\/uploader/)).toBeInTheDocument();
   });
 });
+
+describe("code signing policy", () => {
+  it("carries SignPath's attribution, the team roles and the privacy statement", async () => {
+    const { default: CodeSigningPage } = await import("@/app/code-signing/page");
+    uploaderRelease.mockResolvedValue({ ...release, signed: false });
+    render(await CodeSigningPage());
+    expect(screen.getByText(/Free code signing provided by/).textContent).toBe(
+      "Free code signing provided by SignPath.io, certificate by SignPath Foundation",
+    );
+    expect(screen.getByRole("link", { name: "SignPath.io" })).toHaveAttribute("href", "https://about.signpath.io");
+    expect(screen.getByRole("link", { name: "SignPath Foundation" })).toHaveAttribute("href", "https://signpath.org");
+    expect(screen.getByText(/the installer is unsigned/)).toBeInTheDocument();
+    for (const role of ["Authors", "Reviewers", "Approvers"]) expect(screen.getByText(role)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "privacy notice" })).toHaveAttribute("href", "/privacy");
+  });
+});

@@ -13,9 +13,50 @@
 #     signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a dist\ForeverTrackerUploader.exe
 
 import os
+import re
+
+from PyInstaller.utils.win32.versioninfo import (
+    FixedFileInfo,
+    StringFileInfo,
+    StringStruct,
+    StringTable,
+    VarFileInfo,
+    VarStruct,
+    VSVersionInfo,
+)
 
 block_cipher = None
 ICON = os.path.join("packaging", "forevertracker.ico")  # optional; falls back to the default icon
+
+# Product name and version come from the uploader package, so every build carries the same metadata
+# (SignPath enforces both on the files it signs).
+with open(os.path.join("uploader", "forevertracker_uploader", "__init__.py"), encoding="utf-8") as fh:
+    VERSION = re.search(r'^__version__ = "(.+)"', fh.read(), re.MULTILINE).group(1)
+NUMBERS = tuple(int(p) for p in VERSION.split("."))
+NUMBERS += (0,) * (4 - len(NUMBERS))
+VERSION_INFO = VSVersionInfo(
+    ffi=FixedFileInfo(filevers=NUMBERS, prodvers=NUMBERS),
+    kids=[
+        StringFileInfo(
+            [
+                StringTable(
+                    "040904B0",
+                    [
+                        StringStruct("CompanyName", "ForeverTracker"),
+                        StringStruct("FileDescription", "ForeverTracker desktop uploader"),
+                        StringStruct("FileVersion", VERSION),
+                        StringStruct("InternalName", "ForeverTrackerUploader"),
+                        StringStruct("LegalCopyright", "Copyright (c) 2026 Jordan Stout. MIT License."),
+                        StringStruct("OriginalFilename", "ForeverTrackerUploader.exe"),
+                        StringStruct("ProductName", "ForeverTracker"),
+                        StringStruct("ProductVersion", VERSION),
+                    ],
+                )
+            ]
+        ),
+        VarFileInfo([VarStruct("Translation", [1033, 1200])]),
+    ],
+)
 
 a = Analysis(
     ["uploader_entry.py"],
@@ -45,5 +86,5 @@ exe = EXE(
     runtime_tmpdir=None,
     console=False,
     icon=ICON if os.path.exists(ICON) else None,
-    version="packaging/version_info.txt" if os.path.exists("packaging/version_info.txt") else None,
+    version=VERSION_INFO,
 )
