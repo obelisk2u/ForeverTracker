@@ -1,0 +1,45 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Operational endpoints stay internal (scrape /metrics from the host network instead).
+	@internal path /metrics /api/v1/admin/*
+	respond @internal 404
+
+	# Upload bodies are capped again by the API; this stops oversized requests early.
+	@uploads path /api/v1/ingest/*
+	request_body @uploads {
+		max_size 9MB
+	}
+
+	@api path /api/* /health /health/ready
+	reverse_proxy @api backend:8000
+
+	reverse_proxy frontend:3000
+
+	# Access logs without client addresses (privacy: IPs are never stored).
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>client_ip delete
+				request>remote_port delete
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>X-Forwarded-For delete
+			}
+		}
+	}
+}

@@ -1,0 +1,87 @@
+# Production / staging stack: one host, Caddy for HTTPS. See docs/DEPLOYMENT.md.
+#   cp deploy/env.example .env   # fill in real secrets; never commit .env
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Run staging as a separate compose project with its own .env and volumes:
+#   docker compose -p forevertracker-staging -f docker-compose.prod.yml --env-file .env.staging up -d
+name: forevertracker
+
+x-backend-env: &backend-env
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  DATABASE_URL: postgresql+psycopg://forevertracker:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/forevertracker
+  ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN}
+  CONTRIBUTOR_ID_SALT: ${CONTRIBUTOR_ID_SALT:?set CONTRIBUTOR_ID_SALT}
+  CORS_ORIGINS: https://${DOMAIN:?set DOMAIN}
+  PUBLIC_BASE_URL: https://${DOMAIN}
+  LOG_JSON: "true"
+  UPLOADER_LATEST_VERSION: ${UPLOADER_LATEST_VERSION:-}
+  UPLOADER_DOWNLOAD_URL: ${UPLOADER_DOWNLOAD_URL:-}
+  UPLOADER_SHA256: ${UPLOADER_SHA256:-}
+  UPLOADER_SIGNED: ${UPLOADER_SIGNED:-false}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: forevertracker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: forevertracker
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published port: the database is reachable only on the internal network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forevertracker -d forevertracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment: *backend-env
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      # The backend is not published; only containers on this network (Caddy, the site) reach it,
+      # so their X-Forwarded-For is trusted. Used, hashed in memory, for upload rate limits.
+      FORWARDED_ALLOW_IPS: "*"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    expose: ["8000"]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Same origin: the browser calls /api on the site's own domain.
+        NEXT_PUBLIC_API_BASE_URL: ""
+    restart: unless-stopped
+    environment:
+      API_BASE_URL: http://backend:8000
+    depends_on: [backend]
+    expose: ["3000"]
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [frontend, backend]
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

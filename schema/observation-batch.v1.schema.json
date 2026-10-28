@@ -1,0 +1,2005 @@
+{
+  "$defs": {
+    "AddonInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "const": "ForeverTracker",
+          "default": "ForeverTracker",
+          "title": "Name",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "version": {
+          "default": "unknown",
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9.+_-]*$",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "title": "AddonInfo",
+      "type": "object"
+    },
+    "CharacterRef": {
+      "additionalProperties": false,
+      "properties": {
+        "guid": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 3,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Guid"
+        },
+        "identity_status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "secret",
+            "unavailable"
+          ],
+          "title": "Identity Status",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 48,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "surname": {
+          "anyOf": [
+            {
+              "maxLength": 48,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Surname"
+        }
+      },
+      "title": "CharacterRef",
+      "type": "object"
+    },
+    "CharacterSnapshotObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "client_build": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "pattern": "^[0-9.]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Client Build"
+        },
+        "equipment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Equipment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "namespace": {
+          "$ref": "#/$defs/NamespaceInfo"
+        },
+        "observation_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9:_.-]+$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "Observed At",
+          "type": "integer"
+        },
+        "realm_label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Realm Label"
+        },
+        "recorded_by": {
+          "$ref": "#/$defs/CharacterRef"
+        },
+        "revision": {
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "source": {
+          "enum": [
+            "self",
+            "inspect"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/SnapshotSubject"
+        },
+        "talents": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Talents"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "const": "character_snapshot",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "revision",
+        "recorded_by",
+        "type",
+        "observed_at",
+        "source",
+        "subject"
+      ],
+      "title": "CharacterSnapshotObservation",
+      "type": "object"
+    },
+    "ClientInfo": {
+      "description": "Client build information. Unknown keys from newer addon versions are ignored.",
+      "properties": {
+        "build": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "pattern": "^[0-9.]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Build"
+        },
+        "game_type": {
+          "anyOf": [
+            {
+              "maxLength": 24,
+              "pattern": "^[A-Za-z_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Game Type"
+        },
+        "game_version": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "pattern": "^[0-9.]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Game Version"
+        },
+        "interface": {
+          "anyOf": [
+            {
+              "maximum": 10000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interface"
+        },
+        "locale": {
+          "anyOf": [
+            {
+              "maxLength": 8,
+              "pattern": "^[A-Za-z]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locale"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Id"
+        }
+      },
+      "title": "ClientInfo",
+      "type": "object"
+    },
+    "Completion": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/CompletionEvidence"
+          },
+          "maxItems": 10,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "status": {
+          "default": "none",
+          "enum": [
+            "verified",
+            "none"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "title": "Completion",
+      "type": "object"
+    },
+    "CompletionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "At",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "lfg_completion_reward",
+            "scenario_completed",
+            "challenge_mode_completed"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "at"
+      ],
+      "title": "CompletionEvidence",
+      "type": "object"
+    },
+    "Death": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "At",
+          "type": "integer"
+        },
+        "encounter_id": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Encounter Id"
+        },
+        "source": {
+          "enum": [
+            "unit_state",
+            "player_dead",
+            "unit_died_event"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "unit_ref": {
+          "maxLength": 16,
+          "minLength": 1,
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Unit Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unit_ref",
+        "at",
+        "source"
+      ],
+      "title": "Death",
+      "type": "object"
+    },
+    "DungeonRunObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "client_build": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "pattern": "^[0-9.]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Client Build"
+        },
+        "collection": {
+          "additionalProperties": {
+            "enum": [
+              "active",
+              "partial",
+              "unavailable",
+              "disabled",
+              "error"
+            ],
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "identity",
+              "roster",
+              "encounters",
+              "deaths_unit_state",
+              "deaths_unit_died",
+              "meter",
+              "inspect",
+              "talents"
+            ]
+          },
+          "title": "Collection",
+          "type": "object"
+        },
+        "completion": {
+          "$ref": "#/$defs/Completion"
+        },
+        "deaths": {
+          "items": {
+            "$ref": "#/$defs/Death"
+          },
+          "maxItems": 500,
+          "title": "Deaths",
+          "type": "array"
+        },
+        "encounters": {
+          "items": {
+            "$ref": "#/$defs/Encounter"
+          },
+          "maxItems": 100,
+          "title": "Encounters",
+          "type": "array"
+        },
+        "flags": {
+          "maxLength": 16,
+          "patternProperties": {
+            "^[a-z0-9_]+$": {
+              "type": "boolean"
+            }
+          },
+          "propertyNames": {
+            "maxLength": 32
+          },
+          "title": "Flags",
+          "type": "object"
+        },
+        "instance": {
+          "$ref": "#/$defs/InstanceInfo"
+        },
+        "meter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeterData"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "namespace": {
+          "$ref": "#/$defs/NamespaceInfo"
+        },
+        "observation_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9:_.-]+$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "party_guid": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 3,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Party Guid"
+        },
+        "realm_label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Realm Label"
+        },
+        "recorded_by": {
+          "$ref": "#/$defs/CharacterRef"
+        },
+        "revision": {
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "roster": {
+          "items": {
+            "$ref": "#/$defs/RosterMember"
+          },
+          "maxItems": 40,
+          "minItems": 1,
+          "title": "Roster",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "in_progress",
+            "completed",
+            "left",
+            "abandoned",
+            "disconnected",
+            "unknown"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "timeline": {
+          "items": {
+            "$ref": "#/$defs/TimelineEvent"
+          },
+          "maxItems": 400,
+          "title": "Timeline",
+          "type": "array"
+        },
+        "timing": {
+          "$ref": "#/$defs/RunTiming"
+        },
+        "type": {
+          "const": "dungeon_run",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "revision",
+        "recorded_by",
+        "type",
+        "instance",
+        "timing",
+        "state",
+        "roster"
+      ],
+      "title": "DungeonRunObservation",
+      "type": "object"
+    },
+    "Encounter": {
+      "additionalProperties": false,
+      "properties": {
+        "difficulty_id": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Difficulty Id"
+        },
+        "encounter_id": {
+          "maximum": 100000000,
+          "minimum": 0,
+          "title": "Encounter Id",
+          "type": "integer"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "maximum": 4102444800,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ended At"
+        },
+        "group_size": {
+          "anyOf": [
+            {
+              "maximum": 80,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group Size"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "started_at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "Started At",
+          "type": "integer"
+        },
+        "success": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Success"
+        }
+      },
+      "required": [
+        "encounter_id",
+        "started_at"
+      ],
+      "title": "Encounter",
+      "type": "object"
+    },
+    "Equipment": {
+      "additionalProperties": false,
+      "properties": {
+        "average_item_level": {
+          "anyOf": [
+            {
+              "maximum": 2000,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Average Item Level"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/EquippedItem"
+          },
+          "maxItems": 19,
+          "title": "Items",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "partial",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "Equipment",
+      "type": "object"
+    },
+    "EquippedItem": {
+      "additionalProperties": false,
+      "properties": {
+        "enchant_id": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Enchant Id"
+        },
+        "gem_ids": {
+          "items": {
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "title": "Gem Ids",
+          "type": "array"
+        },
+        "item_id": {
+          "maximum": 100000000,
+          "minimum": 1,
+          "title": "Item Id",
+          "type": "integer"
+        },
+        "item_level": {
+          "anyOf": [
+            {
+              "maximum": 2000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Level"
+        },
+        "link": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Link"
+        },
+        "quality": {
+          "anyOf": [
+            {
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality"
+        },
+        "slot": {
+          "maximum": 19,
+          "minimum": 1,
+          "title": "Slot",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "slot",
+        "item_id"
+      ],
+      "title": "EquippedItem",
+      "type": "object"
+    },
+    "InstanceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "difficulty_id": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Difficulty Id"
+        },
+        "difficulty_name": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Difficulty Name"
+        },
+        "instance_type": {
+          "default": "party",
+          "enum": [
+            "party",
+            "raid",
+            "scenario",
+            "pvp",
+            "arena",
+            "none"
+          ],
+          "title": "Instance Type",
+          "type": "string"
+        },
+        "lfg_dungeon_id": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lfg Dungeon Id"
+        },
+        "map_id": {
+          "maximum": 100000000,
+          "minimum": 0,
+          "title": "Map Id",
+          "type": "integer"
+        },
+        "max_players": {
+          "anyOf": [
+            {
+              "maximum": 80,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Players"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        }
+      },
+      "required": [
+        "map_id"
+      ],
+      "title": "InstanceInfo",
+      "type": "object"
+    },
+    "Interval": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "anyOf": [
+            {
+              "maximum": 4102444800,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "start": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start"
+      ],
+      "title": "Interval",
+      "type": "object"
+    },
+    "MeterData": {
+      "additionalProperties": false,
+      "properties": {
+        "combat_seconds": {
+          "anyOf": [
+            {
+              "maximum": 86400,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Combat Seconds"
+        },
+        "death_entries": {
+          "items": {
+            "$ref": "#/$defs/MeterDeathEntry"
+          },
+          "maxItems": 500,
+          "title": "Death Entries",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "sessions": {
+          "items": {
+            "$ref": "#/$defs/MeterSession"
+          },
+          "maxItems": 400,
+          "title": "Sessions",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "partial",
+            "secret",
+            "unavailable",
+            "disabled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "totals": {
+          "items": {
+            "$ref": "#/$defs/MeterUnitTotals"
+          },
+          "maxItems": 40,
+          "title": "Totals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "MeterData",
+      "type": "object"
+    },
+    "MeterDeathEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "death_recap_id": {
+          "anyOf": [
+            {
+              "maximum": 2147483648,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Death Recap Id"
+        },
+        "death_time_sec": {
+          "anyOf": [
+            {
+              "maximum": 86400,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Death Time Sec"
+        },
+        "guid": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 3,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Guid"
+        },
+        "session_id": {
+          "maximum": 2147483648,
+          "minimum": 0,
+          "title": "Session Id",
+          "type": "integer"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "maximum": 10000000000000.0,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total"
+        },
+        "unit_ref": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "minLength": 1,
+              "pattern": "^[a-z0-9_]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Ref"
+        }
+      },
+      "required": [
+        "session_id"
+      ],
+      "title": "MeterDeathEntry",
+      "type": "object"
+    },
+    "MeterSession": {
+      "additionalProperties": false,
+      "properties": {
+        "captured_at": {
+          "anyOf": [
+            {
+              "maximum": 4102444800,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Captured At"
+        },
+        "duration_sec": {
+          "anyOf": [
+            {
+              "maximum": 86400,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Sec"
+        },
+        "encounter_id": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Encounter Id"
+        },
+        "session_id": {
+          "maximum": 2147483648,
+          "minimum": 0,
+          "title": "Session Id",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "captured",
+            "secret",
+            "missed",
+            "partial"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "status"
+      ],
+      "title": "MeterSession",
+      "type": "object"
+    },
+    "MeterUnitTotals": {
+      "additionalProperties": false,
+      "properties": {
+        "class_file": {
+          "anyOf": [
+            {
+              "maxLength": 24,
+              "minLength": 2,
+              "pattern": "^[A-Z_]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Class File"
+        },
+        "guid": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 3,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Guid"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MeterValue"
+          },
+          "propertyNames": {
+            "enum": [
+              "damage_done",
+              "healing_done",
+              "absorbs",
+              "interrupts",
+              "dispels",
+              "damage_taken",
+              "avoidable_damage_taken",
+              "deaths"
+            ]
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 48,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "unit_ref": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "minLength": 1,
+              "pattern": "^[a-z0-9_]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Ref"
+        }
+      },
+      "title": "MeterUnitTotals",
+      "type": "object"
+    },
+    "MeterValue": {
+      "additionalProperties": false,
+      "properties": {
+        "sessions": {
+          "default": 0,
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Sessions",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "secret",
+            "unavailable",
+            "partial"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "maximum": 10000000000000.0,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "MeterValue",
+      "type": "object"
+    },
+    "NamespaceInfo": {
+      "additionalProperties": false,
+      "description": "Where a character name is unique. Forever is realmless; names are unique per region (and ruleset).",
+      "properties": {
+        "region_id": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region Id"
+        },
+        "region_name": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "pattern": "^[A-Za-z]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region Name"
+        },
+        "ruleset": {
+          "default": "unknown",
+          "enum": [
+            "pve",
+            "pvp",
+            "rp",
+            "hardcore",
+            "unknown"
+          ],
+          "title": "Ruleset",
+          "type": "string"
+        }
+      },
+      "title": "NamespaceInfo",
+      "type": "object"
+    },
+    "ProbeReportObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "client_build": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "pattern": "^[0-9.]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Client Build"
+        },
+        "namespace": {
+          "$ref": "#/$defs/NamespaceInfo"
+        },
+        "observation_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9:_.-]+$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "Observed At",
+          "type": "integer"
+        },
+        "realm_label": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "pattern": "^[^\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Realm Label"
+        },
+        "recorded_by": {
+          "$ref": "#/$defs/CharacterRef"
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/ProbeResult"
+          },
+          "maxItems": 300,
+          "title": "Results",
+          "type": "array"
+        },
+        "revision": {
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "probe_report",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "revision",
+        "recorded_by",
+        "type",
+        "observed_at"
+      ],
+      "title": "ProbeReportObservation",
+      "type": "object"
+    },
+    "ProbeResult": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Check",
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "pattern": "^[^\\x00-\\x08\\x0b-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "warn",
+            "skip",
+            "info"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check",
+        "status"
+      ],
+      "title": "ProbeResult",
+      "type": "object"
+    },
+    "RosterMember": {
+      "additionalProperties": false,
+      "properties": {
+        "class_file": {
+          "anyOf": [
+            {
+              "maxLength": 24,
+              "minLength": 2,
+              "pattern": "^[A-Z_]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Class File"
+        },
+        "class_id": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Class Id"
+        },
+        "connection_drops": {
+          "default": 0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Connection Drops",
+          "type": "integer"
+        },
+        "guid": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 3,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Guid"
+        },
+        "identity_status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "secret",
+            "unavailable"
+          ],
+          "title": "Identity Status",
+          "type": "string"
+        },
+        "is_observer": {
+          "default": false,
+          "title": "Is Observer",
+          "type": "boolean"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 48,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "presence": {
+          "items": {
+            "$ref": "#/$defs/Interval"
+          },
+          "maxItems": 64,
+          "title": "Presence",
+          "type": "array"
+        },
+        "race_file": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "minLength": 2,
+              "pattern": "^[A-Za-z_]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Race File"
+        },
+        "race_id": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Race Id"
+        },
+        "ref": {
+          "maxLength": 16,
+          "minLength": 1,
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Ref",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "TANK",
+                "HEALER",
+                "DAMAGER",
+                "NONE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "surname": {
+          "anyOf": [
+            {
+              "maxLength": 48,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Surname"
+        }
+      },
+      "required": [
+        "ref"
+      ],
+      "title": "RosterMember",
+      "type": "object"
+    },
+    "RunTiming": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "const": "server",
+          "default": "server",
+          "title": "Clock",
+          "type": "string"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "maximum": 4102444800,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ended At"
+        },
+        "last_updated_at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "Last Updated At",
+          "type": "integer"
+        },
+        "local_clock_offset": {
+          "anyOf": [
+            {
+              "maximum": 31622400,
+              "minimum": -31622400,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Clock Offset"
+        },
+        "started_at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "Started At",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "started_at",
+        "last_updated_at"
+      ],
+      "title": "RunTiming",
+      "type": "object"
+    },
+    "SnapshotSubject": {
+      "additionalProperties": false,
+      "properties": {
+        "class_file": {
+          "anyOf": [
+            {
+              "maxLength": 24,
+              "minLength": 2,
+              "pattern": "^[A-Z_]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Class File"
+        },
+        "guid": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 3,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Guid"
+        },
+        "identity_status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "secret",
+            "unavailable"
+          ],
+          "title": "Identity Status",
+          "type": "string"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 48,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "race_file": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "minLength": 2,
+              "pattern": "^[A-Za-z_]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Race File"
+        },
+        "surname": {
+          "anyOf": [
+            {
+              "maxLength": 48,
+              "minLength": 1,
+              "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Surname"
+        }
+      },
+      "title": "SnapshotSubject",
+      "type": "object"
+    },
+    "Talents": {
+      "additionalProperties": false,
+      "properties": {
+        "import_string": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "pattern": "^[A-Za-z0-9+/=_-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Import String"
+        },
+        "spec_id": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spec Id"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "unavailable",
+            "disabled"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "Talents",
+      "type": "object"
+    },
+    "TimelineEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "title": "At",
+          "type": "integer"
+        },
+        "detail": {
+          "maxLength": 12,
+          "patternProperties": {
+            "^[a-z0-9_]+$": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "propertyNames": {
+            "maxLength": 32
+          },
+          "title": "Detail",
+          "type": "object"
+        },
+        "kind": {
+          "enum": [
+            "entered",
+            "left_instance",
+            "reentered",
+            "reload",
+            "login",
+            "logout",
+            "group_joined",
+            "group_left",
+            "roster_changed",
+            "encounter_start",
+            "encounter_end",
+            "completed",
+            "abandon_vote",
+            "disconnected",
+            "meter_reset",
+            "probe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "at",
+        "kind"
+      ],
+      "title": "TimelineEvent",
+      "type": "object"
+    }
+  },
+  "$id": "https://forevertracker.example/schema/observation-batch.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The upload envelope. Observations are validated one by one after the envelope.",
+  "properties": {
+    "addon": {
+      "$ref": "#/$defs/AddonInfo"
+    },
+    "batch_id": {
+      "maxLength": 96,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9:_.-]+$",
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "client": {
+      "$ref": "#/$defs/ClientInfo"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "maximum": 4102444800,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "format": {
+      "const": "forevertracker.batch",
+      "title": "Format",
+      "type": "string"
+    },
+    "installation_id": {
+      "maxLength": 64,
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "observations": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "character_snapshot": "#/$defs/CharacterSnapshotObservation",
+            "dungeon_run": "#/$defs/DungeonRunObservation",
+            "probe_report": "#/$defs/ProbeReportObservation"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/DungeonRunObservation"
+          },
+          {
+            "$ref": "#/$defs/CharacterSnapshotObservation"
+          },
+          {
+            "$ref": "#/$defs/ProbeReportObservation"
+          }
+        ]
+      },
+      "minItems": 1,
+      "title": "Observations",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "synthetic": {
+      "default": false,
+      "title": "Synthetic",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "format",
+    "schema_version",
+    "batch_id",
+    "installation_id",
+    "observations"
+  ],
+  "title": "ForeverTracker observation batch, schema version 1",
+  "type": "object"
+}

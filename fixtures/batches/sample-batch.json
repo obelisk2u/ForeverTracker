@@ -1,0 +1,1170 @@
+{
+  "addon": {
+    "name": "ForeverTracker",
+    "schema_version": 1,
+    "version": "0.1.0"
+  },
+  "batch_id": "sv-6488c8f53a0bb188b0c7370a0200a88a68986417",
+  "client": {
+    "build": "70532",
+    "game_version": "1.60.1",
+    "interface": 16001,
+    "locale": "enUS",
+    "project_id": 1
+  },
+  "created_at": 1792000000,
+  "format": "forevertracker.batch",
+  "installation_id": "ft-267b8f0d963a00c7",
+  "observations": [
+    {
+      "client_build": "70532",
+      "equipment": {
+        "average_item_level": 20,
+        "items": [
+          {
+            "gem_ids": [],
+            "item_id": 1001,
+            "link": "|cff0070dd|Hitem:1001:0:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 1
+          },
+          {
+            "gem_ids": [],
+            "item_id": 1005,
+            "link": "|cff0070dd|Hitem:1005:0:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 5
+          },
+          {
+            "enchant_id": 33,
+            "gem_ids": [],
+            "item_id": 1016,
+            "link": "|cff0070dd|Hitem:1016:33:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 16
+          }
+        ],
+        "status": "observed"
+      },
+      "namespace": {
+        "region_id": 1,
+        "ruleset": "pve"
+      },
+      "observation_id": "s-1792000000-1",
+      "observed_at": 1792000000,
+      "realm_label": "70",
+      "recorded_by": {
+        "guid": "Player-4620-0000A1",
+        "name": "Autumn",
+        "surname": "Redleaf"
+      },
+      "revision": 1,
+      "source": "self",
+      "subject": {
+        "class_file": "MAGE",
+        "guid": "Player-4620-0000A1",
+        "identity_status": "ok",
+        "level": 18,
+        "name": "Autumn",
+        "race_file": "Human",
+        "surname": "Redleaf"
+      },
+      "talents": {
+        "status": "disabled"
+      },
+      "type": "character_snapshot"
+    },
+    {
+      "client_build": "70532",
+      "equipment": {
+        "average_item_level": 21,
+        "items": [
+          {
+            "gem_ids": [],
+            "item_id": 2001,
+            "link": "|cff0070dd|Hitem:2001:0:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 1
+          },
+          {
+            "gem_ids": [],
+            "item_id": 2005,
+            "link": "|cff0070dd|Hitem:2005:0:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 5
+          }
+        ],
+        "status": "observed"
+      },
+      "namespace": {
+        "region_id": 1,
+        "ruleset": "pve"
+      },
+      "observation_id": "s-1792000001-3",
+      "observed_at": 1792000001,
+      "realm_label": "70",
+      "recorded_by": {
+        "guid": "Player-4620-0000A1",
+        "name": "Autumn",
+        "surname": "Redleaf"
+      },
+      "revision": 1,
+      "source": "inspect",
+      "subject": {
+        "class_file": "WARRIOR",
+        "guid": "Player-4620-0000A2",
+        "identity_status": "ok",
+        "level": 18,
+        "name": "Mah",
+        "race_file": "Dwarf",
+        "surname": "Beardlong"
+      },
+      "talents": {
+        "status": "disabled"
+      },
+      "type": "character_snapshot"
+    },
+    {
+      "client_build": "70532",
+      "equipment": {
+        "average_item_level": 19,
+        "items": [
+          {
+            "gem_ids": [],
+            "item_id": 3001,
+            "link": "|cff0070dd|Hitem:3001:0:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 1
+          }
+        ],
+        "status": "observed"
+      },
+      "namespace": {
+        "region_id": 1,
+        "ruleset": "pve"
+      },
+      "observation_id": "s-1792000004-4",
+      "observed_at": 1792000004,
+      "realm_label": "70",
+      "recorded_by": {
+        "guid": "Player-4620-0000A1",
+        "name": "Autumn",
+        "surname": "Redleaf"
+      },
+      "revision": 1,
+      "source": "inspect",
+      "subject": {
+        "class_file": "PRIEST",
+        "guid": "Player-4620-0000A3",
+        "identity_status": "ok",
+        "level": 17,
+        "name": "Phineas",
+        "race_file": "Human",
+        "surname": "Longhorn"
+      },
+      "talents": {
+        "status": "disabled"
+      },
+      "type": "character_snapshot"
+    },
+    {
+      "client_build": "70532",
+      "equipment": {
+        "average_item_level": 20,
+        "items": [
+          {
+            "gem_ids": [],
+            "item_id": 4001,
+            "link": "|cff0070dd|Hitem:4001:0:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 1
+          }
+        ],
+        "status": "observed"
+      },
+      "namespace": {
+        "region_id": 1,
+        "ruleset": "pve"
+      },
+      "observation_id": "s-1792000007-5",
+      "observed_at": 1792000007,
+      "realm_label": "70",
+      "recorded_by": {
+        "guid": "Player-4620-0000A1",
+        "name": "Autumn",
+        "surname": "Redleaf"
+      },
+      "revision": 1,
+      "source": "inspect",
+      "subject": {
+        "class_file": "ROGUE",
+        "guid": "Player-4620-0000A4",
+        "identity_status": "ok",
+        "level": 18,
+        "name": "Asha",
+        "race_file": "NightElf",
+        "surname": "Brightvale"
+      },
+      "talents": {
+        "status": "disabled"
+      },
+      "type": "character_snapshot"
+    },
+    {
+      "client_build": "70532",
+      "equipment": {
+        "average_item_level": 22,
+        "items": [
+          {
+            "gem_ids": [],
+            "item_id": 5001,
+            "link": "|cff0070dd|Hitem:5001:0:0:0:0:0:0:0:20|h[Item]|h|r",
+            "quality": 3,
+            "slot": 1
+          }
+        ],
+        "status": "observed"
+      },
+      "namespace": {
+        "region_id": 1,
+        "ruleset": "pve"
+      },
+      "observation_id": "s-1792000010-6",
+      "observed_at": 1792000010,
+      "realm_label": "70",
+      "recorded_by": {
+        "guid": "Player-4620-0000A1",
+        "name": "Autumn",
+        "surname": "Redleaf"
+      },
+      "revision": 1,
+      "source": "inspect",
+      "subject": {
+        "class_file": "HUNTER",
+        "guid": "Player-4620-0000A5",
+        "identity_status": "ok",
+        "level": 19,
+        "name": "Thalen",
+        "race_file": "Dwarf",
+        "surname": "Brightvale"
+      },
+      "talents": {
+        "status": "disabled"
+      },
+      "type": "character_snapshot"
+    },
+    {
+      "client_build": "70532",
+      "collection": {
+        "deaths_unit_died": "disabled",
+        "deaths_unit_state": "active",
+        "encounters": "active",
+        "identity": "active",
+        "inspect": "active",
+        "meter": "active",
+        "roster": "active",
+        "talents": "disabled"
+      },
+      "completion": {
+        "evidence": [
+          {
+            "at": 1792000180,
+            "kind": "lfg_completion_reward"
+          }
+        ],
+        "status": "verified"
+      },
+      "deaths": [
+        {
+          "at": 1792000130,
+          "encounter_id": 3001,
+          "source": "unit_state",
+          "unit_ref": "u2"
+        }
+      ],
+      "encounters": [
+        {
+          "difficulty_id": 1,
+          "encounter_id": 3001,
+          "ended_at": 1792000160,
+          "group_size": 5,
+          "name": "Thane Ironvow",
+          "started_at": 1792000085,
+          "success": true
+        }
+      ],
+      "flags": [],
+      "instance": {
+        "difficulty_id": 1,
+        "difficulty_name": "Normal",
+        "instance_type": "party",
+        "map_id": 990001,
+        "max_players": 5,
+        "name": "Hall of Thanes"
+      },
+      "meter": {
+        "combat_seconds": 115,
+        "death_entries": [
+          {
+            "death_recap_id": 7000,
+            "death_time_sec": 10,
+            "guid": "Player-4620-0000A2",
+            "session_id": 2,
+            "total": 1,
+            "unit_ref": "u2"
+          }
+        ],
+        "sessions": [
+          {
+            "captured_at": 1792000070,
+            "duration_sec": 40,
+            "session_id": 1,
+            "status": "captured"
+          },
+          {
+            "captured_at": 1792000160,
+            "duration_sec": 75,
+            "encounter_id": 3001,
+            "session_id": 2,
+            "status": "captured"
+          }
+        ],
+        "status": "observed",
+        "totals": [
+          {
+            "class_file": "MAGE",
+            "guid": "Player-4620-0000A1",
+            "metrics": {
+              "absorbs": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "avoidable_damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "damage_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 90000
+              },
+              "damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "deaths": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "dispels": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "healing_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "interrupts": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 1
+              }
+            },
+            "name": "Autumn",
+            "unit_ref": "u1"
+          },
+          {
+            "class_file": "WARRIOR",
+            "guid": "Player-4620-0000A2",
+            "metrics": {
+              "absorbs": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "avoidable_damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "damage_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 38000
+              },
+              "damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "deaths": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 1
+              },
+              "dispels": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "healing_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "interrupts": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              }
+            },
+            "name": "Mah",
+            "unit_ref": "u2"
+          },
+          {
+            "class_file": "PRIEST",
+            "guid": "Player-4620-0000A3",
+            "metrics": {
+              "absorbs": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "avoidable_damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "damage_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "deaths": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "dispels": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "healing_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 71000
+              },
+              "interrupts": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              }
+            },
+            "name": "Phineas",
+            "unit_ref": "u3"
+          },
+          {
+            "class_file": "ROGUE",
+            "guid": "Player-4620-0000A4",
+            "metrics": {
+              "absorbs": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "avoidable_damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "damage_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 81000
+              },
+              "damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "deaths": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "dispels": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "healing_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "interrupts": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 2
+              }
+            },
+            "name": "Asha",
+            "unit_ref": "u4"
+          },
+          {
+            "class_file": "HUNTER",
+            "guid": "Player-4620-0000A5",
+            "metrics": {
+              "absorbs": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "avoidable_damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "damage_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 76000
+              },
+              "damage_taken": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "deaths": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "dispels": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "healing_done": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              },
+              "interrupts": {
+                "sessions": 2,
+                "status": "observed",
+                "value": 0
+              }
+            },
+            "name": "Thalen",
+            "unit_ref": "u5"
+          }
+        ]
+      },
+      "namespace": {
+        "region_id": 1,
+        "ruleset": "pve"
+      },
+      "observation_id": "r-1792000000-2",
+      "realm_label": "70",
+      "recorded_by": {
+        "guid": "Player-4620-0000A1",
+        "identity_status": "ok",
+        "name": "Autumn",
+        "surname": "Redleaf"
+      },
+      "revision": 2,
+      "roster": [
+        {
+          "class_file": "MAGE",
+          "class_id": 1,
+          "connection_drops": 0,
+          "guid": "Player-4620-0000A1",
+          "identity_status": "ok",
+          "is_observer": true,
+          "level": 18,
+          "name": "Autumn",
+          "presence": [
+            {
+              "end": 1792000210,
+              "start": 1792000000
+            }
+          ],
+          "race_file": "Human",
+          "race_id": 1,
+          "ref": "u1",
+          "role": "DAMAGER",
+          "surname": "Redleaf"
+        },
+        {
+          "class_file": "WARRIOR",
+          "class_id": 1,
+          "connection_drops": 0,
+          "guid": "Player-4620-0000A2",
+          "identity_status": "ok",
+          "is_observer": false,
+          "level": 18,
+          "name": "Mah",
+          "presence": [
+            {
+              "end": 1792000210,
+              "start": 1792000000
+            }
+          ],
+          "race_file": "Dwarf",
+          "race_id": 1,
+          "ref": "u2",
+          "role": "TANK",
+          "surname": "Beardlong"
+        },
+        {
+          "class_file": "PRIEST",
+          "class_id": 1,
+          "connection_drops": 0,
+          "guid": "Player-4620-0000A3",
+          "identity_status": "ok",
+          "is_observer": false,
+          "level": 17,
+          "name": "Phineas",
+          "presence": [
+            {
+              "end": 1792000210,
+              "start": 1792000000
+            }
+          ],
+          "race_file": "Human",
+          "race_id": 1,
+          "ref": "u3",
+          "role": "HEALER",
+          "surname": "Longhorn"
+        },
+        {
+          "class_file": "ROGUE",
+          "class_id": 1,
+          "connection_drops": 0,
+          "guid": "Player-4620-0000A4",
+          "identity_status": "ok",
+          "is_observer": false,
+          "level": 18,
+          "name": "Asha",
+          "presence": [
+            {
+              "end": 1792000210,
+              "start": 1792000000
+            }
+          ],
+          "race_file": "NightElf",
+          "race_id": 1,
+          "ref": "u4",
+          "role": "DAMAGER",
+          "surname": "Brightvale"
+        },
+        {
+          "class_file": "HUNTER",
+          "class_id": 1,
+          "connection_drops": 0,
+          "guid": "Player-4620-0000A5",
+          "identity_status": "ok",
+          "is_observer": false,
+          "level": 19,
+          "name": "Thalen",
+          "presence": [
+            {
+              "end": 1792000210,
+              "start": 1792000000
+            }
+          ],
+          "race_file": "Dwarf",
+          "race_id": 1,
+          "ref": "u5",
+          "role": "DAMAGER",
+          "surname": "Brightvale"
+        }
+      ],
+      "state": "completed",
+      "timeline": [
+        {
+          "at": 1792000000,
+          "detail": {
+            "map_id": 990001
+          },
+          "kind": "entered"
+        },
+        {
+          "at": 1792000085,
+          "detail": {
+            "encounter_id": 3001
+          },
+          "kind": "encounter_start"
+        },
+        {
+          "at": 1792000160,
+          "detail": {
+            "encounter_id": 3001,
+            "success": 1
+          },
+          "kind": "encounter_end"
+        },
+        {
+          "at": 1792000180,
+          "detail": {
+            "source": "lfg_completion_reward"
+          },
+          "kind": "completed"
+        },
+        {
+          "at": 1792000210,
+          "detail": [],
+          "kind": "left_instance"
+        }
+      ],
+      "timing": {
+        "clock": "server",
+        "ended_at": 1792000210,
+        "last_updated_at": 1792000210,
+        "local_clock_offset": 0,
+        "started_at": 1792000000
+      },
+      "type": "dungeon_run"
+    },
+    {
+      "client_build": "70532",
+      "namespace": {
+        "region_id": 1,
+        "ruleset": "pve"
+      },
+      "observation_id": "p-1792000215-7",
+      "observed_at": 1792000215,
+      "realm_label": "70",
+      "recorded_by": {
+        "guid": "Player-4620-0000A1",
+        "identity_status": "ok",
+        "name": "Autumn",
+        "surname": "Redleaf"
+      },
+      "results": [
+        {
+          "check": "client.build",
+          "detail": "version=1.60.1 build=70532 interface=16001 project=1",
+          "status": "pass"
+        },
+        {
+          "check": "names.regional",
+          "detail": "RegionalUniqueNamesEnabled() = true: second name value is a surname",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitGUID",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitName",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitNameUnmodified",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitClass",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitRace",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitLevel",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitExists",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitGroupRolesAssigned",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitIsDeadOrGhost",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitIsConnected",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetNumGroupMembers",
+          "status": "pass"
+        },
+        {
+          "check": "api.IsInGroup",
+          "status": "pass"
+        },
+        {
+          "check": "api.IsInRaid",
+          "status": "pass"
+        },
+        {
+          "check": "api.IsInInstance",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetInstanceInfo",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetServerTime",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetBuildInfo",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_EventUtils.IsEventValid",
+          "status": "pass"
+        },
+        {
+          "check": "api.issecretvalue",
+          "status": "pass"
+        },
+        {
+          "check": "api.RegionalUniqueNamesEnabled",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetCurrentRegion",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetCurrentRegionName",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetRealmName",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.UnitIsFeignDeath",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.NotifyInspect",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.CanInspect",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.ClearInspectPlayer",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetInventoryItemLink",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetInventoryItemQuality",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.GetAverageItemLevel",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_PaperDollInfo.GetInspectItemLevel",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_Item.GetDetailedItemLevelInfo",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_Traits.GenerateInspectImportString",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_Traits.GenerateImportString",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_ClassTalents.GetActiveConfigID",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_SpecializationInfo.GetInspectSpecialization",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_DamageMeter.IsDamageMeterAvailable",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_DamageMeter.GetAvailableCombatSessions",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_DamageMeter.GetCombatSessionFromID",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_DamageMeter.GetSessionDurationSeconds",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_RestrictedActions.GetAddOnRestrictionState",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_CombatLog.IsCombatLogRestricted",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_GameRules.IsGameRuleActive",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.C_EncodingUtil.SerializeJSON",
+          "detail": "absent",
+          "status": "info"
+        },
+        {
+          "check": "api.issecrettable",
+          "detail": "absent",
+          "status": "pass"
+        },
+        {
+          "check": "api.CombatLogGetCurrentEventInfo",
+          "detail": "absent",
+          "status": "info"
+        },
+        {
+          "check": "event.PLAYER_ENTERING_WORLD",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.PLAYER_LOGOUT",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.GROUP_ROSTER_UPDATE",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.GROUP_JOINED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.GROUP_LEFT",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.PLAYER_DEAD",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.ENCOUNTER_START",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.ENCOUNTER_END",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.BOSS_KILL",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.LFG_COMPLETION_REWARD",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.SCENARIO_COMPLETED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.CHALLENGE_MODE_COMPLETED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.INSTANCE_ABANDON_VOTE_FINISHED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.PLAYER_REGEN_ENABLED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.UNIT_FLAGS",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.UNIT_HEALTH",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.UNIT_DIED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.PARTY_KILL",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.INSPECT_READY",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.DAMAGE_METER_COMBAT_SESSION_UPDATED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.DAMAGE_METER_CURRENT_SESSION_UPDATED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.DAMAGE_METER_RESET",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.ADDON_RESTRICTION_STATE_CHANGED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "event.COMBAT_LOG_EVENT_UNFILTERED",
+          "detail": "not valid on this client",
+          "status": "pass"
+        },
+        {
+          "check": "identity.player",
+          "detail": "status=ok name=yes surname=yes guid=yes class=MAGE level=18 role=DAMAGER",
+          "status": "pass"
+        },
+        {
+          "check": "identity.party",
+          "detail": "ok=4 secret=0 unavailable=0 without_guid=0",
+          "status": "pass"
+        },
+        {
+          "check": "namespace",
+          "detail": "region_id=1 region_name=nil ruleset=pve realm_label=70",
+          "status": "info"
+        },
+        {
+          "check": "instance",
+          "detail": "in_instance=false type=none map_id=nil difficulty=nil name=nil",
+          "status": "info"
+        },
+        {
+          "check": "meter.available",
+          "status": "pass"
+        },
+        {
+          "check": "meter.sessions",
+          "detail": "available sessions: 2",
+          "status": "info"
+        },
+        {
+          "check": "meter.read",
+          "detail": "session 2: sources=4 readable=4 secret=0 in_combat=false",
+          "status": "pass"
+        },
+        {
+          "check": "restrictions",
+          "detail": "ChallengeMode=0 Chat=0 Combat=0 Encounter=0 Map=0 PvPMatch=0",
+          "status": "info"
+        },
+        {
+          "check": "combatlog",
+          "detail": "IsCombatLogRestricted=true CombatLogGetCurrentEventInfo=absent",
+          "status": "info"
+        },
+        {
+          "check": "savedvariables.loaded",
+          "detail": "no earlier ForeverTracker data was loaded (first run, or the client did not load SavedVariables)",
+          "status": "warn"
+        },
+        {
+          "check": "savedvariables.persist",
+          "detail": "run /ft probe persist to start the persistence test",
+          "status": "skip"
+        },
+        {
+          "check": "collectors",
+          "detail": "deaths_unit_died=off deaths_unit_state=on encounters=on identity=on inspect=on meter=on talents=off",
+          "status": "info"
+        },
+        {
+          "check": "errors",
+          "detail": "no collector errors",
+          "status": "pass"
+        }
+      ],
+      "revision": 1,
+      "type": "probe_report"
+    }
+  ],
+  "schema_version": 1,
+  "synthetic": true
+}

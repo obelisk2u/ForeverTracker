@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0a0e16;
+  --color-surface: #111724;
+  --color-surface-2: #172031;
+  --color-surface-3: #1f2a3f;
+  --color-line: #263249;
+  --color-line-strong: #34425f;
+  --color-text: #e7eaf1;
+  --color-muted: #96a2bb;
+  --color-faint: #66728b;
+  --color-gold: #e2b356;
+  --color-gold-strong: #f3c86e;
+  --color-gold-dim: #7a5d25;
+  --color-good: #4fd07f;
+  --color-bad: #f0626a;
+  --color-warn: #f2a93b;
+  --color-info: #6aa8ff;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cinzel", Georgia, serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(1200px 500px at 50% -120px, rgb(226 179 86 / 0.09), transparent 70%),
+    var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgb(226 179 86 / 0.35);
+}
+
+.card {
+  background: linear-gradient(180deg, var(--color-surface-2), var(--color-surface));
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+}
+
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-gold);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

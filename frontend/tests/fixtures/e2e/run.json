@@ -1,0 +1,1802 @@
+{
+  "completion_confidence": "verified",
+  "contributor_count": 2,
+  "coverage": {
+    "deaths": "complete",
+    "full_run_observed": true,
+    "meter": "complete",
+    "observers": 2,
+    "participants_identified": 5,
+    "party_guid_conflict": false,
+    "roster_entries_unidentified": 0
+  },
+  "deaths": [
+    {
+      "character_id": "awfm2gkk4s",
+      "encounter_id": 3001,
+      "observed_by": 2,
+      "occurred_at": "2026-10-14T17:51:25Z",
+      "sources": [
+        "unit_state"
+      ]
+    }
+  ],
+  "difficulty_id": 1,
+  "difficulty_name": "Normal",
+  "dungeon": {
+    "map_id": 990001,
+    "name": "Hall of Thanes",
+    "slug": "hall-of-thanes"
+  },
+  "duration_seconds": 735,
+  "encounters": [
+    {
+      "conflict": false,
+      "encounter_id": 3001,
+      "ended_at": "2026-10-14T17:52:05Z",
+      "name": "Thane Ironvow",
+      "observed_by": 2,
+      "started_at": "2026-10-14T17:50:35Z",
+      "success": true
+    },
+    {
+      "conflict": false,
+      "encounter_id": 3002,
+      "ended_at": "2026-10-14T17:58:10Z",
+      "name": "The Hollow King",
+      "observed_by": 2,
+      "started_at": "2026-10-14T17:55:55Z",
+      "success": true
+    }
+  ],
+  "ended_at": "2026-10-14T17:58:55Z",
+  "is_synthetic": false,
+  "last_observed_at": "2026-10-14T17:58:55Z",
+  "match_status": "reconciled",
+  "namespace": {
+    "display_name": "US \u00b7 Normal",
+    "region": "us",
+    "ruleset": "pve",
+    "slug": "us-pve"
+  },
+  "observation_count": 2,
+  "outcome": "completed",
+  "outcome_evidence": [
+    {
+      "at": 1792000690,
+      "kind": "lfg_completion_reward"
+    },
+    {
+      "at": 1792000690,
+      "kind": "lfg_completion_reward"
+    }
+  ],
+  "participants": [
+    {
+      "candidates": {
+        "absorbs": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "avoidable_damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "damage_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 89000.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 84550.0
+          }
+        ],
+        "damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "deaths": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 1.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 1.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "All observers (deduplicated)",
+            "source": "death_events",
+            "status": "observed",
+            "value": 1.0
+          }
+        ],
+        "dispels": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "healing_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "interrupts": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ]
+      },
+      "character": {
+        "class_file": "WARRIOR",
+        "first_observed_at": "2026-10-14T17:46:40Z",
+        "full_name": "Mah Beardlong",
+        "id": "awfm2gkk4s",
+        "identity_confidence": "guid_confirmed",
+        "is_synthetic": false,
+        "last_observed_at": "2026-10-14T17:47:04Z",
+        "latest_level": 18,
+        "name": "Mah",
+        "namespace": "us-pve",
+        "namespace_display": "US \u00b7 Normal",
+        "race_file": "Dwarf",
+        "runs_observed": 1,
+        "surname": "Beardlong"
+      },
+      "class_file": "WARRIOR",
+      "completeness": {
+        "deaths": "complete_session",
+        "identity": "guid",
+        "meter": "complete_session",
+        "presence_ratio": 1.0
+      },
+      "conflicts": {
+        "damage_done": {
+          "candidates": [
+            {
+              "coverage": "complete_session",
+              "coverage_ratio": 1.0,
+              "observation": 6,
+              "source": "native_damage_meter",
+              "status": "observed",
+              "value": 89000.0
+            },
+            {
+              "coverage": "complete_session",
+              "coverage_ratio": 0.9728,
+              "observation": 12,
+              "source": "native_damage_meter",
+              "status": "observed",
+              "value": 84550.0
+            }
+          ],
+          "reason": "observers_disagree",
+          "spread": [
+            84550.0,
+            89000.0
+          ]
+        },
+        "dps": {
+          "candidates": [
+            {
+              "coverage": "complete_session",
+              "coverage_ratio": 1.0,
+              "observation": 6,
+              "source": "native_damage_meter",
+              "status": "observed",
+              "value": 89000.0
+            },
+            {
+              "coverage": "complete_session",
+              "coverage_ratio": 0.9728,
+              "observation": 12,
+              "source": "native_damage_meter",
+              "status": "observed",
+              "value": 84550.0
+            }
+          ],
+          "reason": "observers_disagree",
+          "spread": [
+            84550.0,
+            89000.0
+          ]
+        }
+      },
+      "joined_at": "2026-10-14T17:46:40Z",
+      "left_at": "2026-10-14T17:58:55Z",
+      "level": 18,
+      "metrics": {
+        "absorbs": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "absorbs",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "avoidable_damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "avoidable_damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "damage_done": {
+          "confidence": "low",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_done",
+          "resolution": "conflicted",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 89000.0
+        },
+        "damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "deaths": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "deaths",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 1.0
+        },
+        "dispels": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "dispels",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dps": {
+          "confidence": "low",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "dps",
+          "resolution": "conflicted",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 356.0
+        },
+        "healing_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "healing_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "hps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "hps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 0.0
+        },
+        "interrupts": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "interrupts",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        }
+      },
+      "observed_by": 2,
+      "presence_ratio": 1.0,
+      "role": "TANK",
+      "was_observer": false
+    },
+    {
+      "candidates": {
+        "absorbs": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "avoidable_damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "damage_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "deaths": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "All observers (deduplicated)",
+            "source": "death_events",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "dispels": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 1.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 1.0
+          }
+        ],
+        "healing_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 153000.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 153000.0
+          }
+        ],
+        "interrupts": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ]
+      },
+      "character": {
+        "class_file": "PRIEST",
+        "first_observed_at": "2026-10-14T17:46:40Z",
+        "full_name": "Phineas Longhorn",
+        "id": "c2532ujycb",
+        "identity_confidence": "guid_confirmed",
+        "is_synthetic": false,
+        "last_observed_at": "2026-10-14T17:47:00Z",
+        "latest_level": 17,
+        "name": "Phineas",
+        "namespace": "us-pve",
+        "namespace_display": "US \u00b7 Normal",
+        "race_file": "Human",
+        "runs_observed": 1,
+        "surname": "Longhorn"
+      },
+      "class_file": "PRIEST",
+      "completeness": {
+        "deaths": "complete_session",
+        "identity": "guid",
+        "meter": "complete_session",
+        "presence_ratio": 1.0
+      },
+      "conflicts": {},
+      "joined_at": "2026-10-14T17:46:40Z",
+      "left_at": "2026-10-14T17:58:55Z",
+      "level": 17,
+      "metrics": {
+        "absorbs": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "absorbs",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "avoidable_damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "avoidable_damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "damage_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "deaths": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "deaths",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dispels": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "dispels",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 1.0
+        },
+        "dps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "dps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 0.0
+        },
+        "healing_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "healing_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 153000.0
+        },
+        "hps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "hps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 612.0
+        },
+        "interrupts": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "interrupts",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        }
+      },
+      "observed_by": 2,
+      "presence_ratio": 1.0,
+      "role": "HEALER",
+      "was_observer": true
+    },
+    {
+      "candidates": {
+        "absorbs": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "avoidable_damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "damage_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 195000.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 195000.0
+          }
+        ],
+        "damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "deaths": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "All observers (deduplicated)",
+            "source": "death_events",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "dispels": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "healing_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "interrupts": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 3.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 3.0
+          }
+        ]
+      },
+      "character": {
+        "class_file": "MAGE",
+        "first_observed_at": "2026-10-14T17:46:40Z",
+        "full_name": "Autumn Redleaf",
+        "id": "a452yhtupq",
+        "identity_confidence": "guid_confirmed",
+        "is_synthetic": false,
+        "last_observed_at": "2026-10-14T17:47:01Z",
+        "latest_level": 18,
+        "name": "Autumn",
+        "namespace": "us-pve",
+        "namespace_display": "US \u00b7 Normal",
+        "race_file": "Human",
+        "runs_observed": 1,
+        "surname": "Redleaf"
+      },
+      "class_file": "MAGE",
+      "completeness": {
+        "deaths": "complete_session",
+        "identity": "guid",
+        "meter": "complete_session",
+        "presence_ratio": 1.0
+      },
+      "conflicts": {},
+      "joined_at": "2026-10-14T17:46:40Z",
+      "left_at": "2026-10-14T17:58:55Z",
+      "level": 18,
+      "metrics": {
+        "absorbs": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "absorbs",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "avoidable_damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "avoidable_damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "damage_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 195000.0
+        },
+        "damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "deaths": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "deaths",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dispels": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "dispels",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "dps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 780.0
+        },
+        "healing_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "healing_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "hps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "hps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 0.0
+        },
+        "interrupts": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "interrupts",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 3.0
+        }
+      },
+      "observed_by": 2,
+      "presence_ratio": 1.0,
+      "role": "DAMAGER",
+      "was_observer": true
+    },
+    {
+      "candidates": {
+        "absorbs": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "avoidable_damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "damage_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 175000.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 175000.0
+          }
+        ],
+        "damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "deaths": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "All observers (deduplicated)",
+            "source": "death_events",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "dispels": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "healing_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "interrupts": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 3.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 3.0
+          }
+        ]
+      },
+      "character": {
+        "class_file": "ROGUE",
+        "first_observed_at": "2026-10-14T17:46:40Z",
+        "full_name": "Asha Brightvale",
+        "id": "6395cpuwfy",
+        "identity_confidence": "guid_confirmed",
+        "is_synthetic": false,
+        "last_observed_at": "2026-10-14T17:47:07Z",
+        "latest_level": 18,
+        "name": "Asha",
+        "namespace": "us-pve",
+        "namespace_display": "US \u00b7 Normal",
+        "race_file": "NightElf",
+        "runs_observed": 1,
+        "surname": "Brightvale"
+      },
+      "class_file": "ROGUE",
+      "completeness": {
+        "deaths": "complete_session",
+        "identity": "guid",
+        "meter": "complete_session",
+        "presence_ratio": 1.0
+      },
+      "conflicts": {},
+      "joined_at": "2026-10-14T17:46:40Z",
+      "left_at": "2026-10-14T17:58:55Z",
+      "level": 18,
+      "metrics": {
+        "absorbs": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "absorbs",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "avoidable_damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "avoidable_damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "damage_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 175000.0
+        },
+        "damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "deaths": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "deaths",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dispels": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "dispels",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "dps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 700.0
+        },
+        "healing_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "healing_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "hps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "hps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 0.0
+        },
+        "interrupts": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "interrupts",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 3.0
+        }
+      },
+      "observed_by": 2,
+      "presence_ratio": 1.0,
+      "role": "DAMAGER",
+      "was_observer": false
+    },
+    {
+      "candidates": {
+        "absorbs": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "avoidable_damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "damage_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 172000.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 172000.0
+          }
+        ],
+        "damage_taken": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "deaths": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "All observers (deduplicated)",
+            "source": "death_events",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "dispels": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "healing_done": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ],
+        "interrupts": [
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 1.0,
+            "observer": "Observer A",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          },
+          {
+            "collected_at": "2026-10-14T17:58:55Z",
+            "coverage": "complete_session",
+            "coverage_ratio": 0.9728,
+            "observer": "Observer B",
+            "source": "native_damage_meter",
+            "status": "observed",
+            "value": 0.0
+          }
+        ]
+      },
+      "character": {
+        "class_file": "HUNTER",
+        "first_observed_at": "2026-10-14T17:46:40Z",
+        "full_name": "Thalen Brightvale",
+        "id": "hdwfnhy7sy",
+        "identity_confidence": "guid_confirmed",
+        "is_synthetic": false,
+        "last_observed_at": "2026-10-14T17:47:10Z",
+        "latest_level": 19,
+        "name": "Thalen",
+        "namespace": "us-pve",
+        "namespace_display": "US \u00b7 Normal",
+        "race_file": "Dwarf",
+        "runs_observed": 1,
+        "surname": "Brightvale"
+      },
+      "class_file": "HUNTER",
+      "completeness": {
+        "deaths": "complete_session",
+        "identity": "guid",
+        "meter": "complete_session",
+        "presence_ratio": 1.0
+      },
+      "conflicts": {},
+      "joined_at": "2026-10-14T17:46:40Z",
+      "left_at": "2026-10-14T17:58:55Z",
+      "level": 19,
+      "metrics": {
+        "absorbs": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "absorbs",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "avoidable_damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "avoidable_damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "damage_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 172000.0
+        },
+        "damage_taken": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_taken",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "deaths": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "deaths",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dispels": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "dispels",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        },
+        "dps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "dps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 688.0
+        },
+        "healing_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "healing_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "hps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "hps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 0.0
+        },
+        "interrupts": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "interrupts",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        }
+      },
+      "observed_by": 2,
+      "presence_ratio": 1.0,
+      "role": "DAMAGER",
+      "was_observer": false
+    }
+  ],
+  "run_id": "ktdf4f6xhs",
+  "sources": [
+    {
+      "client_build": "70532",
+      "collectors": {
+        "deaths_unit_died": "disabled",
+        "deaths_unit_state": "active",
+        "encounters": "active",
+        "identity": "active",
+        "inspect": "active",
+        "meter": "active",
+        "roster": "active",
+        "talents": "disabled"
+      },
+      "ended_at": "2026-10-14T17:58:55Z",
+      "meter_status": "observed",
+      "observer": "Observer A",
+      "revision": 2,
+      "started_at": "2026-10-14T17:46:40Z",
+      "state": "completed",
+      "uploaded_at": "2026-10-26T23:21:16.472007Z"
+    },
+    {
+      "client_build": "70532",
+      "collectors": {
+        "deaths_unit_died": "disabled",
+        "deaths_unit_state": "active",
+        "encounters": "active",
+        "identity": "active",
+        "inspect": "active",
+        "meter": "active",
+        "roster": "active",
+        "talents": "disabled"
+      },
+      "ended_at": "2026-10-14T17:58:55Z",
+      "meter_status": "observed",
+      "observer": "Observer B",
+      "revision": 2,
+      "started_at": "2026-10-14T17:47:00Z",
+      "state": "completed",
+      "uploaded_at": "2026-10-26T23:21:17.207914Z"
+    }
+  ],
+  "started_at": "2026-10-14T17:46:40Z",
+  "wipes": []
+}

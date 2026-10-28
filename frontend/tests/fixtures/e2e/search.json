@@ -1,0 +1,42 @@
+{
+  "duplicate_names": [],
+  "exact": false,
+  "page": 1,
+  "page_size": 20,
+  "query": "bright",
+  "results": [
+    {
+      "class_file": "HUNTER",
+      "first_observed_at": "2026-10-14T17:46:40Z",
+      "full_name": "Thalen Brightvale",
+      "id": "hdwfnhy7sy",
+      "identity_confidence": "guid_confirmed",
+      "is_synthetic": false,
+      "last_observed_at": "2026-10-14T17:47:10Z",
+      "latest_level": 19,
+      "name": "Thalen",
+      "namespace": "us-pve",
+      "namespace_display": "US \u00b7 Normal",
+      "race_file": "Dwarf",
+      "runs_observed": 1,
+      "surname": "Brightvale"
+    },
+    {
+      "class_file": "ROGUE",
+      "first_observed_at": "2026-10-14T17:46:40Z",
+      "full_name": "Asha Brightvale",
+      "id": "6395cpuwfy",
+      "identity_confidence": "guid_confirmed",
+      "is_synthetic": false,
+      "last_observed_at": "2026-10-14T17:47:07Z",
+      "latest_level": 18,
+      "name": "Asha",
+      "namespace": "us-pve",
+      "namespace_display": "US \u00b7 Normal",
+      "race_file": "NightElf",
+      "runs_observed": 1,
+      "surname": "Brightvale"
+    }
+  ],
+  "total": 2
+}

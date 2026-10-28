@@ -1,0 +1,202 @@
+{
+  "items": [
+    {
+      "completion_confidence": "verified",
+      "dungeon": {
+        "map_id": 990001,
+        "name": "Hall of Thanes",
+        "slug": "hall-of-thanes"
+      },
+      "duration_seconds": 735,
+      "ended_at": "2026-10-14T17:58:55Z",
+      "is_synthetic": false,
+      "level": 18,
+      "match_status": "reconciled",
+      "metrics": {
+        "damage_done": {
+          "confidence": "low",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "damage_done",
+          "resolution": "conflicted",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 89000.0
+        },
+        "deaths": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "deaths",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 1.0
+        },
+        "dps": {
+          "confidence": "low",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "dps",
+          "resolution": "conflicted",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 356.0
+        },
+        "healing_done": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "healing_done",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "amount",
+          "value": 0.0
+        },
+        "hps": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": true,
+          "metric": "hps",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "per_second",
+          "value": 0.0
+        },
+        "interrupts": {
+          "confidence": "high",
+          "contributors": 2,
+          "coverage": "complete_session",
+          "derived": false,
+          "metric": "interrupts",
+          "resolution": "corroborated",
+          "source": "native_damage_meter",
+          "status": "observed",
+          "unit": "count",
+          "value": 0.0
+        }
+      },
+      "observers": 2,
+      "outcome": "completed",
+      "party": [
+        {
+          "character": {
+            "class_file": "WARRIOR",
+            "first_observed_at": "2026-10-14T17:46:40Z",
+            "full_name": "Mah Beardlong",
+            "id": "awfm2gkk4s",
+            "identity_confidence": "guid_confirmed",
+            "is_synthetic": false,
+            "last_observed_at": "2026-10-14T17:47:04Z",
+            "latest_level": 18,
+            "name": "Mah",
+            "namespace": "us-pve",
+            "namespace_display": "US \u00b7 Normal",
+            "race_file": "Dwarf",
+            "runs_observed": 1,
+            "surname": "Beardlong"
+          },
+          "class_file": "WARRIOR",
+          "role": "TANK"
+        },
+        {
+          "character": {
+            "class_file": "MAGE",
+            "first_observed_at": "2026-10-14T17:46:40Z",
+            "full_name": "Autumn Redleaf",
+            "id": "a452yhtupq",
+            "identity_confidence": "guid_confirmed",
+            "is_synthetic": false,
+            "last_observed_at": "2026-10-14T17:47:01Z",
+            "latest_level": 18,
+            "name": "Autumn",
+            "namespace": "us-pve",
+            "namespace_display": "US \u00b7 Normal",
+            "race_file": "Human",
+            "runs_observed": 1,
+            "surname": "Redleaf"
+          },
+          "class_file": "MAGE",
+          "role": "DAMAGER"
+        },
+        {
+          "character": {
+            "class_file": "ROGUE",
+            "first_observed_at": "2026-10-14T17:46:40Z",
+            "full_name": "Asha Brightvale",
+            "id": "6395cpuwfy",
+            "identity_confidence": "guid_confirmed",
+            "is_synthetic": false,
+            "last_observed_at": "2026-10-14T17:47:07Z",
+            "latest_level": 18,
+            "name": "Asha",
+            "namespace": "us-pve",
+            "namespace_display": "US \u00b7 Normal",
+            "race_file": "NightElf",
+            "runs_observed": 1,
+            "surname": "Brightvale"
+          },
+          "class_file": "ROGUE",
+          "role": "DAMAGER"
+        },
+        {
+          "character": {
+            "class_file": "HUNTER",
+            "first_observed_at": "2026-10-14T17:46:40Z",
+            "full_name": "Thalen Brightvale",
+            "id": "hdwfnhy7sy",
+            "identity_confidence": "guid_confirmed",
+            "is_synthetic": false,
+            "last_observed_at": "2026-10-14T17:47:10Z",
+            "latest_level": 19,
+            "name": "Thalen",
+            "namespace": "us-pve",
+            "namespace_display": "US \u00b7 Normal",
+            "race_file": "Dwarf",
+            "runs_observed": 1,
+            "surname": "Brightvale"
+          },
+          "class_file": "HUNTER",
+          "role": "DAMAGER"
+        },
+        {
+          "character": {
+            "class_file": "PRIEST",
+            "first_observed_at": "2026-10-14T17:46:40Z",
+            "full_name": "Phineas Longhorn",
+            "id": "c2532ujycb",
+            "identity_confidence": "guid_confirmed",
+            "is_synthetic": false,
+            "last_observed_at": "2026-10-14T17:47:00Z",
+            "latest_level": 17,
+            "name": "Phineas",
+            "namespace": "us-pve",
+            "namespace_display": "US \u00b7 Normal",
+            "race_file": "Human",
+            "runs_observed": 1,
+            "surname": "Longhorn"
+          },
+          "class_file": "PRIEST",
+          "role": "HEALER"
+        }
+      ],
+      "presence_ratio": 1.0,
+      "role": "TANK",
+      "run_id": "ktdf4f6xhs",
+      "started_at": "2026-10-14T17:46:40Z"
+    }
+  ],
+  "page": 1,
+  "page_size": 25,
+  "total": 1
+}

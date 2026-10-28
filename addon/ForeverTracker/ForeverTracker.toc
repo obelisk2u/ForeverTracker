@@ -1,0 +1,28 @@
+## Interface: 16001
+## Title: ForeverTracker
+## Notes: Records the dungeon runs you take part in (party roster, bosses, deaths, native damage-meter totals, equipment) for upload to ForeverTracker. Makes no network requests.
+## Author: ForeverTracker
+## Version: 0.1.0
+## SavedVariables: ForeverTrackerDB
+## IconTexture: Interface\Icons\INV_Misc_Book_11
+## X-Schema-Version: 1
+## X-Verification: pending live validation on the Forever client (see docs/FOREVER_LAUNCH_VALIDATION.md)
+
+Core\Namespace.lua
+Core\Safe.lua
+Core\Config.lua
+Core\Events.lua
+Core\Storage.lua
+Collectors\Identity.lua
+Collectors\Instance.lua
+Collectors\Roster.lua
+Collectors\Encounters.lua
+Collectors\Deaths.lua
+Collectors\DamageMeter.lua
+Collectors\Inspect.lua
+Sessions\RunTracker.lua
+Export\Json.lua
+Export\ExportFrame.lua
+Diagnostics\Probe.lua
+Diagnostics\Commands.lua
+Core\Init.lua

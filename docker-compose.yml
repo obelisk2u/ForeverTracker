@@ -1,0 +1,59 @@
+# Development stack. Production uses docker-compose.prod.yml (see docs/DEPLOYMENT.md).
+name: forevertracker
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: forevertracker
+      POSTGRES_PASSWORD: forevertracker_dev
+      POSTGRES_DB: forevertracker
+    ports:
+      # Host port 5433 avoids clashing with a locally installed PostgreSQL.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forevertracker -d forevertracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        INSTALL_DEV_TOOLS: "true"  # the simulator, for `python -m app.cli seed`
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg://forevertracker:forevertracker_dev@db:5432/forevertracker
+      ADMIN_TOKEN: dev-admin-token
+      CORS_ORIGINS: http://localhost:3000
+      LOG_JSON: "false"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /srv/backend/app"
+    volumes:
+      - ./backend/app:/srv/backend/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      # Server components call the API over the compose network; the browser uses localhost.
+      API_BASE_URL: http://backend:8000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

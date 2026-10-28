@@ -1,0 +1,194 @@
+{
+  "canonical_path": "/character/us-pve/awfm2gkk4s",
+  "character": {
+    "class_file": "WARRIOR",
+    "first_observed_at": "2026-10-14T17:46:40Z",
+    "full_name": "Mah Beardlong",
+    "id": "awfm2gkk4s",
+    "identity_confidence": "guid_confirmed",
+    "is_synthetic": false,
+    "last_observed_at": "2026-10-14T17:47:04Z",
+    "latest_level": 18,
+    "name": "Mah",
+    "namespace": "us-pve",
+    "namespace_display": "US \u00b7 Normal",
+    "race_file": "Dwarf",
+    "runs_observed": 1,
+    "surname": "Beardlong"
+  },
+  "claim_status": "unclaimed",
+  "freshness": {
+    "data_age_seconds": 1056853,
+    "last_observed_at": "2026-10-14T17:47:04Z",
+    "stats_computed_at": "2026-10-26T23:21:17.478147Z"
+  },
+  "latest_gear": {
+    "average_item_level": 21.0,
+    "items": [
+      {
+        "enchant_id": null,
+        "gem_ids": [],
+        "item_id": 2001,
+        "item_level": null,
+        "link": "|cff0070dd|Hitem:2001:0:0:0:0:0:0:0:20|h[Item]|h|r",
+        "quality": 3,
+        "slot": 1,
+        "slot_name": "Head"
+      },
+      {
+        "enchant_id": null,
+        "gem_ids": [],
+        "item_id": 2005,
+        "item_level": null,
+        "link": "|cff0070dd|Hitem:2005:0:0:0:0:0:0:0:20|h[Item]|h|r",
+        "quality": 3,
+        "slot": 5,
+        "slot_name": "Chest"
+      }
+    ],
+    "level": 18,
+    "observed_at": "2026-10-14T17:47:04Z",
+    "source": "inspect",
+    "status": "observed",
+    "talents_status": "disabled"
+  },
+  "name_history": [
+    {
+      "first_seen_at": "2026-10-14T17:46:40Z",
+      "full_name": "Mah Beardlong",
+      "last_seen_at": "2026-10-14T17:47:04Z"
+    }
+  ],
+  "notices": [
+    "Observed history only: runs appear here when a ForeverTracker user was in the group.",
+    "This profile is not claimed. Being listed here does not identify the account owner."
+  ],
+  "realm_label": null,
+  "stats": {
+    "boss_kills_observed": {
+      "definition": "boss_kills_observed.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 2.0
+    },
+    "by_dungeon": [
+      {
+        "completions_confirmed": 1,
+        "deaths_per_run_mean": {
+          "definition": "deaths_per_run_mean.v1",
+          "excluded": 0,
+          "exclusion_reasons": {},
+          "note": null,
+          "sample_size": 1,
+          "value": 1.0
+        },
+        "dps_median": {
+          "definition": "dps_median.v1",
+          "excluded": 0,
+          "exclusion_reasons": {},
+          "note": null,
+          "sample_size": 1,
+          "value": 356.0
+        },
+        "dungeon": {
+          "name": "Hall of Thanes",
+          "slug": "hall-of-thanes"
+        },
+        "last_run_at": "2026-10-14T17:46:40+00:00",
+        "runs": 1
+      }
+    ],
+    "completed_run_duration_mean": {
+      "definition": "completed_run_duration_mean.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 735.0
+    },
+    "completions_confirmed": {
+      "definition": "completions_confirmed.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 1.0
+    },
+    "data_quality": {
+      "runs_in_progress_or_unknown": 0,
+      "runs_reconciled_from_multiple_observers": 1,
+      "runs_with_complete_death_coverage": 1,
+      "runs_with_complete_meter_coverage": 1
+    },
+    "death_free_run_pct": {
+      "definition": "death_free_run_pct.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 0.0
+    },
+    "deaths_observed_total": {
+      "definition": "deaths_observed_total.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": "lower_bound: includes partially observed runs",
+      "sample_size": 1,
+      "value": 1.0
+    },
+    "deaths_per_run_mean": {
+      "definition": "deaths_per_run_mean.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 1.0
+    },
+    "deaths_per_run_median": {
+      "definition": "deaths_per_run_median.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 1.0
+    },
+    "definitions_version": 1,
+    "dps_median": {
+      "definition": "dps_median.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 356.0
+    },
+    "hps_median": {
+      "definition": "hps_median.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": "insufficient_sample",
+      "sample_size": 0,
+      "value": null
+    },
+    "interrupts_per_run_mean": {
+      "definition": "interrupts_per_run_mean.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 0.0
+    },
+    "runs_by_role": {
+      "TANK": 1
+    },
+    "runs_observed": {
+      "definition": "runs_observed.v1",
+      "excluded": 0,
+      "exclusion_reasons": {},
+      "note": null,
+      "sample_size": 1,
+      "value": 1.0
+    }
+  }
+}
