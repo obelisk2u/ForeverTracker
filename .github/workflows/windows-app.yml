@@ -59,7 +59,8 @@ jobs:
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          # The identity can only sign (one role, on the signing account), so it sees no subscription.
+          allow-no-subscriptions: true
       - name: Sign the app
         if: env.SIGN == 'true'
         uses: azure/artifact-signing-action@v2

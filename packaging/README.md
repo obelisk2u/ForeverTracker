@@ -53,8 +53,8 @@ or key stored anywhere:
   on the maintainer's validated identity, so Windows shows the publisher as that name.
 - A Microsoft Entra app registration with a **federated credential** for this repository's `main` branch and the
   *Artifact Signing Certificate Profile Signer* role on the signing account.
-- Repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. Without them the
-  workflow still builds, unsigned.
+- Repository variables `AZURE_CLIENT_ID` (the app registration's *Application (client) ID*, not its Object ID)
+  and `AZURE_TENANT_ID`. Without them the workflow still builds, unsigned.
 
 To build locally instead, from the repo root in a Python 3.11+ environment:
 
