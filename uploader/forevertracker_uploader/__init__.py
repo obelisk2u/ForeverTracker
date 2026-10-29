@@ -10,4 +10,4 @@ Guarantees:
 * Can be paused at any time; `disclose` shows exactly what would be sent.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

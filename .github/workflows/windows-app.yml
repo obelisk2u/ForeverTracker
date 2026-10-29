@@ -46,7 +46,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install the uploader and PyInstaller
-        run: pip install ./packages/savedvariables ./uploader pyinstaller==6.11.1
+        # PyInstaller's launcher is compiled here from source rather than taken prebuilt: the prebuilt one is
+        # shared by countless other programs, malware among them, and antivirus signatures match it.
+        env:
+          PYINSTALLER_COMPILE_BOOTLOADER: "1"
+        run: |
+          pip install ./packages/savedvariables ./uploader
+          pip install pyinstaller==6.11.1 --no-binary pyinstaller
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
       - name: Build the app
@@ -68,7 +74,7 @@ jobs:
           endpoint: https://eus.codesigning.azure.net/
           signing-account-name: forevertracker
           certificate-profile-name: forevertracker
-          files: ${{ github.workspace }}\dist\ForeverTrackerUploader.exe
+          files: ${{ github.workspace }}\dist\ForeverTrackerUploader\ForeverTrackerUploader.exe
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
@@ -111,7 +117,8 @@ jobs:
         if: env.SIGN == 'true'
         shell: pwsh
         run: |
-          foreach ($s in Get-AuthenticodeSignature dist\*.exe) {
+          $files = @("dist\ForeverTrackerUploader\ForeverTrackerUploader.exe") + (Get-ChildItem dist\ForeverTracker-Setup-*.exe).FullName
+          foreach ($s in Get-AuthenticodeSignature -FilePath $files) {
             if ($s.Status -ne "Valid") { throw "$($s.Path) is not validly signed: $($s.StatusMessage)" }
             "$(Split-Path -Leaf $s.Path): $($s.SignerCertificate.Subject)"
           }
@@ -121,7 +128,7 @@ jobs:
         with:
           name: ForeverTracker-windows-${{ env.SIGN == 'true' && 'signed' || 'unsigned' }}
           path: |
-            dist/ForeverTrackerUploader.exe
+            dist/ForeverTrackerUploader/
             dist/ForeverTracker-Setup-*.exe
           if-no-files-found: error
 

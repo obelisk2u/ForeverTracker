@@ -4,7 +4,7 @@
 #     .\packaging\build.ps1
 #
 # Produces:
-#     dist\ForeverTrackerUploader.exe          (the app)
+#     dist\ForeverTrackerUploader\             (the app: ForeverTrackerUploader.exe and _internal\)
 #     dist\ForeverTracker-Setup-<version>.exe  (installer; only if Inno Setup is installed,
 #                                               or always with -RequireInstaller, as CI uses)
 #

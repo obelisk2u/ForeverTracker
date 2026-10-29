@@ -1,16 +1,15 @@
 # PyInstaller spec for the ForeverTracker uploader.
 #
 # Build (from the repo root, with the uploader installed in the current environment):
-#     pip install -e uploader -e packages/savedvariables pyinstaller
+#     pip install ./uploader ./packages/savedvariables pyinstaller   (not -e: PyInstaller misses editable installs)
 #     pyinstaller packaging/forevertracker-uploader.spec --noconfirm
-# Output: dist/ForeverTrackerUploader.exe  (single file, no console window)
+# Output: dist/ForeverTrackerUploader/ (ForeverTrackerUploader.exe, no console window, plus _internal/)
 #
-# console=False is what makes it windowless. It is NOT hidden: once installed it appears in
+# console=False is what makes it windowless. It is NOT hidden: it has a tray icon, and it appears in
 # Task Manager and (when start-with-Windows is on) in Settings > Apps > Startup.
 #
-# Sign the result before distributing it; an unsigned, windowless, network-using exe is a magnet
-# for SmartScreen and antivirus false positives:
-#     signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a dist\ForeverTrackerUploader.exe
+# CI signs ForeverTrackerUploader.exe before the installer packs the folder (windows-app.yml); an unsigned,
+# background, network-using exe is a magnet for SmartScreen and antivirus false positives.
 
 import os
 import re
@@ -75,20 +74,28 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# A folder (one-dir), not a single self-extracting exe: a one-file exe unpacks itself into %TEMP% on every
+# start, which is what antivirus heuristics (Norton's among them) flag. The installer copies the folder once.
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="ForeverTrackerUploader",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    runtime_tmpdir=None,
     console=False,
     icon=ICON,
     version=VERSION_INFO,
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=False,
+    name="ForeverTrackerUploader",
 )

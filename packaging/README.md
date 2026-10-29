@@ -2,8 +2,10 @@
 
 This builds a single installer you host on your own website. Running it:
 
-1. asks for the World of Warcraft: Forever game folder, `…\World of Warcraft\_forever_` (found through
-   Battle.net's registry entry, so any drive works; the user confirms),
+1. asks for the World of Warcraft: Forever game folder, `…\World of Warcraft\_forever_`, filled in from
+   Battle.net's registry entry, Windows' list of installed programs, or common folders on every fixed drive.
+   A downloaded but never-played game counts (it has `Wow.exe`, not yet `Interface` or `WTF`); the user
+   confirms or browses,
 2. copies the **addon** into `…\Interface\AddOns\ForeverTracker` if it isn't there yet (the game
    enables it by default; players who came from CurseForge already have it),
 3. installs **ForeverTrackerUploader.exe**, a background app with a tray icon, and a **ForeverTracker**
@@ -64,9 +66,28 @@ pip install ./packages/savedvariables ./uploader pyinstaller==6.11.1
 ```
 
 Outputs land in `dist\`:
-- `ForeverTrackerUploader.exe` — the app (product name and version are stamped from `__version__`)
+- `ForeverTrackerUploader\` — the app: `ForeverTrackerUploader.exe` (product name and version are stamped from
+  `__version__`) and its `_internal\` folder
 - `ForeverTracker-Setup-<version>.exe` — the installer (needs [Inno Setup 6](https://jrsoftware.org/isdl.php)); it
   shows [`privacy.txt`](privacy.txt) before installing. Local builds are unsigned.
+
+## Antivirus false positives
+
+A new Python app that starts with Windows and uploads data looks suspicious to antivirus heuristics until it
+has a reputation. What keeps the score low:
+
+- **A folder, not a one-file exe.** A PyInstaller one-file exe unpacks itself into `%TEMP%` on every start,
+  which heuristics (Norton's among them) treat as malware behaviour. The installer copies the folder once.
+- **A launcher compiled from source.** PyInstaller's prebuilt launcher is shared with malware, so signatures
+  match it; CI builds its own (`PYINSTALLER_COMPILE_BOOTLOADER`).
+- **Signed** app and installer, with the same publisher every release.
+- **Submit each new release** as a false positive, before announcing it: Norton
+  (<https://submit.norton.com/>, as a false positive) and Microsoft Defender
+  (<https://www.microsoft.com/wdsi/filesubmission>).
+  Submit the installer from the GitHub release. Reputation builds as people install it.
+
+If a player sees "Windows cannot access the specified device, path, or file", their antivirus has quarantined
+or is holding the app: check its history or quarantine, restore the file and allow it.
 
 ## How the app updates itself
 

@@ -6,6 +6,7 @@ const { uploaderRelease } = vi.hoisted(() => ({ uploaderRelease: vi.fn() }));
 vi.mock("@/lib/api", () => ({ api: { uploaderRelease } }));
 
 import DownloadPage from "@/app/download/page";
+import { otherSystem } from "@/components/DownloadButton";
 import { AUTHOR_URL, REPO_URL } from "@/lib/site";
 
 const url = "https://forevertracker.example/ForeverTracker-Setup-0.2.0.exe";
@@ -58,6 +59,25 @@ describe("download page", () => {
     expect(screen.queryByRole("button", { name: /Download for Windows/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Download for Windows/ })).toBeNull();
     expect(screen.getByText(/nonintrusive desktop app/)).toBeInTheDocument();
+  });
+});
+
+describe("visitors not on Windows", () => {
+  it("are told the app is Windows-only", () => {
+    const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    const windows = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36";
+    expect(otherSystem(mac)).toBe("a Mac");
+    expect(otherSystem("Mozilla/5.0 (X11; Linux x86_64) Firefox/140.0")).toBe("this device");
+    expect(otherSystem(windows)).toBeNull();
+  });
+
+  it("see the note above the download button on a Mac", async () => {
+    const ua = vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6)");
+    uploaderRelease.mockResolvedValue({ ...release, signed: true });
+    render(await DownloadPage());
+    expect(await screen.findByText(/won.t run on a Mac/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Download for Windows/ })).toBeInTheDocument();
+    ua.mockRestore();
   });
 });
 

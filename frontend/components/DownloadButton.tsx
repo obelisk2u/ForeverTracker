@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AUTHOR_URL, REPO_URL } from "@/lib/site";
 import type { UploaderRelease } from "@/lib/types";
@@ -18,15 +18,30 @@ function Dropdown({ title, children }: { title: string; children: React.ReactNod
   );
 }
 
+// The visitor's system when it is not Windows ("a Mac", "this device"), or null on Windows.
+export function otherSystem(userAgent: string): string | null {
+  if (/Windows/i.test(userAgent)) return null;
+  return /Macintosh|Mac OS X/i.test(userAgent) ? "a Mac" : "this device";
+}
+
 // Windows warns about a new download until enough people have run it, signed or not, so the button first
 // explains the warning, and the download starts from inside that explanation.
 export function DownloadButton({ release }: { release: UploaderRelease }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const download = useRef<HTMLAnchorElement>(null);
   const file = release.download_url.split("/").pop() || `ForeverTracker-Setup-${release.version}.exe`;
+  // The installer only runs on Windows; a Mac can't open it at all. Known only in the browser, after load.
+  const [system, setSystem] = useState<string | null>(null);
+  useEffect(() => setSystem(otherSystem(navigator.userAgent)), []);
 
   return (
     <>
+      {system && (
+        <p className="rounded-lg border border-warn/40 bg-warn/8 px-4 py-3 text-sm text-warn">
+          The ForeverTracker app is for Windows, so it won&apos;t run on {system}. If you play World of Warcraft: Forever
+          on a Windows PC, download it there.
+        </p>
+      )}
       <button
         type="button"
         onClick={() => {

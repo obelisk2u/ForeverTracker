@@ -6,7 +6,7 @@
 ;      saves it, plus a Start menu shortcut (searchable in Windows) and an optional desktop shortcut
 ;
 ; Build:  build the exe first (see build.ps1), then compile this with ISCC.exe installer.iss
-; Sign:   sign dist\ForeverTrackerUploader.exe AND the finished installer before distributing.
+; Sign:   sign dist\ForeverTrackerUploader\ForeverTrackerUploader.exe AND the finished installer (CI does both).
 ;
 ; Design notes that keep this on the right side of the line:
 ;   * No admin required: installs under %LOCALAPPDATA% and uses the per-user Run key, so the
@@ -60,9 +60,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "startup"; Description: "Start {#MyAppName} when I sign in to Windows and upload my dungeon runs automatically"; GroupDescription: "After install:"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
 
+[InstallDelete]
+; The app's libraries are replaced as a whole, so an update never leaves an older version's files behind.
+Type: filesandordirs; Name: "{app}\_internal"
+
 [Files]
-; The uploader exe.
-Source: "..\dist\{#MyAppExe}"; DestDir: "{app}"; Flags: ignoreversion
+; The app: ForeverTrackerUploader.exe and its _internal folder (PyInstaller one-dir build).
+Source: "..\dist\ForeverTrackerUploader\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; The addon, copied into the game's AddOns folder chosen on the custom page, only if it is not there yet
 ; (see PrepareToInstall). Left in place on uninstall, since CurseForge may be managing it by then.
 Source: "..\addon\ForeverTracker\*"; DestDir: "{code:AddonsDir}"; \
@@ -120,9 +124,12 @@ begin
   Result := InstallAddon;
 end;
 
+// A game folder: Battle.net puts Wow.exe and .flavor.info there when it downloads the game; Interface and
+// WTF only appear once the game has been played, so a fresh download has neither.
 function DirHasGame(Dir: String): Boolean;
 begin
-  Result := DirExists(Dir + '\Interface') or DirExists(Dir + '\WTF');
+  Result := FileExists(Dir + '\Wow.exe') or FileExists(Dir + '\.flavor.info') or
+    DirExists(Dir + '\Interface') or DirExists(Dir + '\WTF');
 end;
 
 // Returns <Root>\_forever_ if that folder holds the game, otherwise ''.
@@ -133,13 +140,74 @@ begin
     Result := AddBackslash(Root) + ForeverFolder;
 end;
 
+// The World of Warcraft folder of Battle.net's uninstall entries ("World of Warcraft", "... Classic Era", ...),
+// which all share one root. Looks in both registry views.
+function ForeverInUninstallEntries(): String;
+var
+  Keys: TArrayOfString;
+  I, View: Integer;
+  Base, Name, Location: String;
+begin
+  Result := '';
+  Base := 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall';
+  for View := 0 to 1 do
+  begin
+    if ((View = 0) and RegGetSubkeyNames(HKLM32, Base, Keys)) or
+       ((View = 1) and IsWin64 and RegGetSubkeyNames(HKLM64, Base, Keys)) then
+      for I := 0 to GetArrayLength(Keys) - 1 do
+        if Pos('Warcraft', Keys[I]) > 0 then
+        begin
+          if View = 0 then
+          begin
+            if not RegQueryStringValue(HKLM32, Base + '\' + Keys[I], 'DisplayName', Name) then Name := '';
+            if not RegQueryStringValue(HKLM32, Base + '\' + Keys[I], 'InstallLocation', Location) then Location := '';
+          end else begin
+            if not RegQueryStringValue(HKLM64, Base + '\' + Keys[I], 'DisplayName', Name) then Name := '';
+            if not RegQueryStringValue(HKLM64, Base + '\' + Keys[I], 'InstallLocation', Location) then Location := '';
+          end;
+          if (Pos('Warcraft', Name) > 0) and (Location <> '') then
+          begin
+            Result := ForeverIn(RemoveBackslashUnlessRoot(Location));
+            if Result <> '' then exit;
+          end;
+        end;
+  end;
+end;
+
+function GetDriveTypeW(RootPathName: String): Cardinal;
+  external 'GetDriveTypeW@kernel32.dll stdcall';
+
+// Common places for the World of Warcraft folder, on every fixed drive (not CD, network or card readers,
+// which can be slow or prompt for a disk).
+function ForeverOnAnyDrive(): String;
+var
+  Letter, I: Integer;
+  Drive: String;
+  Places: array of String;
+begin
+  Result := '';
+  Places := ['World of Warcraft', 'Program Files (x86)\World of Warcraft', 'Program Files\World of Warcraft',
+    'Games\World of Warcraft', 'Battle.net\World of Warcraft', 'Blizzard\World of Warcraft',
+    'Games\Blizzard\World of Warcraft', 'Blizzard Games\World of Warcraft', 'Games\Battle.net\World of Warcraft'];
+  for Letter := Ord('C') to Ord('Z') do
+  begin
+    Drive := Chr(Letter) + ':\';
+    if GetDriveTypeW(Drive) = 3 then // DRIVE_FIXED
+      for I := 0 to GetArrayLength(Places) - 1 do
+      begin
+        Result := ForeverIn(Drive + Places[I]);
+        if Result <> '' then exit;
+      end;
+  end;
+end;
+
 function DetectGameDir(): String;
 var
   InstallPath: String;
 begin
   Result := '';
   // Battle.net records the most recently installed flavor here (e.g. ...\World of Warcraft\_forever_\),
-  // and every flavor folder sits under the same World of Warcraft root. This finds installs on any drive.
+  // and every flavor folder sits under the same World of Warcraft root.
   if RegQueryStringValue(HKLM32, 'SOFTWARE\Blizzard Entertainment\World of Warcraft', 'InstallPath', InstallPath) then
   begin
     InstallPath := RemoveBackslashUnlessRoot(InstallPath);
@@ -148,10 +216,10 @@ begin
       Result := ForeverIn(InstallPath);
   end;
   if Result = '' then
-    Result := ForeverIn(ExpandConstant('{commonpf32}\World of Warcraft'));
-  if (Result = '') and IsWin64 then
-    Result := ForeverIn(ExpandConstant('{commonpf64}\World of Warcraft'));
-  // Not found: suggest the default location; the user corrects it on the page.
+    Result := ForeverInUninstallEntries();
+  if Result = '' then
+    Result := ForeverOnAnyDrive();
+  // Not found: suggest the default location; the user corrects it on the page (Browse).
   if Result = '' then
     Result := ExpandConstant('{commonpf32}\World of Warcraft\') + ForeverFolder;
 end;
@@ -181,7 +249,7 @@ begin
       Result := False;
     end
     else if not DirHasGame(GamePage.Values[0]) then
-      Result := MsgBox('That folder does not look like a WoW game folder (no Interface or WTF folder).' + #13#10 +
+      Result := MsgBox('That folder does not look like a WoW game folder (no Wow.exe, Interface or WTF).' + #13#10 +
         'Install the addon there anyway?', mbConfirmation, MB_YESNO) = IDYES
     else if CompareText(ExtractFileName(RemoveBackslashUnlessRoot(GamePage.Values[0])), ForeverFolder) <> 0 then
       // Another flavor (e.g. _retail_): the addon would never load in Forever.
