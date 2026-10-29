@@ -19,13 +19,10 @@ describe("download page", () => {
     expect(dialog).not.toHaveAttribute("open");
     // The page itself has no direct link to the file: the download starts from the explanation.
     expect(screen.queryByRole("link", { name: /Download/ })).toBeNull();
-    // The button leads the page, ahead of the manual install steps.
     const button = screen.getByRole("button", { name: /Download for Windows · v0\.2\.0/ });
-    const install = screen.getByRole("heading", { name: "Install" });
-    expect(button.compareDocumentPosition(install) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The installer adds the addon, so players are not told to copy it themselves.
-    expect(screen.getByText(/adds the addon there for you/)).toBeInTheDocument();
-    expect(screen.queryByText(/Copy the ForeverTracker folder/)).toBeNull();
+    // The installer does everything, so there are no install steps or pre-release warning.
+    expect(screen.queryByRole("heading", { name: "Install" })).toBeNull();
+    expect(screen.queryByText(/Pre-release/)).toBeNull();
 
     await userEvent.click(button);
     expect(dialog).toHaveAttribute("open");
@@ -52,13 +49,12 @@ describe("download page", () => {
     expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
   });
 
-  it("shows only the from-source instructions until a release is published", async () => {
+  it("has no download button until a release is published", async () => {
     uploaderRelease.mockRejectedValue(new Error("no desktop app release published"));
     render(await DownloadPage());
     expect(screen.queryByRole("button", { name: /Download for Windows/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Download for Windows/ })).toBeNull();
-    expect(screen.getByText(/pip install \.\/uploader/)).toBeInTheDocument();
-    expect(screen.getByText(/Copy the ForeverTracker folder/)).toBeInTheDocument();
+    expect(screen.getByText(/nonintrusive desktop app/)).toBeInTheDocument();
   });
 });
 

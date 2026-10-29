@@ -32,6 +32,11 @@ services:
       ADMIN_TOKEN: dev-admin-token
       CORS_ORIGINS: http://localhost:3000
       LOG_JSON: "false"
+      # Set these in a local .env to preview the Download page button (see packaging/README.md).
+      UPLOADER_LATEST_VERSION: ${UPLOADER_LATEST_VERSION:-}
+      UPLOADER_DOWNLOAD_URL: ${UPLOADER_DOWNLOAD_URL:-}
+      UPLOADER_SHA256: ${UPLOADER_SHA256:-}
+      UPLOADER_SIGNED: ${UPLOADER_SIGNED:-false}
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /srv/backend/app"

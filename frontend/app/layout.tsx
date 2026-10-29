@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SearchBox } from "@/components/SearchBox";
-import { SyntheticBanner } from "@/components/SyntheticBanner";
 import { Emblem } from "@/components/Emblem";
 
 // Self-hosted fonts (SIL Open Font License): builds never depend on a third-party fetch.
@@ -27,7 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-        <SyntheticBanner />
         <header className="border-b border-line/80 bg-ink/80 backdrop-blur sticky top-0 z-30">
           <div className="mx-auto max-w-6xl px-4 h-16 flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2 shrink-0 focus-ring rounded-md">

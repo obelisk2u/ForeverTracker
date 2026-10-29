@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DownloadButton } from "@/components/DownloadButton";
-import { Notice } from "@/components/States";
 import { api } from "@/lib/api";
 import type { UploaderRelease } from "@/lib/types";
 
@@ -17,8 +16,8 @@ export default async function DownloadPage() {
       <div>
         <h1 className="font-display text-3xl">Get the ForeverTracker addon</h1>
         <p className="text-muted mt-2">
-          The addon records the dungeon runs you join. It runs entirely inside the game and never connects to the
-          internet, so a small desktop app sends what it records to ForeverTracker.
+          The addon runs entirely inside the game and never connects to the internet, so a small, nonintrusive desktop
+          app sends its records to ForeverTracker.
         </p>
       </div>
       {release && (
@@ -34,32 +33,6 @@ export default async function DownloadPage() {
           </p>
         </div>
       )}
-      <Notice tone="warn">
-        Pre-release: the addon has been tested against a simulated Forever client only. Some collectors (damage-meter
-        totals, inspection, death tracking) still need confirming on the live client, and launch-day testers can help
-        with <code>/ft probe</code>.
-      </Notice>
-      <section className="flex flex-col gap-3 text-muted">
-        <h2 className="font-display text-xl text-gold">Install</h2>
-        <ol className="list-decimal pl-5 space-y-1">
-          {release ? (
-            <li>
-              Run the installer from the button above. It finds your World of Warcraft: Forever folder and adds the addon
-              there for you.
-            </li>
-          ) : (
-            <li>
-              Copy the ForeverTracker folder from the project repository to{" "}
-              <code className="text-text">World of Warcraft\_forever_\Interface\AddOns\ForeverTracker</code>.
-            </li>
-          )}
-          <li>Start the game and check that ForeverTracker is enabled in the AddOns list.</li>
-          <li>
-            Type <code className="text-text">/ft status</code> in chat. <code className="text-text">/ft probe</code> reports which game
-            features work on your client.
-          </li>
-        </ol>
-      </section>
       <section className="flex flex-col gap-3 text-muted">
         <h2 className="font-display text-xl text-gold">Commands</h2>
         <ul className="grid sm:grid-cols-2 gap-2 text-sm">
@@ -84,11 +57,6 @@ export default async function DownloadPage() {
           never changes anything in your WoW folder, keeps a local copy of every version it sees, can be paused at any
           time, and shows exactly what it will send before sending it.
         </p>
-        {release && <p className="text-sm">The download above installs it. Or run it from source:</p>}
-        <pre className="card p-3 text-xs text-text overflow-x-auto">{`pip install ./uploader
-forevertracker-uploader setup --wow "C:\\Program Files (x86)\\World of Warcraft\\_forever_"
-forevertracker-uploader disclose   # show what would be uploaded
-forevertracker-uploader watch      # upload after each logout or /reload`}</pre>
       </section>
     </div>
   );

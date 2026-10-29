@@ -20,7 +20,7 @@ docker compose up -d --build                                  # PostgreSQL :5433
 docker compose exec backend python -m app.cli seed            # ~1,200 synthetic runs, 2,500 characters (~4 min)
 ```
 
-Open http://localhost:3000 (a banner marks the synthetic data), and http://localhost:8000/api/docs for the API.
+Open http://localhost:3000, and http://localhost:8000/api/docs for the API.
 To try the upload path, send the sample SavedVariables file to the API:
 `curl --data-binary @fixtures/savedvariables/ForeverTracker.sample.lua http://localhost:8000/api/v1/ingest/savedvariables`.
 
