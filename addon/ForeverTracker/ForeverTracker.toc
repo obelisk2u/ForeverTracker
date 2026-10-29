@@ -20,6 +20,7 @@ Collectors\Encounters.lua
 Collectors\Deaths.lua
 Collectors\DamageMeter.lua
 Collectors\Inspect.lua
+Collectors\Group.lua
 Sessions\RunTracker.lua
 Export\Json.lua
 Export\ExportFrame.lua

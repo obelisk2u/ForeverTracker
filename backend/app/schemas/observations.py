@@ -268,7 +268,9 @@ class SnapshotSubject(CharacterRef):
 class CharacterSnapshotObservation(_ObservationBase):
     type: Literal["character_snapshot"]
     observed_at: Epoch
-    source: Literal["self", "inspect"]
+    # self: the player; inspect: an inspected group member; group: a group member seen anywhere,
+    # identity only (no level, equipment or talents).
+    source: Literal["self", "inspect", "group"]
     subject: SnapshotSubject
     equipment: Equipment | None = None
     talents: Talents | None = None
@@ -333,6 +335,6 @@ def observation_json_schema() -> dict[str, Any]:
     envelope["$defs"].update(obs_schema.pop("$defs", {}))
     envelope["properties"]["observations"]["items"] = obs_schema
     envelope["$schema"] = "https://json-schema.org/draft/2020-12/schema"
-    envelope["$id"] = "https://forevertracker.example/schema/observation-batch.v1.schema.json"
+    envelope["$id"] = "https://forevertracker.org/schema/observation-batch.v1.schema.json"
     envelope["title"] = "ForeverTracker observation batch, schema version 1"
     return envelope

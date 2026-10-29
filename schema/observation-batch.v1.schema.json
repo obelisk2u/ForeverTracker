@@ -159,7 +159,8 @@
         "source": {
           "enum": [
             "self",
-            "inspect"
+            "inspect",
+            "group"
           ],
           "title": "Source",
           "type": "string"
@@ -1912,7 +1913,7 @@
       "type": "object"
     }
   },
-  "$id": "https://forevertracker.example/schema/observation-batch.v1.schema.json",
+  "$id": "https://forevertracker.org/schema/observation-batch.v1.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "The upload envelope. Observations are validated one by one after the envelope.",

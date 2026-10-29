@@ -7,6 +7,7 @@ FT.Events.on("ADDON_LOADED", "init", function(name)
   end
   FT.Storage.init()
   FT.RunTracker.register()
+  FT.Group.register()
   FT.Commands.register()
 end)
 

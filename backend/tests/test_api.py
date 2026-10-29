@@ -48,7 +48,7 @@ def test_upload_search_profile_history_run_flow(client):
     assert profile["stats"]["runs_observed"]["value"] == 1
     assert profile["stats"]["completions_confirmed"]["value"] == 1
     assert profile["freshness"]["last_observed_at"]
-    assert any("Observed history only" in n for n in profile["notices"])
+    assert profile["notices"] == []
 
     history = client.get(f"/api/v1/characters/us-pve/{asha['id']}/runs").json()
     assert history["total"] == 1
@@ -134,6 +134,28 @@ def test_rate_limit(client, monkeypatch):
     payloads = [batch("install-aaaa1111", [run_observation(RunSpec(f"r-{i}", observer="u1", start=T0 + i * 7200))]) for i in range(3)]
     codes = [post_batch(client, p).status_code for p in payloads]
     assert codes == [200, 200, 429]
+
+
+def test_group_member_seen_outside_dungeons_is_searchable(client):
+    # The addon records everyone the player groups with, even without a dungeon run: identity only, no level.
+    sighting = {
+        "type": "character_snapshot",
+        "observation_id": "g-1792000000-7",
+        "revision": 1,
+        "recorded_by": {"guid": "Player-4620-0000A1", "name": "Autumn", "surname": "Redleaf"},
+        "namespace": {"region_id": 1, "region_name": "", "ruleset": "pve"},
+        "realm_label": "70",
+        "client_build": "70532",
+        "observed_at": T0,
+        "source": "group",
+        "subject": {"guid": "Player-4620-0000B1", "name": "Ivo", "surname": "Stonebrook", "class_file": "PALADIN", "race_file": "Human"},
+    }
+    res = post_batch(client, batch("install-aaaa1111", [sighting])).json()
+    assert res["observations"][0]["status"] == "accepted", res
+    (ivo,) = client.get("/api/v1/search", params={"q": "stonebrook"}).json()["results"]
+    assert ivo["full_name"] == "Ivo Stonebrook" and ivo["class_file"] == "PALADIN" and ivo["runs_observed"] == 0
+    profile = client.get(f"/api/v1/characters/us-pve/{ivo['id']}").json()
+    assert profile["character"]["latest_level"] is None
 
 
 def test_uploader_release_is_published_only_when_configured(client, monkeypatch):

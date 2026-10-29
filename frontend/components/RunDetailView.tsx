@@ -1,7 +1,7 @@
 import { Badge, ClassName, OutcomeBadge } from "@/components/Badges";
 import { CharacterLink } from "@/components/CharacterLink";
 import { Timestamp } from "@/components/Freshness";
-import { MetricLegend, MetricValue } from "@/components/MetricValue";
+import { MetricValue } from "@/components/MetricValue";
 import { Notice, SectionTitle } from "@/components/States";
 import { formatDuration, formatNumber, percent } from "@/lib/format";
 import { METRIC_LABEL, RESOLUTION_LABEL, SOURCE_LABEL, namespaceLabel, roleLabel } from "@/lib/game";
@@ -113,7 +113,7 @@ export function RunDetailView({ run }: { run: RunDetail }) {
       </header>
 
       <section>
-        <SectionTitle aside={<MetricLegend />}>Party</SectionTitle>
+        <SectionTitle>Party</SectionTitle>
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-faint border-b border-line">

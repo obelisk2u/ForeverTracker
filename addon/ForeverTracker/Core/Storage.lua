@@ -3,6 +3,7 @@
 -- ForeverTrackerDB (account-wide) holds:
 --   observations : ring buffer of finished records (dungeon_run, character_snapshot, probe_report)
 --   active_run   : the run in progress, so a /reload or relog can resume it
+--   group_seen   : when each group member was last recorded (Collectors/Group.lua)
 --   diagnostics  : persistence-test marker and the last probe summary
 --
 -- The client writes SavedVariables on logout, exit and /reload, never continuously. During
@@ -37,6 +38,7 @@ local function migrate(db)
   db.observations = db.observations or {}
   db.dropped = db.dropped or { observations = 0 }
   db.diagnostics = db.diagnostics or {}
+  db.group_seen = db.group_seen or {}
   db.next_seq = db.next_seq or 1
   return db
 end
@@ -82,12 +84,21 @@ function Storage.nextId(prefix)
   return string.format("%s-%d-%d", prefix, FT.Util.now(), seq)
 end
 
+-- Over the limit, the oldest group-member record goes first: those are the least valuable, so a
+-- raid's worth of them never pushes out a dungeon run that has not been uploaded yet.
 function Storage.push(observation)
   local list = FT.db.observations
   table.insert(list, observation)
   local max = FT.Config.LIMITS.max_observations
   while #list > max do
-    table.remove(list, 1)
+    local victim = 1
+    for i, o in ipairs(list) do
+      if o.source == "group" then
+        victim = i
+        break
+      end
+    end
+    table.remove(list, victim)
     FT.db.dropped.observations = (FT.db.dropped.observations or 0) + 1
   end
 end
@@ -105,5 +116,6 @@ function Storage.purge()
   FT.db.active_run = nil
   FT.db.active_state = nil
   FT.db.snapshot_sigs = {}
+  FT.db.group_seen = {}
   FT.db.dropped = { observations = 0 }
 end

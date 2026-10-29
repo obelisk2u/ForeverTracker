@@ -39,6 +39,7 @@ const absolute = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const numericDate = new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric", year: "2-digit", timeZone: "UTC" });
 
 export function formatDateTime(iso: string): string {
   return absolute.format(new Date(iso));
@@ -46,6 +47,10 @@ export function formatDateTime(iso: string): string {
 
 export function formatShortDate(iso: string): string {
   return shortDate.format(new Date(iso));
+}
+
+export function formatNumericDate(iso: string): string {
+  return numericDate.format(new Date(iso));
 }
 
 export function relativeTime(iso: string, now: Date = new Date()): string {

@@ -2,11 +2,21 @@
 
 import { useRef } from "react";
 
-import { REPO_URL } from "@/lib/site";
+import { AUTHOR_URL, REPO_URL } from "@/lib/site";
 import type { UploaderRelease } from "@/lib/types";
 
 const PRIMARY = "px-4 py-2 rounded-lg bg-gold text-ink font-semibold hover:bg-gold-strong focus-ring";
 const SECONDARY = "px-4 py-2 rounded-lg border border-line text-text hover:bg-surface-2 focus-ring";
+const LINK = "self-start underline text-text";
+
+function Dropdown({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="text-sm">
+      <summary className="cursor-pointer text-text focus-ring rounded">{title}</summary>
+      <div className="mt-2 flex flex-col gap-2">{children}</div>
+    </details>
+  );
+}
 
 // A signed installer downloads straight away. Until then Windows warns about it, so the button first
 // explains the warning, and the download starts from inside that explanation.
@@ -51,21 +61,32 @@ export function DownloadButton({ release }: { release: UploaderRelease }) {
             you download and run it. If Windows says it protected your PC, click{" "}
             <strong className="text-text">More info</strong>, then <strong className="text-text">Run anyway</strong>.
           </p>
-          <details className="text-sm">
-            <summary className="cursor-pointer text-text focus-ring rounded">Check the file yourself</summary>
-            <p className="mt-2">
+          <Dropdown title="Check the file yourself">
+            <p>
               Open PowerShell in your Downloads folder and run the command below. The hash it prints should match this
               one exactly.
             </p>
-            <pre className="card mt-2 p-3 text-xs text-text overflow-x-auto">{`Get-FileHash .\\${file}`}</pre>
-            <code className="mt-2 block break-all text-xs text-text">{release.sha256.toUpperCase()}</code>
-          </details>
+            <pre className="card p-3 text-xs text-text overflow-x-auto">{`Get-FileHash .\\${file}`}</pre>
+            <code className="block break-all text-xs text-text">{release.sha256.toUpperCase()}</code>
+          </Dropdown>
+          <Dropdown title="See the code">
+            <p>
+              ForeverTracker is open source. Everything the app does, including exactly what it uploads, is in the public
+              code, and this installer is built from it by GitHub Actions.
+            </p>
+            <a href={REPO_URL} target="_blank" rel="noreferrer" className={LINK}>
+              {REPO_URL.replace("https://", "")}
+            </a>
+          </Dropdown>
+          <Dropdown title="Meet the author">
+            <p>ForeverTracker is made by Jordan Stout.</p>
+            <a href={AUTHOR_URL} target="_blank" rel="noreferrer" className={LINK}>
+              {AUTHOR_URL.replace("https://", "")}
+            </a>
+          </Dropdown>
           <div className="mt-2 flex flex-wrap gap-3">
             <a ref={download} href={release.download_url} className={PRIMARY}>
               Download {file}
-            </a>
-            <a href={REPO_URL} target="_blank" rel="noreferrer" className={SECONDARY}>
-              See the code
             </a>
             <button type="button" onClick={() => dialog.current?.close()} className={SECONDARY}>
               Cancel

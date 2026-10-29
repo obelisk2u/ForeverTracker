@@ -42,10 +42,17 @@ export default async function DownloadPage() {
       <section className="flex flex-col gap-3 text-muted">
         <h2 className="font-display text-xl text-gold">Install</h2>
         <ol className="list-decimal pl-5 space-y-1">
-          <li>Download the ForeverTracker folder (release archive from the project repository).</li>
-          <li>
-            Copy it to <code className="text-text">World of Warcraft\_forever_\Interface\AddOns\ForeverTracker</code>.
-          </li>
+          {release ? (
+            <li>
+              Run the installer from the button above. It finds your World of Warcraft: Forever folder and adds the addon
+              there for you.
+            </li>
+          ) : (
+            <li>
+              Copy the ForeverTracker folder from the project repository to{" "}
+              <code className="text-text">World of Warcraft\_forever_\Interface\AddOns\ForeverTracker</code>.
+            </li>
+          )}
           <li>Start the game and check that ForeverTracker is enabled in the AddOns list.</li>
           <li>
             Type <code className="text-text">/ft status</code> in chat. <code className="text-text">/ft probe</code> reports which game

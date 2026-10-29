@@ -59,10 +59,7 @@
       "last_seen_at": "2026-10-14T17:47:04Z"
     }
   ],
-  "notices": [
-    "Observed history only: runs appear here when a ForeverTracker user was in the group.",
-    "This profile is not claimed. Being listed here does not identify the account owner."
-  ],
+  "notices": [],
   "realm_label": null,
   "stats": {
     "boss_kills_observed": {

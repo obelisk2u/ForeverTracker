@@ -85,6 +85,11 @@ session's sources has an observed 0 for that metric, because the meter covered t
 `average_item_level`, `items[]` with `slot`, `item_id`, `item_level`, `enchant_id`, `gem_ids`, `quality`, `link`) and
 `talents` (`status`, `spec_id`, `import_string`).
 
+`source: "group"` is a group member seen anywhere, not only in a dungeon (`Collectors/Group.lua`): `subject` carries
+GUID, name, surname, class and race only, never level or role, and there is no `equipment` or `talents`. The addon
+records a member again only when one of those fields changes or after a week, and drops these records first when its
+400-record buffer is full.
+
 ## `probe_report`
 
 `observed_at` and `results[]` of `{check, status (pass|fail|warn|skip|info), detail}`. These are stored for launch

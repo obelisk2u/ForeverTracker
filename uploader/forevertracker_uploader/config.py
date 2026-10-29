@@ -20,7 +20,7 @@ def default_home() -> Path:
 
 @dataclass
 class Config:
-    server_url: str = "https://forevertracker.example"
+    server_url: str = "https://forevertracker.org"
     wow_paths: list[str] = field(default_factory=list)  # game folders (e.g. ...\_forever_) or explicit files
     paused: bool = False
     poll_seconds: float = 10.0

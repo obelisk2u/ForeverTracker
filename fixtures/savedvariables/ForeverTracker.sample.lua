@@ -17,9 +17,27 @@ ForeverTrackerDB = {
 ["observations"] = 0,
 },
 ["format"] = "forevertracker.savedvariables",
+["group_seen"] = {
+["g:Player-4620-0000A2"] = {
+["at"] = 1792000000,
+["sig"] = "Mah|Beardlong|WARRIOR|Dwarf",
+},
+["g:Player-4620-0000A3"] = {
+["at"] = 1792000000,
+["sig"] = "Phineas|Longhorn|PRIEST|Human",
+},
+["g:Player-4620-0000A4"] = {
+["at"] = 1792000000,
+["sig"] = "Asha|Brightvale|ROGUE|NightElf",
+},
+["g:Player-4620-0000A5"] = {
+["at"] = 1792000000,
+["sig"] = "Thalen|Brightvale|HUNTER|Dwarf",
+},
+},
 ["installation_id"] = "ft-267b8f0d963a00c7",
 ["load_count"] = 1,
-["next_seq"] = 8,
+["next_seq"] = 12,
 ["observations"] = {
 {
 ["client_build"] = "70532",
@@ -84,6 +102,110 @@ ForeverTrackerDB = {
 }, -- [1]
 {
 ["client_build"] = "70532",
+["namespace"] = {
+["region_id"] = 1,
+["ruleset"] = "pve",
+},
+["observation_id"] = "g-1792000000-2",
+["observed_at"] = 1792000000,
+["realm_label"] = "70",
+["recorded_by"] = {
+["guid"] = "Player-4620-0000A1",
+["name"] = "Autumn",
+["surname"] = "Redleaf",
+},
+["revision"] = 1,
+["source"] = "group",
+["subject"] = {
+["class_file"] = "WARRIOR",
+["guid"] = "Player-4620-0000A2",
+["identity_status"] = "ok",
+["name"] = "Mah",
+["race_file"] = "Dwarf",
+["surname"] = "Beardlong",
+},
+["type"] = "character_snapshot",
+}, -- [2]
+{
+["client_build"] = "70532",
+["namespace"] = {
+["region_id"] = 1,
+["ruleset"] = "pve",
+},
+["observation_id"] = "g-1792000000-3",
+["observed_at"] = 1792000000,
+["realm_label"] = "70",
+["recorded_by"] = {
+["guid"] = "Player-4620-0000A1",
+["name"] = "Autumn",
+["surname"] = "Redleaf",
+},
+["revision"] = 1,
+["source"] = "group",
+["subject"] = {
+["class_file"] = "PRIEST",
+["guid"] = "Player-4620-0000A3",
+["identity_status"] = "ok",
+["name"] = "Phineas",
+["race_file"] = "Human",
+["surname"] = "Longhorn",
+},
+["type"] = "character_snapshot",
+}, -- [3]
+{
+["client_build"] = "70532",
+["namespace"] = {
+["region_id"] = 1,
+["ruleset"] = "pve",
+},
+["observation_id"] = "g-1792000000-4",
+["observed_at"] = 1792000000,
+["realm_label"] = "70",
+["recorded_by"] = {
+["guid"] = "Player-4620-0000A1",
+["name"] = "Autumn",
+["surname"] = "Redleaf",
+},
+["revision"] = 1,
+["source"] = "group",
+["subject"] = {
+["class_file"] = "ROGUE",
+["guid"] = "Player-4620-0000A4",
+["identity_status"] = "ok",
+["name"] = "Asha",
+["race_file"] = "NightElf",
+["surname"] = "Brightvale",
+},
+["type"] = "character_snapshot",
+}, -- [4]
+{
+["client_build"] = "70532",
+["namespace"] = {
+["region_id"] = 1,
+["ruleset"] = "pve",
+},
+["observation_id"] = "g-1792000000-5",
+["observed_at"] = 1792000000,
+["realm_label"] = "70",
+["recorded_by"] = {
+["guid"] = "Player-4620-0000A1",
+["name"] = "Autumn",
+["surname"] = "Redleaf",
+},
+["revision"] = 1,
+["source"] = "group",
+["subject"] = {
+["class_file"] = "HUNTER",
+["guid"] = "Player-4620-0000A5",
+["identity_status"] = "ok",
+["name"] = "Thalen",
+["race_file"] = "Dwarf",
+["surname"] = "Brightvale",
+},
+["type"] = "character_snapshot",
+}, -- [5]
+{
+["client_build"] = "70532",
 ["equipment"] = {
 ["average_item_level"] = 21,
 ["items"] = {
@@ -110,7 +232,7 @@ ForeverTrackerDB = {
 ["region_id"] = 1,
 ["ruleset"] = "pve",
 },
-["observation_id"] = "s-1792000001-3",
+["observation_id"] = "s-1792000001-7",
 ["observed_at"] = 1792000001,
 ["realm_label"] = "70",
 ["recorded_by"] = {
@@ -133,7 +255,7 @@ ForeverTrackerDB = {
 ["status"] = "disabled",
 },
 ["type"] = "character_snapshot",
-}, -- [2]
+}, -- [6]
 {
 ["client_build"] = "70532",
 ["equipment"] = {
@@ -154,7 +276,7 @@ ForeverTrackerDB = {
 ["region_id"] = 1,
 ["ruleset"] = "pve",
 },
-["observation_id"] = "s-1792000004-4",
+["observation_id"] = "s-1792000004-8",
 ["observed_at"] = 1792000004,
 ["realm_label"] = "70",
 ["recorded_by"] = {
@@ -177,7 +299,7 @@ ForeverTrackerDB = {
 ["status"] = "disabled",
 },
 ["type"] = "character_snapshot",
-}, -- [3]
+}, -- [7]
 {
 ["client_build"] = "70532",
 ["equipment"] = {
@@ -198,7 +320,7 @@ ForeverTrackerDB = {
 ["region_id"] = 1,
 ["ruleset"] = "pve",
 },
-["observation_id"] = "s-1792000007-5",
+["observation_id"] = "s-1792000007-9",
 ["observed_at"] = 1792000007,
 ["realm_label"] = "70",
 ["recorded_by"] = {
@@ -221,7 +343,7 @@ ForeverTrackerDB = {
 ["status"] = "disabled",
 },
 ["type"] = "character_snapshot",
-}, -- [4]
+}, -- [8]
 {
 ["client_build"] = "70532",
 ["equipment"] = {
@@ -242,7 +364,7 @@ ForeverTrackerDB = {
 ["region_id"] = 1,
 ["ruleset"] = "pve",
 },
-["observation_id"] = "s-1792000010-6",
+["observation_id"] = "s-1792000010-10",
 ["observed_at"] = 1792000010,
 ["realm_label"] = "70",
 ["recorded_by"] = {
@@ -265,7 +387,7 @@ ForeverTrackerDB = {
 ["status"] = "disabled",
 },
 ["type"] = "character_snapshot",
-}, -- [5]
+}, -- [9]
 {
 ["client_build"] = "70532",
 ["collection"] = {
@@ -591,7 +713,7 @@ ForeverTrackerDB = {
 ["region_id"] = 1,
 ["ruleset"] = "pve",
 },
-["observation_id"] = "r-1792000000-2",
+["observation_id"] = "r-1792000000-6",
 ["realm_label"] = "70",
 ["recorded_by"] = {
 ["guid"] = "Player-4620-0000A1",
@@ -753,14 +875,14 @@ ForeverTrackerDB = {
 ["started_at"] = 1792000000,
 },
 ["type"] = "dungeon_run",
-}, -- [6]
+}, -- [10]
 {
 ["client_build"] = "70532",
 ["namespace"] = {
 ["region_id"] = 1,
 ["ruleset"] = "pve",
 },
-["observation_id"] = "p-1792000215-7",
+["observation_id"] = "p-1792000215-11",
 ["observed_at"] = 1792000215,
 ["realm_label"] = "70",
 ["recorded_by"] = {
@@ -1167,7 +1289,7 @@ ForeverTrackerDB = {
 }, -- [83]
 {
 ["check"] = "collectors",
-["detail"] = "deaths_unit_died=off deaths_unit_state=on encounters=on identity=on inspect=on meter=on talents=off",
+["detail"] = "deaths_unit_died=off deaths_unit_state=on encounters=on group=on identity=on inspect=on meter=on talents=off",
 ["status"] = "info",
 }, -- [84]
 {
@@ -1178,7 +1300,7 @@ ForeverTrackerDB = {
 },
 ["revision"] = 1,
 ["type"] = "probe_report",
-}, -- [7]
+}, -- [11]
 },
 ["schema_version"] = 1,
 ["settings"] = {
@@ -1186,6 +1308,7 @@ ForeverTrackerDB = {
 ["deaths_unit_died"] = false,
 ["deaths_unit_state"] = true,
 ["encounters"] = true,
+["group"] = true,
 ["identity"] = true,
 ["inspect"] = true,
 ["meter"] = true,

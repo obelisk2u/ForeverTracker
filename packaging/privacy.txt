@@ -10,6 +10,8 @@ folder and reads no other files there.
 WHAT IT SENDS
 - The runs the addon recorded: the dungeon, the characters in your group (names, class, race,
   level, role), boss kills, deaths, damage-meter totals and equipment.
+- Everyone you group with, outside dungeons too: their name, surname, class and race (not their
+  level).
 - The addon's check of which game features work, with the game's version and realm.
 - A random installation ID created by the addon. The server keeps only a keyed hash of it.
 - Once a day, an update check that sends only the app's version number.

@@ -9,8 +9,8 @@ This document records the design decisions behind them.
    injection, no network access, no automation.
 2. **Minimise contributor data.** A contributor is an HMAC (keyed with `CONTRIBUTOR_ID_SALT`) of the addon's random
    installation ID. There are no accounts, e-mail addresses or IP addresses.
-3. **Never claim identity or skill we cannot prove.** Profiles say "observed history", carry "not claimed / does not
-   identify the account owner" notices, and label every number with its provenance.
+3. **Never claim identity or skill we cannot prove.** Profiles show only observed history, warn when an identity rests
+   on the character name alone, and label every number with its provenance.
 4. **Easy correction and opt-out.** A public report form needs no contact details; suppression hides a profile from
    search and from other players' run lists.
 

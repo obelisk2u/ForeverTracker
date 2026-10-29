@@ -62,10 +62,12 @@ describe("character profile", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Mah Beardlong");
     expect(screen.getByText("GUID-confirmed")).toBeInTheDocument();
     expect(screen.getByText("Last observed", { exact: false })).toBeInTheDocument();
-    expect(screen.getByText(/Observed history only/)).toBeInTheDocument();
-    expect(screen.getByText(/does not identify the account owner/)).toBeInTheDocument();
+    expect(screen.queryByText(/Observed history only/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/does not identify the account owner/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Latest known equipment")).not.toBeInTheDocument();
     expect(screen.getByText("1.00")).toBeInTheDocument(); // deaths per run
     expect(screen.getAllByRole("link", { name: "Hall of Thanes" }).length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /Report incorrect data/ })).toHaveAttribute("href", `/report?character=${p.character.id}`);
+    expect(screen.getByText("10/14/26")).toBeInTheDocument(); // first observed
+    expect(screen.queryByRole("link", { name: /Report incorrect data/ })).not.toBeInTheDocument();
   });
 });

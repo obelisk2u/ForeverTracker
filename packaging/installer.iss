@@ -26,7 +26,7 @@
 #define MyPublisher "ForeverTracker"
 #define MyAppExe "ForeverTrackerUploader.exe"
 ; Replace with your real site before building a public installer:
-#define ServerURL "https://forevertracker.example"
+#define ServerURL "https://forevertracker.org"
 
 [Setup]
 AppId={{B8F2C1A4-6E3D-4E7A-9C2B-7F1A2D3E4B50}

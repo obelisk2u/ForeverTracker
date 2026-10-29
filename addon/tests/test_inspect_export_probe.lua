@@ -2,9 +2,13 @@ describe("equipment snapshots", function()
   it("takes a self snapshot with parsed item links", function()
     Mock.itemLevels[1016] = 24
     boot()
-    local snap = lastObservation("character_snapshot")
+    local snap
+    for _, s in ipairs(observationsOf("character_snapshot")) do
+      if s.source == "self" then
+        snap = s
+      end
+    end
     truthy(snap, "snapshot on entering the world")
-    eq(snap.source, "self")
     eq(snap.subject.name, "Autumn")
     eq(snap.subject.surname, "Redleaf")
     eq(snap.equipment.average_item_level, 20)

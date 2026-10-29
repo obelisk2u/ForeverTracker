@@ -6,7 +6,7 @@ const { uploaderRelease } = vi.hoisted(() => ({ uploaderRelease: vi.fn() }));
 vi.mock("@/lib/api", () => ({ api: { uploaderRelease } }));
 
 import DownloadPage from "@/app/download/page";
-import { REPO_URL } from "@/lib/site";
+import { AUTHOR_URL, REPO_URL } from "@/lib/site";
 
 const url = "https://forevertracker.example/ForeverTracker-Setup-0.2.0.exe";
 const release = { version: "0.2.0", download_url: url, sha256: "ab".repeat(32) };
@@ -23,6 +23,9 @@ describe("download page", () => {
     const button = screen.getByRole("button", { name: /Download for Windows · v0\.2\.0/ });
     const install = screen.getByRole("heading", { name: "Install" });
     expect(button.compareDocumentPosition(install) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The installer adds the addon, so players are not told to copy it themselves.
+    expect(screen.getByText(/adds the addon there for you/)).toBeInTheDocument();
+    expect(screen.queryByText(/Copy the ForeverTracker folder/)).toBeNull();
 
     await userEvent.click(button);
     expect(dialog).toHaveAttribute("open");
@@ -31,7 +34,12 @@ describe("download page", () => {
     const download = within(dialog).getByRole("link", { name: "Download ForeverTracker-Setup-0.2.0.exe" });
     expect(download).toHaveAttribute("href", url);
     expect(download).toHaveFocus();
-    expect(within(dialog).getByRole("link", { name: "See the code" })).toHaveAttribute("href", REPO_URL);
+    // Dropdowns for the code and the author, next to "Check the file yourself".
+    for (const title of ["Check the file yourself", "See the code", "Meet the author"]) {
+      expect(within(dialog).getByText(title).tagName).toBe("SUMMARY");
+    }
+    expect(within(dialog).getByRole("link", { name: "github.com/obelisk2u/ForeverTracker" })).toHaveAttribute("href", REPO_URL);
+    expect(within(dialog).getByRole("link", { name: "jordan-stout.com" })).toHaveAttribute("href", AUTHOR_URL);
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(dialog).not.toHaveAttribute("open");
@@ -50,6 +58,7 @@ describe("download page", () => {
     expect(screen.queryByRole("button", { name: /Download for Windows/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Download for Windows/ })).toBeNull();
     expect(screen.getByText(/pip install \.\/uploader/)).toBeInTheDocument();
+    expect(screen.getByText(/Copy the ForeverTracker folder/)).toBeInTheDocument();
   });
 });
 

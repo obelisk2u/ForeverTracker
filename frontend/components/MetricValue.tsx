@@ -45,20 +45,3 @@ export function MetricValue({ metric, showMarks = true }: { metric: MetricOut | 
     </span>
   );
 }
-
-export function MetricLegend() {
-  return (
-    <p className="text-xs text-faint flex flex-wrap gap-x-4 gap-y-1">
-      <span>
-        <span className="text-good">✓</span> corroborated by independent observers
-      </span>
-      <span>
-        <span className="text-warn">◐</span> partial coverage
-      </span>
-      <span>
-        <span className="text-bad">⚠</span> observers disagree
-      </span>
-      <span>— unavailable (never shown as zero)</span>
-    </p>
-  );
-}

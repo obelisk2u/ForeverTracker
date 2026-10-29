@@ -27,8 +27,8 @@ export default function PrivacyPage() {
       <p>
         After you log out, exit or type /reload, the ForeverTracker desktop app reads one file, the addon&apos;s saved data,
         and uploads the runs recorded there over HTTPS: the dungeon, the characters in your group, boss kills, deaths,
-        damage-meter totals and equipment, plus the addon&apos;s check of which game features work and its installation
-        ID. Once a day it also asks for a newer version of itself, sending only its version number. It sends no account
+        damage-meter totals and equipment; the name, surname, class and race (not level) of everyone you group with,
+        outside dungeons too; and the addon&apos;s check of which game features work and its installation ID. Once a day it also asks for a newer version of itself, sending only its version number. It sends no account
         names, e-mail addresses, chat or information about your computer, and never changes anything in your game folder.
         The installer shows this before it installs anything.
       </p>
