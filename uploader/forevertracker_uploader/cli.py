@@ -1,16 +1,19 @@
-"""forevertracker-uploader: setup | autostart | status | disclose | sync | watch | background | pause | resume | gui"""
+"""forevertracker-uploader: setup | autostart | status | disclose | sync | watch | background | start | pause | resume | gui"""
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import logging
 import sys
+import threading
 import time
 from pathlib import Path
 
-from forevertracker_uploader import __version__, autostart, background, files, update
+from forevertracker_uploader import __version__, autostart, background, files, notice, update
 from forevertracker_uploader.client import Uploader, check_server_url
 from forevertracker_uploader.config import Config, State, default_home
+from forevertracker_uploader.singleinstance import AlreadyRunning, SingleInstance
 from forevertracker_uploader.sync import disclose, sync_once
 
 
@@ -98,10 +101,56 @@ def cmd_pause(args, home: Path) -> int:
 
 
 def cmd_background(_args, home: Path) -> int:
-    """Run with no window: start at login, upload each run as the game saves it, idle otherwise."""
+    """Start at login: upload each run as the game saves it, with a tray icon on Windows."""
+    return _run_app(home, greeting=None)
+
+
+def cmd_start(_args, home: Path) -> int:
+    """What the shortcuts run: the same, plus a notice saying it is running (or already was)."""
+    return _run_app(home, greeting=notice.STARTED)
+
+
+def _run_app(home: Path, greeting: str | None) -> int:
+    """Upload on a worker thread while the main thread shows the tray icon, until the player quits or
+    the loop ends by itself (an update is being installed). One copy at a time."""
     background.configure_logging(home)
-    background.run_background(home, updater=update.updater_for_this_build())
+    try:
+        lock = SingleInstance(home).acquire()
+    except AlreadyRunning:
+        logging.getLogger("forevertracker.uploader").info("not starting: already running")
+        if greeting:
+            notice.show(notice.ALREADY_RUNNING)
+        return 0
+    stop = threading.Event()
+    worker = threading.Thread(
+        target=background.run_background,
+        args=(home,),
+        kwargs={"updater": update.updater_for_this_build(), "stop": stop, "single_instance": False},
+        name="uploads",
+    )
+    try:
+        worker.start()
+        try:
+            if _has_tray():
+                _show_tray(home, stop, worker, greeting)
+            elif greeting:
+                notice.show(greeting)
+        except Exception:  # noqa: BLE001 - without a tray icon, keep uploading anyway
+            logging.getLogger("forevertracker.uploader").exception("tray icon unavailable")
+        worker.join()
+    finally:
+        lock.release()
     return 0
+
+
+def _has_tray() -> bool:
+    return sys.platform == "win32"
+
+
+def _show_tray(home: Path, stop: threading.Event, worker: threading.Thread, greeting: str | None) -> None:
+    from forevertracker_uploader import tray  # Windows only
+
+    tray.run(home, stop, worker, greeting)
 
 
 def cmd_autostart(args, home: Path) -> int:
@@ -143,7 +192,8 @@ def main(argv: list[str] | None = None) -> int:
         ("disclose", cmd_disclose, "show exactly what would be uploaded"),
         ("sync", cmd_sync, "upload new data once"),
         ("watch", cmd_watch, "keep uploading after each logout or /reload (console)"),
-        ("background", cmd_background, "run with no window; start this at login"),
+        ("background", cmd_background, "upload in the background with a tray icon; start this at login"),
+        ("start", cmd_start, "like background, plus a notice that it is running (the shortcuts)"),
         ("pause", cmd_pause, "stop uploading"),
         ("resume", cmd_pause, "resume uploading"),
         ("gui", cmd_gui, "open a small status window"),

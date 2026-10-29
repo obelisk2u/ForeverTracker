@@ -6,11 +6,17 @@ This builds a single installer you host on your own website. Running it:
    Battle.net's registry entry, so any drive works; the user confirms),
 2. copies the **addon** into `…\Interface\AddOns\ForeverTracker` if it isn't there yet (the game
    enables it by default; players who came from CurseForge already have it),
-3. installs **ForeverTrackerUploader.exe**, a windowless helper,
-4. offers a ticked checkbox: *start with Windows and upload automatically*.
+3. installs **ForeverTrackerUploader.exe**, a background app with a tray icon, and a **ForeverTracker**
+   Start menu shortcut (which is what Windows search finds),
+4. offers a ticked checkbox, *start with Windows and upload automatically*, and an unticked one for a
+   desktop shortcut,
+5. ends with a ticked *Start ForeverTracker* box.
 
 After that, every run uploads within a few seconds of a logout, exit or `/reload`, with nothing
-for the player to click. There is no launcher and no tray icon.
+for the player to click. The shortcuts start the app (or say it is already running) with a small
+card in the site's style. While it runs, its tray icon opens a card with its status, when it last
+synced, and **Quit ForeverTracker**. On Windows 11 a new tray icon starts in the overflow (the ^
+arrow) until the player pins it.
 
 Updates are split: **CurseForge updates the addon, and the app updates itself** (below). The installer
 never overwrites an addon that is already installed, and uninstalling the app leaves the addon alone.
@@ -19,6 +25,7 @@ never overwrites an addon that is already installed, and uninstalling the app le
 
 The uploader runs with **no window**, but it is **not hidden**:
 
+- Its **tray icon** shows it is running and quits it in one click.
 - Start-with-Windows uses the per-user **Run key**, so it appears in **Settings → Apps → Startup**
   and **Task Manager → Startup**, where the player can switch it off.
 - It appears in **Add/Remove Programs** with a working uninstaller.
@@ -102,15 +109,16 @@ update within a day.
 
 | Action | How |
 |---|---|
-| See it's running | Task Manager → Details → `ForeverTrackerUploader.exe` |
+| See it's running | The tray icon (click it for status and when it last synced), or Start menu → ForeverTracker (starts it if needed and says so) |
+| Quit it | Tray icon → **Quit ForeverTracker** (it starts again at the next sign-in if start-with-Windows is on) |
 | Turn off auto-start | Settings → Apps → Startup → ForeverTracker → Off |
-| Pause / check / see what's uploaded | `ForeverTrackerUploader.exe pause` / `status` / `disclose`, or re-run with `gui` from a source install |
+| Pause / check / see what's uploaded | `ForeverTrackerUploader.exe pause` / `status` / `disclose`, or `ForeverTrackerUploader.exe gui` for a status window |
 | Read the log | `%APPDATA%\ForeverTracker\uploader\uploader.log` |
 | Turn off self-update | Set `"auto_update": false` in `%APPDATA%\ForeverTracker\uploader\config.json` |
 | Uninstall | Add/Remove Programs → ForeverTracker (the addon stays; remove it in CurseForge or the AddOns folder) |
 
-> **Note:** the packaged exe excludes the Tkinter GUI to stay small and reduce antivirus noise, so
-> `gui` works only from a `pip install` of the uploader, not from the bundled exe.
+> **Note:** the packaged exe includes Tkinter for the cards (the notice and the tray icon's status
+> card, in the site's style). The tray icon itself uses the Windows API directly, with no extra libraries.
 
 ## Note on CurseForge
 

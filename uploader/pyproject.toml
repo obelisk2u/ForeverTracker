@@ -17,3 +17,6 @@ forevertracker-uploader = "forevertracker_uploader.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["forevertracker_uploader*"]
+
+[tool.setuptools.package-data]
+forevertracker_uploader = ["assets/*"]

@@ -7,12 +7,14 @@ moments the loop only stats a file every few seconds. It never crashes the loop 
 a single-instance lock means a manual launch and the login launch cannot both run. Once a day it
 also checks for a newer version of itself (update.py) and exits when the installer takes over.
 
-No window, but not hidden: see autostart.py for why start-with-Windows uses the visible Run key.
+No window, but not hidden: on Windows a tray icon (tray.py) shows it is running and offers Quit, and
+autostart.py explains why start-with-Windows uses the visible Run key.
 """
 
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -71,18 +73,23 @@ def run_background(
     updater=None,
     update_every: float = 24 * 3600,
     clock=time.monotonic,
+    stop: threading.Event | None = None,
+    single_instance: bool = True,
 ) -> int:
     """Run the background loop. ``iterations`` caps the loop for tests (None = until stopped).
 
     ``updater(home, config)`` runs at start and then every ``update_every`` seconds; when it returns
-    True an installer has taken over and the loop stops. Returns the number of passes that uploaded
-    at least one batch.
+    True an installer has taken over and the loop stops. Setting ``stop`` (the tray icon's Quit) ends
+    the loop at once instead of after the current wait. ``single_instance=False`` is for a caller that
+    already holds the lock. Returns the number of passes that uploaded at least one batch.
     """
-    try:
-        lock = SingleInstance(home).acquire()
-    except AlreadyRunning as err:
-        log.info("not starting: %s", err)
-        return 0
+    lock = None
+    if single_instance:
+        try:
+            lock = SingleInstance(home).acquire()
+        except AlreadyRunning as err:
+            log.info("not starting: %s", err)
+            return 0
 
     uploaded_passes = 0
     last: dict[str, float] = {}
@@ -91,7 +98,7 @@ def run_background(
     next_update = clock()
     try:
         i = 0
-        while iterations is None or i < iterations:
+        while (iterations is None or i < iterations) and not (stop and stop.is_set()):
             i += 1
             try:
                 cfg = Config.load(home)
@@ -125,7 +132,9 @@ def run_background(
                     log.exception("update check failed; trying again later")
             if iterations is None or i < iterations:
                 poll = Config.load(home).poll_seconds
-                sleep(poll if poll and poll > 0 else 10.0)
+                wait = poll if poll and poll > 0 else 10.0
+                stop.wait(wait) if stop is not None else sleep(wait)
     finally:
-        lock.release()
+        if lock is not None:
+            lock.release()
     return uploaded_passes

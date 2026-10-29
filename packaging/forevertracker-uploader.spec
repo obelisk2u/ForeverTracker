@@ -15,6 +15,7 @@
 import os
 import re
 
+from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.win32.versioninfo import (
     FixedFileInfo,
     StringFileInfo,
@@ -26,7 +27,7 @@ from PyInstaller.utils.win32.versioninfo import (
 )
 
 block_cipher = None
-ICON = os.path.join("packaging", "forevertracker.ico")  # optional; falls back to the default icon
+ICON = os.path.join("uploader", "forevertracker_uploader", "assets", "forevertracker.ico")  # the site's emblem
 
 # Product name and version come from the uploader package, so every build carries the same metadata
 # (SignPath enforces both on the files it signs).
@@ -62,11 +63,13 @@ a = Analysis(
     ["uploader_entry.py"],
     pathex=["."],
     binaries=[],
-    datas=[],
+    # The Start menu notice's emblem and font (forevertracker_uploader/assets). Tk stays in for that
+    # notice; the background loop itself never opens a window.
+    datas=collect_data_files("forevertracker_uploader"),
     hiddenimports=["forevertracker_sv"],
     hookspath=[],
     runtime_hooks=[],
-    excludes=["tkinter"],  # the background app has no GUI; drop tk to shrink the exe and reduce AV noise
+    excludes=[],
     cipher=block_cipher,
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)

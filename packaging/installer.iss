@@ -2,7 +2,8 @@
 ;
 ; One download that installs two things the player can see and remove:
 ;   1. the ForeverTracker addon, into <game folder>\Interface\AddOns\ForeverTracker
-;   2. ForeverTrackerUploader.exe, a windowless helper that uploads each run as the game saves it
+;   2. ForeverTrackerUploader.exe, a background app with a tray icon that uploads each run as the game
+;      saves it, plus a Start menu shortcut (searchable in Windows) and an optional desktop shortcut
 ;
 ; Build:  build the exe first (see build.ps1), then compile this with ISCC.exe installer.iss
 ; Sign:   sign dist\ForeverTrackerUploader.exe AND the finished installer before distributing.
@@ -49,6 +50,8 @@ OutputBaseFilename=ForeverTracker-Setup-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\uploader\forevertracker_uploader\assets\forevertracker.ico
+UninstallDisplayIcon={app}\{#MyAppExe}
 ; SignTool=mysigner  ; configure in the Inno IDE/ISCC to sign the installer and the uninstaller
 
 [Languages]
@@ -56,6 +59,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "startup"; Description: "Start {#MyAppName} when I sign in to Windows and upload my dungeon runs automatically"; GroupDescription: "After install:"
+Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
 ; The uploader exe.
@@ -71,16 +75,25 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
     ValueName: "ForeverTrackerUploader"; ValueData: """{app}\{#MyAppExe}"" background"; \
     Tasks: startup; Flags: uninsdeletevalue
 
+[Icons]
+; Start menu (which is also what Windows search finds) and, if chosen, the desktop. Both start the app
+; and show a notice that it is running (or already was); its tray icon then offers Quit.
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; Parameters: "start"; \
+    Comment: "Upload your dungeon runs to ForeverTracker"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; Parameters: "start"; \
+    Comment: "Upload your dungeon runs to ForeverTracker"; Tasks: desktopicon
+
 [Run]
 ; Write the uploader's config (server URL + the chosen game folder). Read-only toward the game.
 ; A self-update keeps the settings the player already has.
 Filename: "{app}\{#MyAppExe}"; Parameters: "setup --server ""{#ServerURL}"" --wow ""{code:GameDir}"""; \
     Flags: runhidden waituntilterminated; Check: not IsUpdate
-; Start it now so there is no need to reboot, only if the user left the startup box ticked.
-Filename: "{app}\{#MyAppExe}"; Parameters: "background"; Tasks: startup; \
-    Flags: nowait runhidden postinstall skipifsilent; Description: "Start {#MyAppName} now"
+; "Start ForeverTracker" on the last page (ticked), so there is no need to sign out first. Not runhidden:
+; that would hide the app's first window, the notice.
+Filename: "{app}\{#MyAppExe}"; Parameters: "start"; \
+    Flags: nowait postinstall skipifsilent; Description: "Start {#MyAppName}"
 ; After a self-update, start the new version (the old one exited so its exe could be replaced).
-Filename: "{app}\{#MyAppExe}"; Parameters: "background"; Flags: nowait runhidden; Check: IsUpdate
+Filename: "{app}\{#MyAppExe}"; Parameters: "background"; Flags: nowait; Check: IsUpdate
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/im {#MyAppExe} /f"; Flags: runhidden; RunOnceId: "StopUploader"

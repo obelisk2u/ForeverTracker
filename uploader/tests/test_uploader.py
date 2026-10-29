@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import httpx
 import pytest
 from forevertracker_sv.writer import to_savedvariables
 
-from forevertracker_uploader import autostart, background, files
+from forevertracker_uploader import autostart, background, cli, files, notice
 from forevertracker_uploader.cli import main
 from forevertracker_uploader.client import Uploader, check_server_url
 from forevertracker_uploader.config import Config, State
@@ -190,6 +191,97 @@ def test_single_instance_lock_blocks_a_second_copy(tmp_path):
     finally:
         first.release()
     SingleInstance(home).acquire().release()  # released: the next start succeeds
+
+
+@pytest.mark.parametrize(("command", "greeting"), [("start", notice.STARTED), ("background", None)])
+def test_app_uploads_behind_the_tray_icon_until_quit(tmp_path, monkeypatch, command, greeting):
+    home = tmp_path / "home"
+    trays, loops = [], []
+    monkeypatch.setattr(background, "configure_logging", lambda _home: None)
+    monkeypatch.setattr(background, "run_background", lambda h, **kw: loops.append(kw) or kw["stop"].wait(5))
+    monkeypatch.setattr(cli, "_has_tray", lambda: True)
+
+    def tray(_home, stop, _worker, shown_greeting):
+        trays.append(shown_greeting)
+        stop.set()  # the player clicks Quit
+
+    monkeypatch.setattr(cli, "_show_tray", tray)
+    assert main(["--home", str(home), command]) == 0
+    assert trays == [greeting]  # only the shortcuts (start) show the "running" notice
+    assert loops[0]["single_instance"] is False and loops[0]["stop"].is_set()
+    SingleInstance(home).acquire().release()  # the lock was released on the way out
+
+
+def test_a_second_copy_only_says_it_is_already_running(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    shown = []
+    monkeypatch.setattr(notice, "show", shown.append)
+    monkeypatch.setattr(background, "configure_logging", lambda _home: None)
+    monkeypatch.setattr(background, "run_background", lambda *_a, **_kw: pytest.fail("a second upload loop"))
+    monkeypatch.setattr(cli, "_show_tray", lambda *_a: pytest.fail("a second tray icon"))
+    with SingleInstance(home):
+        assert main(["--home", str(home), "start"]) == 0
+        assert main(["--home", str(home), "background"]) == 0  # at sign-in: silently
+    assert shown == [notice.ALREADY_RUNNING]
+
+
+def test_background_loop_stops_promptly_when_asked(wow, tmp_path):
+    root, _ = wow
+    home = tmp_path / "home"
+    Config(wow_paths=[str(root)], server_url="https://ft.test", poll_seconds=60).save(home)
+    server = FakeServer()
+    stop = threading.Event()
+    loop = threading.Thread(
+        target=background.run_background, args=(home,), kwargs={"uploader_factory": lambda _u: server.uploader(), "stop": stop}
+    )
+    loop.start()
+    deadline = time.monotonic() + 5
+    while not server.received and time.monotonic() < deadline:
+        time.sleep(0.02)
+    stop.set()  # mid-way through a 60-second wait
+    loop.join(timeout=5)
+    assert not loop.is_alive() and len(server.received) == 1
+
+
+def test_tray_card_says_when_the_app_last_synced():
+    now = 1_000_000.0
+    assert notice.last_synced(State(), now).startswith("Waiting for your first run")
+    assert notice.last_synced(State(last_sync_at=now - 20), now) == "Last synced just now."
+    assert notice.last_synced(State(last_sync_at=now - 5 * 60), now) == "Last synced 5 minutes ago."
+    assert notice.last_synced(State(last_sync_at=now - 3600), now) == "Last synced 1 hour ago."
+    assert notice.last_synced(State(last_sync_at=now - 3 * 86400), now) == "Last synced 3 days ago."
+    assert "failed" in notice.last_synced(State(last_sync_at=now, last_error="HTTP 503"), now)
+
+
+def test_notice_assets_ship_with_the_package():
+    for size in notice.EMBLEM_SIZES:
+        assert (notice.ASSETS / f"emblem-{size}.png").is_file()
+    assert (notice.ASSETS / "Cinzel-SemiBold.ttf").is_file() and (notice.ASSETS / "Cinzel-OFL.txt").is_file()
+    assert notice.ICON.read_bytes()[:4] == b"\0\0\1\0"  # a Windows .ico
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="the notice card is drawn only on Windows")
+def test_notice_card_lays_out_its_text_without_showing():
+    import tkinter as tk
+
+    def walk(widget):
+        yield widget
+        for child in widget.winfo_children():
+            yield from walk(child)
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        notice.build(root, notice.ALREADY_RUNNING, "Georgia")
+        texts = {w.cget("text") for w in walk(root) if isinstance(w, tk.Label)}
+        assert {notice.TITLE, notice.ALREADY_RUNNING, notice.DETAIL} <= texts
+
+        tray_card = tk.Toplevel(root)  # the tray icon's card: status, last sync and a Quit button
+        notice.build(tray_card, "Running", "Georgia", detail="Last synced just now.", button=("Quit ForeverTracker", print))
+        texts = {w.cget("text") for w in walk(tray_card) if isinstance(w, tk.Label)}
+        assert {"Running", "Last synced just now.", "Quit ForeverTracker"} <= texts
+    finally:
+        root.destroy()
 
 
 def test_autostart_command_targets_windowless_background_mode(monkeypatch):
