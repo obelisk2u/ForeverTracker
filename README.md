@@ -64,14 +64,12 @@ SavedVariables files, and checks reconciliation, conflicts and statistics throug
 
 ## Code signing policy
 
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)
-
-ForeverTracker is joining SignPath Foundation's free signing program for open-source projects; until signed
-releases are out, the Windows installer is unsigned.
-
-The Windows desktop app (`ForeverTrackerUploader.exe`) and its installer are built from this repository by GitHub
-Actions ([`windows-app.yml`](.github/workflows/windows-app.yml)), and a maintainer approves every signing request.
-The addon is plain Lua source and is not signed.
+The Windows desktop app (`ForeverTrackerUploader.exe`) and its installer are signed with
+[Azure Artifact Signing](https://azure.microsoft.com/products/artifact-signing); Windows shows the publisher as
+Jordan Stout. Both are built from this repository by GitHub Actions
+([`windows-app.yml`](.github/workflows/windows-app.yml)) and signed in the same run, only on the `main` branch, with a
+certificate Microsoft holds (no key ever leaves Azure). Releases are published by the maintainer, Jordan Stout. The
+addon is plain Lua source and is not signed.
 
 | Role | Members |
 |---|---|

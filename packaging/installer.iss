@@ -38,8 +38,7 @@ AppPublisherURL=https://github.com/obelisk2u/ForeverTracker
 VersionInfoVersion={#MyAppVersion}
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription={#MyAppName} installer
-; What the app uploads, shown before anything is installed (SignPath Foundation requires this for
-; software that sends data).
+; What the app uploads, shown before anything is installed.
 InfoBeforeFile=privacy.txt
 DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}

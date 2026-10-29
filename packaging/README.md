@@ -40,40 +40,33 @@ The helper only ever **reads** the game's SavedVariables file; it never writes t
 ## Build
 
 **Release builds come from GitHub Actions** ([`windows-app.yml`](../.github/workflows/windows-app.yml)): every push
-to `main` that touches the app, addon or packaging, and every `v*` tag, builds both exes on a clean Windows runner
-and uploads them as the `ForeverTracker-windows-unsigned` artifact. That is what SignPath signs: it only signs
-builds made from the public source by CI. Once the SignPath project exists, add its
-`signpath/github-action-submit-signing-request` step after the upload, using the upload step's `artifact-id`.
+to `main` that touches the app, addon or packaging builds the app on a clean Windows runner, signs it with
+[Azure Artifact Signing](https://azure.microsoft.com/products/artifact-signing), packs it into the installer, signs
+the installer, checks both signatures, and uploads them as the `ForeverTracker-windows-signed` artifact. Pull
+requests and other branches build the same thing unsigned (`ForeverTracker-windows-unsigned`).
+
+Signing matters: a background, autostarting, network-using exe is exactly the shape SmartScreen and antivirus
+flag, and an unsigned build never installs updates. The one-time setup, all in Azure and GitHub, with no password
+or key stored anywhere:
+
+- Artifact Signing account `forevertracker` (East US) with a **Public Trust** certificate profile `forevertracker`
+  on the maintainer's validated identity, so Windows shows the publisher as that name.
+- A Microsoft Entra app registration with a **federated credential** for this repository's `main` branch and the
+  *Artifact Signing Certificate Profile Signer* role on the signing account.
+- Repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. Without them the
+  workflow still builds, unsigned.
 
 To build locally instead, from the repo root in a Python 3.11+ environment:
 
 ```powershell
 pip install ./packages/savedvariables ./uploader pyinstaller==6.11.1
-.\packaging\build.ps1
+.\packaging\build.ps1                 # or -Stage app / -Stage installer for one half
 ```
 
 Outputs land in `dist\`:
-- `ForeverTrackerUploader.exe` — the helper (product name and version are stamped from `__version__`)
+- `ForeverTrackerUploader.exe` — the app (product name and version are stamped from `__version__`)
 - `ForeverTracker-Setup-<version>.exe` — the installer (needs [Inno Setup 6](https://jrsoftware.org/isdl.php)); it
-  shows [`privacy.txt`](privacy.txt) before installing
-
-## Before you publish — one required edit and signing
-
-1. **Server URL.** Edit `#define ServerURL` in `installer.iss` to your real site. The uploader
-   refuses plain `http://` except for `localhost`, so it must be `https://`.
-2. **Code signing (do not skip).** A windowless, autostarting, network-using exe is exactly the
-   shape SmartScreen and antivirus flag on sight. Sign **both** the exe and the installer with an
-   Authenticode certificate (an EV cert earns SmartScreen reputation fastest; open-source projects
-   can apply to [SignPath](https://signpath.io/)):
-
-   ```powershell
-   signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a dist\ForeverTrackerUploader.exe
-   signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a dist\ForeverTracker-Setup-0.1.0.exe
-   ```
-
-   Signing is the only thing here I can't do for you — it needs your certificate. Everything else
-   is wired up and ready. It is also what makes self-update possible: an unsigned build never
-   installs updates.
+  shows [`privacy.txt`](privacy.txt) before installing. Local builds are unsigned.
 
 ## How the app updates itself
 
@@ -87,23 +80,22 @@ it keeps the player's settings and autostart choice, doesn't touch the addon, an
 ## Releasing an update
 
 1. Bump `__version__` in `uploader/forevertracker_uploader/__init__.py` (and `version` in
-   `uploader/pyproject.toml`). `build.ps1` passes it to the installer, so they always match.
-2. `.\packaging\build.ps1`, then sign both exes **with the same certificate subject as before**.
-   A renewed certificate is fine; a different publisher name means installed apps refuse the update.
-3. Host `dist\ForeverTracker-Setup-<version>.exe` over HTTPS (your site or a GitHub release), and
-   hash the **signed** file: `Get-FileHash dist\ForeverTracker-Setup-<version>.exe -Algorithm SHA256`
-4. Set these on the API server and restart it:
+   `uploader/pyproject.toml`). `build.ps1` passes it to the installer, so they always match. Push to `main`.
+2. On GitHub: **Actions → Windows app → Run workflow** (branch `main`), tick **Publish**. It builds, signs, and
+   creates the release `v<version>` with the signed installer attached. It refuses to publish an unsigned build.
+3. The run's summary lists four settings. Put them in the server's `.env` and restart the backend
+   (`docker compose -f docker-compose.prod.yml --env-file .env up -d backend`):
 
    ```
    UPLOADER_LATEST_VERSION=<version>
-   UPLOADER_DOWNLOAD_URL=https://…/ForeverTracker-Setup-<version>.exe
-   UPLOADER_SHA256=<hash from step 3>
-   UPLOADER_SIGNED=true   # leave false for an unsigned build: the Download page then explains
-                          # Windows' "unknown publisher" warning before the download starts
+   UPLOADER_DOWNLOAD_URL=https://github.com/obelisk2u/ForeverTracker/releases/download/v<version>/ForeverTracker-Setup-<version>.exe
+   UPLOADER_SHA256=<hash of the signed installer>
+   UPLOADER_SIGNED=true
    ```
 
 The website's Download page button switches to the new installer immediately; installed apps
-update within a day.
+update within a day. Azure renews its short-lived certificates with the same publisher name, so updates keep
+working; signing with a different identity would change the publisher, and installed apps would refuse the update.
 
 ## What the user can do after install
 

@@ -59,17 +59,24 @@ describe("download page", () => {
 });
 
 describe("code signing policy", () => {
-  it("carries SignPath's attribution, the team roles and the privacy statement", async () => {
+  it("names the signing service and publisher, how to check a download, and the privacy statement", async () => {
     const { default: CodeSigningPage } = await import("@/app/code-signing/page");
     uploaderRelease.mockResolvedValue({ ...release, signed: false });
     render(await CodeSigningPage());
-    expect(screen.getByText(/Free code signing provided by/).textContent).toBe(
-      "Free code signing provided by SignPath.io, certificate by SignPath Foundation",
+    expect(screen.getByRole("link", { name: "Azure Artifact Signing" })).toHaveAttribute(
+      "href",
+      "https://azure.microsoft.com/products/artifact-signing",
     );
-    expect(screen.getByRole("link", { name: "SignPath.io" })).toHaveAttribute("href", "https://about.signpath.io");
-    expect(screen.getByRole("link", { name: "SignPath Foundation" })).toHaveAttribute("href", "https://signpath.org");
+    expect(screen.getByText(/Windows shows the publisher as Jordan Stout/)).toBeInTheDocument();
     expect(screen.getByText(/the installer is unsigned/)).toBeInTheDocument();
-    for (const role of ["Authors", "Reviewers", "Approvers"]) expect(screen.getByText(role)).toBeInTheDocument();
+    expect(screen.getByText(/Digital Signatures tab/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "privacy notice" })).toHaveAttribute("href", "/privacy");
+  });
+
+  it("drops the unsigned note once a signed release is out", async () => {
+    const { default: CodeSigningPage } = await import("@/app/code-signing/page");
+    uploaderRelease.mockResolvedValue({ ...release, signed: true });
+    render(await CodeSigningPage());
+    expect(screen.queryByText(/the installer is unsigned/)).toBeNull();
   });
 });

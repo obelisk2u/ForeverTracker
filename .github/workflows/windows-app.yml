@@ -1,7 +1,9 @@
 name: Windows app
 
-# Builds the desktop app and its installer from this repository's source on GitHub's servers.
-# Releases are signed through SignPath from the uploaded artifact (see packaging/README.md).
+# Builds the desktop app and its installer from this repository's source on GitHub's servers. On main, once
+# the AZURE_* repository variables are set, it signs both with Azure Artifact Signing: the app first, so the
+# installer carries a signed app, then the installer. Run it by hand with "publish" ticked to attach the
+# signed installer to a GitHub release (see packaging/README.md, "Releasing an update").
 
 on:
   push:
@@ -21,10 +23,22 @@ on:
       - "packaging/**"
       - ".github/workflows/windows-app.yml"
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the signed installer as a GitHub release (v<version>)"
+        type: boolean
+        default: false
+
+env:
+  # Azure trusts this repository's main branch (a federated credential), so no password is stored anywhere.
+  SIGN: ${{ vars.AZURE_CLIENT_ID != '' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: read
+      id-token: write # the Azure sign-in token
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,15 +49,109 @@ jobs:
         run: pip install ./packages/savedvariables ./uploader pyinstaller==6.11.1
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
-      - name: Build the app and installer
+      - name: Build the app
         shell: pwsh
-        run: .\packaging\build.ps1 -RequireInstaller
-      - name: Upload the unsigned build
-        id: upload
+        run: .\packaging\build.ps1 -Stage app
+
+      - name: Sign in to Azure
+        if: env.SIGN == 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign the app
+        if: env.SIGN == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: https://eus.codesigning.azure.net/
+          signing-account-name: forevertracker
+          certificate-profile-name: forevertracker
+          files: ${{ github.workspace }}\dist\ForeverTrackerUploader.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          # Use only the Azure sign-in above.
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+
+      - name: Build the installer
+        shell: pwsh
+        run: .\packaging\build.ps1 -Stage installer -RequireInstaller
+      - name: Sign the installer
+        if: env.SIGN == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: https://eus.codesigning.azure.net/
+          signing-account-name: forevertracker
+          certificate-profile-name: forevertracker
+          files-folder: ${{ github.workspace }}\dist
+          files-folder-filter: ForeverTracker-Setup-*.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+      - name: Check both signatures
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          foreach ($s in Get-AuthenticodeSignature dist\*.exe) {
+            if ($s.Status -ne "Valid") { throw "$($s.Path) is not validly signed: $($s.StatusMessage)" }
+            "$(Split-Path -Leaf $s.Path): $($s.SignerCertificate.Subject)"
+          }
+
+      - name: Upload the build
         uses: actions/upload-artifact@v4
         with:
-          name: ForeverTracker-windows-unsigned
+          name: ForeverTracker-windows-${{ env.SIGN == 'true' && 'signed' || 'unsigned' }}
           path: |
             dist/ForeverTrackerUploader.exe
             dist/ForeverTracker-Setup-*.exe
           if-no-files-found: error
+
+  publish:
+    # Only by hand, only from main, and only a signed build: there is no unsigned artifact to fall back to.
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ForeverTracker-windows-signed
+          path: dist
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          installer=$(ls dist/ForeverTracker-Setup-*.exe)
+          version=$(basename "$installer" .exe | sed 's/^ForeverTracker-Setup-//')
+          sha=$(sha256sum "$installer" | cut -d' ' -f1)
+          gh release create "v$version" "$installer" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "ForeverTracker $version" --notes "Windows installer, signed. SHA-256: \`$sha\`"
+          url="https://github.com/$GITHUB_REPOSITORY/releases/download/v$version/$(basename "$installer")"
+          {
+            echo "### Set these on the server, then restart the backend"
+            echo '```'
+            echo "UPLOADER_LATEST_VERSION=$version"
+            echo "UPLOADER_DOWNLOAD_URL=$url"
+            echo "UPLOADER_SHA256=$sha"
+            echo "UPLOADER_SIGNED=true"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

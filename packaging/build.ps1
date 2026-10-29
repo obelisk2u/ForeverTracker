@@ -4,21 +4,28 @@
 #     .\packaging\build.ps1
 #
 # Produces:
-#     dist\ForeverTrackerUploader.exe          (windowless helper)
+#     dist\ForeverTrackerUploader.exe          (the app)
 #     dist\ForeverTracker-Setup-<version>.exe  (installer; only if Inno Setup is installed,
 #                                               or always with -RequireInstaller, as CI uses)
 #
-# Release builds come from GitHub Actions (.github/workflows/windows-app.yml), which SignPath signs.
+# -Stage app or -Stage installer builds one half, so CI can sign the app before the installer packs it.
+# Release builds come from GitHub Actions (.github/workflows/windows-app.yml), signed with Azure Artifact Signing.
 
-param([switch]$RequireInstaller)
+param(
+    [ValidateSet("all", "app", "installer")][string]$Stage = "all",
+    [switch]$RequireInstaller
+)
 
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 
-Write-Host "==> Building ForeverTrackerUploader.exe with PyInstaller"
-pyinstaller packaging\forevertracker-uploader.spec --noconfirm --distpath dist --workpath build\pyinstaller
-if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
+if ($Stage -ne "installer") {
+    Write-Host "==> Building ForeverTrackerUploader.exe with PyInstaller"
+    pyinstaller packaging\forevertracker-uploader.spec --noconfirm --distpath dist --workpath build\pyinstaller
+    if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
+}
+if ($Stage -eq "app") { return }
 
 # One version number: the uploader's __version__ is what the app compares against the server's release.
 $version = (Select-String -Path uploader\forevertracker_uploader\__init__.py -Pattern '^__version__ = "(.+)"').Matches[0].Groups[1].Value
