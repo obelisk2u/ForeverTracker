@@ -18,20 +18,12 @@ function Dropdown({ title, children }: { title: string; children: React.ReactNod
   );
 }
 
-// A signed installer downloads straight away. Until then Windows warns about it, so the button first
+// Windows warns about a new download until enough people have run it, signed or not, so the button first
 // explains the warning, and the download starts from inside that explanation.
 export function DownloadButton({ release }: { release: UploaderRelease }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const download = useRef<HTMLAnchorElement>(null);
   const file = release.download_url.split("/").pop() || `ForeverTracker-Setup-${release.version}.exe`;
-
-  if (release.signed) {
-    return (
-      <a href={release.download_url} className={`self-start ${PRIMARY}`}>
-        Download for Windows · v{release.version}
-      </a>
-    );
-  }
 
   return (
     <>
@@ -56,11 +48,20 @@ export function DownloadButton({ release }: { release: UploaderRelease }) {
           <h2 id="download-dialog-title" className="font-display text-xl text-gold">
             Windows will probably warn you
           </h2>
-          <p>
-            ForeverTracker is new and hasn&apos;t had time to be reviewed by Windows yet, so you&apos;ll see a warning when
-            you download and run it. If Windows says it protected your PC, click{" "}
-            <strong className="text-text">More info</strong>, then <strong className="text-text">Run anyway</strong>.
-          </p>
+          {release.signed ? (
+            <p>
+              ForeverTracker is signed, but it&apos;s new, and Windows warns about new downloads until enough people have
+              run them. If Windows says it protected your PC, click <strong className="text-text">More info</strong>: the
+              publisher should read <strong className="text-text">Jordan Stout</strong>. Then click{" "}
+              <strong className="text-text">Run anyway</strong>.
+            </p>
+          ) : (
+            <p>
+              ForeverTracker is new and hasn&apos;t had time to be reviewed by Windows yet, so you&apos;ll see a warning when
+              you download and run it. If Windows says it protected your PC, click{" "}
+              <strong className="text-text">More info</strong>, then <strong className="text-text">Run anyway</strong>.
+            </p>
+          )}
           <Dropdown title="Check the file yourself">
             <p>
               Open PowerShell in your Downloads folder and run the command below. The hash it prints should match this

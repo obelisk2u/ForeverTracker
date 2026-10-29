@@ -42,11 +42,14 @@ describe("download page", () => {
     expect(dialog).not.toHaveAttribute("open");
   });
 
-  it("links a signed installer directly", async () => {
+  it("still explains Windows' warning for a signed installer, naming the publisher", async () => {
     uploaderRelease.mockResolvedValue({ ...release, signed: true });
     render(await DownloadPage());
-    expect(screen.getByRole("link", { name: /Download for Windows · v0\.2\.0/ })).toHaveAttribute("href", url);
-    expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /Download for Windows · v0\.2\.0/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/ForeverTracker is signed, but it's new/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Jordan Stout")).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: "Download ForeverTracker-Setup-0.2.0.exe" })).toHaveAttribute("href", url);
   });
 
   it("has no download button until a release is published", async () => {
