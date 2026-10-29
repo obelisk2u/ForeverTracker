@@ -27,7 +27,8 @@ from PyInstaller.utils.win32.versioninfo import (
 )
 
 block_cipher = None
-ICON = os.path.join("uploader", "forevertracker_uploader", "assets", "forevertracker.ico")  # the site's emblem
+# The site's emblem. PyInstaller resolves relative paths against this spec's folder, so anchor it there.
+ICON = os.path.join(SPECPATH, "..", "uploader", "forevertracker_uploader", "assets", "forevertracker.ico")
 
 # Product name and version come from the uploader package, so every build carries the same metadata
 # (SignPath enforces both on the files it signs).
@@ -88,6 +89,6 @@ exe = EXE(
     upx=False,
     runtime_tmpdir=None,
     console=False,
-    icon=ICON if os.path.exists(ICON) else None,
+    icon=ICON,
     version=VERSION_INFO,
 )
