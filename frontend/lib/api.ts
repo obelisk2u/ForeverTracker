@@ -10,9 +10,11 @@ import type {
 } from "./types";
 
 // Server components reach the API over the internal network; the browser uses the public URL.
+// An empty public URL means "same origin" in the browser, but the server has no origin to be relative
+// to (a relative fetch hangs static generation at build time), so it falls through there.
 export function apiBase(): string {
   if (typeof window === "undefined") {
-    return process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+    return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   }
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 }
