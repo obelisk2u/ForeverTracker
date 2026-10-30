@@ -53,6 +53,13 @@ SetupIconFile=..\uploader\forevertracker_uploader\assets\forevertracker.ico
 UninstallDisplayIcon={app}\{#MyAppExe}
 ; Every install writes "Setup Log <date> #<n>.txt" to %TEMP%, so a failed install can be diagnosed.
 SetupLogging=yes
+#ifdef SignedSetupDir
+; Signed builds also sign Setup's own program: the copy it runs from %TEMP%, which antivirus judges on its own
+; (an unsigned, never-seen-before program there gets blocked), and the uninstaller. build.ps1 -Stage setup-program
+; has the compiler write it to this folder to be signed; the next compile embeds the signature.
+SignedUninstaller=yes
+SignedUninstallerDir={#SignedSetupDir}
+#endif
 ; SignTool=mysigner  ; configure in the Inno IDE/ISCC to sign the installer and the uninstaller
 
 [Languages]

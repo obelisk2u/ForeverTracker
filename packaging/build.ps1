@@ -9,18 +9,21 @@
 #                                               or always with -RequireInstaller, as CI uses)
 #
 # -Stage app or -Stage installer builds one half, so CI can sign the app before the installer packs it.
+# Signed builds also pass -SignedSetupDir: -Stage setup-program writes the installer's own program (what it runs
+# from %TEMP%, and the uninstaller) there to be signed, and -Stage installer then embeds the signed copy.
 # Release builds come from GitHub Actions (.github/workflows/windows-app.yml), signed with Azure Artifact Signing.
 
 param(
-    [ValidateSet("all", "app", "installer")][string]$Stage = "all",
-    [switch]$RequireInstaller
+    [ValidateSet("all", "app", "setup-program", "installer")][string]$Stage = "all",
+    [switch]$RequireInstaller,
+    [string]$SignedSetupDir
 )
 
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 
-if ($Stage -ne "installer") {
+if ($Stage -in "all", "app") {
     Write-Host "==> Building ForeverTrackerUploader.exe with PyInstaller"
     pyinstaller packaging\forevertracker-uploader.spec --noconfirm --distpath dist --workpath build\pyinstaller
     if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
@@ -36,9 +39,25 @@ if (-not $iscc) {
         if (Test-Path $p) { $iscc = $p; break }
     }
 }
+$defines = @("/DMyAppVersion=$version")
+if ($SignedSetupDir) {
+    $SignedSetupDir = (New-Item -ItemType Directory -Force $SignedSetupDir).FullName
+    $defines += "/DSignedSetupDir=$SignedSetupDir"
+}
+if ($Stage -eq "setup-program") {
+    if (-not ($iscc -and $SignedSetupDir)) { throw "-Stage setup-program needs Inno Setup and -SignedSetupDir" }
+    Write-Host "==> Writing the installer's own program to $SignedSetupDir, to be signed"
+    # The compiler stops here, asking (on stderr) for the file it just wrote to be signed.
+    $ErrorActionPreference = "Continue"
+    & $iscc @defines /Q packaging\installer.iss
+    $ErrorActionPreference = "Stop"
+    if (-not (Get-ChildItem $SignedSetupDir -Filter "uninst-*.e32")) { throw "Inno Setup wrote no program to sign" }
+    $global:LASTEXITCODE = 0
+    return
+}
 if ($iscc) {
     Write-Host "==> Building the installer $version with Inno Setup"
-    & $iscc "/DMyAppVersion=$version" packaging\installer.iss
+    & $iscc @defines packaging\installer.iss
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
     Write-Host "==> Done: dist\ForeverTracker-Setup-$version.exe (sign it, then see 'Releasing an update' in packaging\README.md)"
 } elseif ($RequireInstaller) {

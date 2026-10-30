@@ -89,9 +89,37 @@ jobs:
           exclude-azure-developer-cli-credential: true
           exclude-interactive-browser-credential: true
 
+      - name: Prepare the installer's own program
+        # What the installer runs from %TEMP%, and the uninstaller. Antivirus judges that program on its own, so
+        # it is signed too, not just the installer around it.
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: .\packaging\build.ps1 -Stage setup-program -SignedSetupDir dist\setup-program
+      - name: Sign the installer's own program
+        if: env.SIGN == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: https://eus.codesigning.azure.net/
+          signing-account-name: forevertracker
+          certificate-profile-name: forevertracker
+          files-folder: ${{ github.workspace }}\dist\setup-program
+          files-folder-filter: uninst-*.e32
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+
       - name: Build the installer
         shell: pwsh
-        run: .\packaging\build.ps1 -Stage installer -RequireInstaller
+        run: .\packaging\build.ps1 -Stage installer -RequireInstaller ${{ env.SIGN == 'true' && '-SignedSetupDir dist\setup-program' || '' }}
       - name: Sign the installer
         if: env.SIGN == 'true'
         uses: azure/artifact-signing-action@v2
@@ -113,11 +141,11 @@ jobs:
           exclude-azure-powershell-credential: true
           exclude-azure-developer-cli-credential: true
           exclude-interactive-browser-credential: true
-      - name: Check both signatures
+      - name: Check the signatures
         if: env.SIGN == 'true'
         shell: pwsh
         run: |
-          $files = @("dist\ForeverTrackerUploader\ForeverTrackerUploader.exe") + (Get-ChildItem dist\ForeverTracker-Setup-*.exe).FullName
+          $files = @("dist\ForeverTrackerUploader\ForeverTrackerUploader.exe") + (Get-ChildItem dist\ForeverTracker-Setup-*.exe, dist\setup-program\uninst-*.e32).FullName
           foreach ($s in Get-AuthenticodeSignature -FilePath $files) {
             if ($s.Status -ne "Valid") { throw "$($s.Path) is not validly signed: $($s.StatusMessage)" }
             "$(Split-Path -Leaf $s.Path): $($s.SignerCertificate.Subject)"

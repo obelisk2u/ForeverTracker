@@ -43,8 +43,9 @@ The helper only ever **reads** the game's SavedVariables file; it never writes t
 
 **Release builds come from GitHub Actions** ([`windows-app.yml`](../.github/workflows/windows-app.yml)): every push
 to `main` that touches the app, addon or packaging builds the app on a clean Windows runner, signs it with
-[Azure Artifact Signing](https://azure.microsoft.com/products/artifact-signing), packs it into the installer, signs
-the installer, checks both signatures, and uploads them as the `ForeverTracker-windows-signed` artifact. Pull
+[Azure Artifact Signing](https://azure.microsoft.com/products/artifact-signing), signs the installer's own program
+(below), packs both into the installer, signs the installer, checks every signature, and uploads them as the
+`ForeverTracker-windows-signed` artifact. Pull
 requests and other branches build the same thing unsigned (`ForeverTracker-windows-unsigned`).
 
 Signing matters: a background, autostarting, network-using exe is exactly the shape SmartScreen and antivirus
@@ -86,6 +87,11 @@ has a reputation. What keeps the score low:
   PowerShell. Heuristics treat a new download that starts hidden scripts as malware, and remove everything it
   installed.
 - **Signed** app and installer, with the same publisher every release.
+- **Signed inside, too.** The installer copies its own program to `%TEMP%` and runs it from there. Inno Setup
+  customises that program for every installer, so antivirus has never seen it, and unsigned it was refused on a
+  player's PC ("Unable to execute file in the temporary directory… Error 5: Access is denied"). Signed builds
+  sign it as well (`SignedUninstaller`, which also signs the uninstaller): `build.ps1 -Stage setup-program` has the
+  compiler write it to a folder, CI signs it, and `-Stage installer` embeds the signed copy.
 - **Submit each new release** as a false positive, before announcing it: Norton
   (<https://submit.norton.com/>, as a false positive) and Microsoft Defender
   (<https://www.microsoft.com/wdsi/filesubmission>).
