@@ -1,4 +1,5 @@
 import hashlib
+import sys
 from pathlib import Path
 
 import httpx
@@ -69,6 +70,16 @@ def test_an_unsigned_build_never_downloads_or_installs(tmp_path):
     transport, requests = server()
     assert install(tmp_path, transport, {}) == (False, [])
     assert requests == ["/api/v1/uploader/latest"]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Authenticode is Windows-only")
+def test_reads_the_publisher_of_a_signed_file_from_windows(tmp_path):
+    # The Python running the tests is signed by its publisher (python.org builds are).
+    assert "CN=Python Software Foundation" in update.signer(Path(sys.base_prefix) / "python.exe")
+    unsigned = tmp_path / "unsigned.exe"
+    unsigned.write_bytes(INSTALLER)
+    assert update.signer(unsigned) is None
+    assert update.signer(tmp_path / "missing.exe") is None
 
 
 def test_rejects_an_installer_from_another_publisher(tmp_path):

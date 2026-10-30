@@ -182,6 +182,36 @@ def test_cli_setup_and_status(wow, tmp_path, capsys):
     assert "ForeverTracker.lua" in out and "Paused:        yes" in out
 
 
+def test_the_app_saves_the_installers_choices_when_it_starts(wow, tmp_path, capsys):
+    root, _ = wow
+    home = tmp_path / "home"
+    Config(paused=True).save(home)
+    # As packaging/installer.iss writes it: ASCII, with \u escapes for any other character.
+    folder = str(root).replace("\\", "\\\\")
+    (home / "installer.json").write_text(
+        f'{{"server_url": "https://ft.test", "wow_paths": ["{folder}"]}}', encoding="ascii"
+    )
+    assert main(["--home", str(home), "status"]) == 0
+    cfg = Config.load(home)
+    assert (cfg.server_url, cfg.wow_paths, cfg.paused) == ("https://ft.test", [str(root)], True)
+    assert not (home / "installer.json").exists()
+    assert "ForeverTracker.lua" in capsys.readouterr().out
+
+    (home / "installer.json").write_text('{"wow_paths": ["D:\\\\Jeux\\\\World of Warcraft\\\\_forever_\\u00e9"]}')
+    cli.apply_installer_choices(home)
+    assert Config.load(home).wow_paths == ["D:\\Jeux\\World of Warcraft\\_forever_\u00e9"]
+
+
+@pytest.mark.parametrize("content", ["not json", "[]", '{"server_url": "http://example.com"}'])
+def test_unusable_installer_choices_are_dropped(tmp_path, content):
+    home = tmp_path / "home"
+    Config(server_url="https://ft.test").save(home)
+    (home / "installer.json").write_text(content)
+    cli.apply_installer_choices(home)
+    assert Config.load(home).server_url == "https://ft.test"
+    assert not (home / "installer.json").exists()
+
+
 def test_single_instance_lock_blocks_a_second_copy(tmp_path):
     home = tmp_path / "home"
     first = SingleInstance(home).acquire()

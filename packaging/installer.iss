@@ -51,6 +51,8 @@ SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=..\uploader\forevertracker_uploader\assets\forevertracker.ico
 UninstallDisplayIcon={app}\{#MyAppExe}
+; Every install writes "Setup Log <date> #<n>.txt" to %TEMP%, so a failed install can be diagnosed.
+SetupLogging=yes
 ; SignTool=mysigner  ; configure in the Inno IDE/ISCC to sign the installer and the uninstaller
 
 [Languages]
@@ -87,10 +89,8 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; Parameters: "
     Comment: "Upload your dungeon runs to ForeverTracker"; Tasks: desktopicon
 
 [Run]
-; Write the uploader's config (server URL + the chosen game folder). Read-only toward the game.
-; A self-update keeps the settings the player already has.
-Filename: "{app}\{#MyAppExe}"; Parameters: "setup --server ""{#ServerURL}"" --wow ""{code:GameDir}"""; \
-    Flags: runhidden waituntilterminated; Check: not IsUpdate
+; The installer starts no hidden programs or scripts: antivirus heuristics treat that as malware behaviour.
+; The app's settings are left in installer.json instead (see SaveAppChoices).
 ; "Start ForeverTracker" on the last page (ticked), so there is no need to sign out first. Not runhidden:
 ; that would hide the app's first window, the notice.
 Filename: "{app}\{#MyAppExe}"; Parameters: "start"; \
@@ -268,18 +268,6 @@ begin
   Result := GamePage.Values[0] + '\Interface\AddOns\ForeverTracker';
 end;
 
-function IsGameRunning(): Boolean;
-var
-  RC: Integer;
-begin
-  Result := False;
-  // Non-fatal best effort: if PowerShell is unavailable we simply skip the check.
-  if Exec('powershell.exe',
-      '-NoProfile -ExecutionPolicy Bypass -Command "if (Get-Process -Name Wow* -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"',
-      '', SW_HIDE, ewWaitUntilTerminated, RC) then
-    Result := (RC = 1);
-end;
-
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   RC: Integer;
@@ -288,12 +276,50 @@ begin
   // The addon is only added when it is missing. Once installed, CurseForge keeps it up to date, so
   // reinstalls and self-updates never overwrite (or downgrade) it.
   InstallAddon := (not IsUpdate()) and not FileExists(AddonsDir('') + '\ForeverTracker.toc');
-  if InstallAddon and IsGameRunning() then
-  begin
-    Result := 'Please close World of Warcraft before installing, then click Back and Next to continue.' + #13#10 +
-      '(Copying an addon while the game is running is unreliable.)';
-    exit;
-  end;
-  // Stop a running uploader so its exe can be replaced. After a self-update it has normally exited already.
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/im {#MyAppExe} /f', '', SW_HIDE, ewWaitUntilTerminated, RC);
+  // Stop a running uploader so its exe can be replaced (a first install has none to stop). After a
+  // self-update it has normally exited already.
+  if FileExists(ExpandConstant('{app}\{#MyAppExe}')) then
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/im {#MyAppExe} /f', '', SW_HIDE, ewWaitUntilTerminated, RC);
+end;
+
+// S as a JSON string, in plain ASCII (\u escapes), so it reads the same in any encoding.
+function JsonString(S: String): String;
+var
+  I: Integer;
+begin
+  Result := '"';
+  for I := 1 to Length(S) do
+    if (S[I] = '"') or (S[I] = '\') then
+      Result := Result + '\' + S[I]
+    else if (Ord(S[I]) < 32) or (Ord(S[I]) > 126) then
+      Result := Result + Format('\u%.4x', [Ord(S[I])])
+    else
+      Result := Result + S[I];
+  Result := Result + '"';
+end;
+
+// The server and the chosen game folder, which the app saves to its config.json when it next starts.
+procedure SaveAppChoices();
+var
+  Dir: String;
+begin
+  Dir := ExpandConstant('{userappdata}\ForeverTracker\uploader');
+  ForceDirectories(Dir);
+  SaveStringToFile(Dir + '\installer.json',
+    '{"server_url": ' + JsonString('{#ServerURL}') + ', "wow_paths": [' + JsonString(GameDir('')) + ']}', False);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  // A self-update keeps the settings the player already has.
+  if (CurStep = ssPostInstall) and not IsUpdate() then
+    SaveAppChoices();
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  // A game that is already open only loads a new addon after a restart.
+  if (CurPageID = wpFinished) and InstallAddon then
+    WizardForm.FinishedLabel.Caption := WizardForm.FinishedLabel.Caption + #13#10#13#10 +
+      'If World of Warcraft is open, restart it to load the ForeverTracker addon.';
 end;

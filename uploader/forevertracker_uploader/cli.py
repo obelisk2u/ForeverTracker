@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import logging
 import sys
 import threading
@@ -17,19 +18,42 @@ from forevertracker_uploader.singleinstance import AlreadyRunning, SingleInstanc
 from forevertracker_uploader.sync import disclose, sync_once
 
 
+INSTALLER_CHOICES = "installer.json"  # written by packaging/installer.iss (SaveAppChoices)
+
+
 def _fmt_time(ts: float | None) -> str:
     return dt.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S") if ts else "never"
 
 
-def cmd_setup(args, home: Path) -> int:
+def _configure(home: Path, server: str | None, wow: list[str] | None) -> Config:
     cfg = Config.load(home)
-    if args.server:
-        cfg.server_url = check_server_url(args.server)
-    if args.wow:
-        cfg.wow_paths = args.wow
+    if server:
+        cfg.server_url = check_server_url(server)
+    if wow:
+        cfg.wow_paths = wow
     elif not cfg.wow_paths:
         cfg.wow_paths = [str(p) for p in files.candidate_roots()]
     cfg.save(home)
+    return cfg
+
+
+def apply_installer_choices(home: Path) -> None:
+    """Save the server and game folder the installer left in installer.json, then remove the file.
+
+    The installer leaves this file rather than running the app hidden, which antivirus heuristics flag."""
+    path = home / INSTALLER_CHOICES
+    try:
+        choices = json.loads(path.read_text(encoding="utf-8-sig"))
+        _configure(home, choices.get("server_url"), [str(p) for p in choices.get("wow_paths") or []])
+    except FileNotFoundError:
+        return
+    except (AttributeError, TypeError, ValueError) as e:
+        logging.getLogger("forevertracker.uploader").warning("ignoring the installer's settings: %s", e)
+    path.unlink(missing_ok=True)
+
+
+def cmd_setup(args, home: Path) -> int:
+    cfg = _configure(home, args.server, args.wow)
     found = files.find_savedvariables(cfg.wow_paths)
     print(f"Configuration saved to {home / 'config.json'}")
     print(f"Server: {cfg.server_url}")
@@ -200,7 +224,9 @@ def main(argv: list[str] | None = None) -> int:
     ):
         sub.add_parser(name, help=text).set_defaults(fn=fn)
     args = parser.parse_args(argv)
-    return args.fn(args, args.home or default_home())
+    home = args.home or default_home()
+    apply_installer_choices(home)
+    return args.fn(args, home)
 
 
 if __name__ == "__main__":

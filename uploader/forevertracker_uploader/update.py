@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import re
 import subprocess
 import sys
@@ -107,22 +106,12 @@ def signer(path: Path) -> str | None:
     """The certificate subject of a valid Authenticode signature on ``path``, else None (Windows only)."""
     if sys.platform != "win32":
         return None
-    script = (
-        "$s = Get-AuthenticodeSignature -LiteralPath $env:FT_SIGNED_FILE; "
-        "if ($s.Status -eq 'Valid') { $s.SignerCertificate.Subject }"
-    )
+    from forevertracker_uploader import authenticode
+
     try:
-        out = subprocess.run(
-            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env={**os.environ, "FT_SIGNED_FILE": str(path)},
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
-    except (OSError, subprocess.TimeoutExpired):
+        return authenticode.signer(path)
+    except OSError:
         return None
-    return out.stdout.strip() or None
 
 
 def _detached() -> dict:

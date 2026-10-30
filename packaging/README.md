@@ -80,6 +80,11 @@ has a reputation. What keeps the score low:
   which heuristics (Norton's among them) treat as malware behaviour. The installer copies the folder once.
 - **A launcher compiled from source.** PyInstaller's prebuilt launcher is shared with malware, so signatures
   match it; CI builds its own (`PYINSTALLER_COMPILE_BOOTLOADER`).
+- **No hidden programs or scripts.** The installer leaves its settings (server, game folder) in
+  `%APPDATA%\ForeverTracker\uploader\installer.json` for the app to pick up, instead of running the new app hidden,
+  and never starts PowerShell. The app checks update signatures with the Windows API (`WinVerifyTrust`), not
+  PowerShell. Heuristics treat a new download that starts hidden scripts as malware, and remove everything it
+  installed.
 - **Signed** app and installer, with the same publisher every release.
 - **Submit each new release** as a false positive, before announcing it: Norton
   (<https://submit.norton.com/>, as a false positive) and Microsoft Defender
@@ -87,7 +92,9 @@ has a reputation. What keeps the score low:
   Submit the installer from the GitHub release. Reputation builds as people install it.
 
 If a player sees "Windows cannot access the specified device, path, or file", their antivirus has quarantined
-or is holding the app: check its history or quarantine, restore the file and allow it.
+or is holding the file named in the title bar (the installer or the app): check its history or quarantine,
+restore the file and allow it, and note the detection name. Every install also writes
+`%TEMP%\Setup Log <date> #<n>.txt`, which shows how far it got.
 
 ## How the app updates itself
 
