@@ -28,6 +28,19 @@ def test_health_and_meta(client):
     assert client.get("/metrics").status_code == 200
 
 
+def test_characters_list_pages_through_everyone_most_seen_first(client):
+    two_observer_run(client)
+    two_observer_run(client, observation_suffix="2", start=T0 + 7200, members=party()[:3])
+    everyone = client.get("/api/v1/characters").json()
+    assert (everyone["total"], everyone["page_size"]) == (5, 50)
+    names = [r["full_name"] for r in everyone["results"]]
+    assert sorted(names[:3]) == ["Autumn Redleaf", "Mah Beardlong", "Phineas Longhorn"]  # in both runs
+    assert everyone["results"][0]["runs_observed"] == 2
+    page2 = client.get("/api/v1/characters", params={"page": 2, "page_size": 2}).json()
+    assert [r["full_name"] for r in page2["results"]] == names[2:4]
+    assert client.get("/api/v1/characters", params={"page_size": 101}).status_code == 422
+
+
 def test_upload_search_profile_history_run_flow(client):
     two_observer_run(client)
     meta = client.get("/api/v1/meta").json()

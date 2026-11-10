@@ -1,5 +1,6 @@
 import type {
   ActivityItem,
+  CharacterListResponse,
   CharacterProfile,
   MetaOut,
   OverviewStats,
@@ -59,6 +60,7 @@ export const api = {
   overview: () => get<OverviewStats>("/api/v1/stats/overview", 60),
   recent: (limit = 12) => get<ActivityItem[]>(`/api/v1/activity/recent${qs({ limit })}`),
   dungeons: () => get<Array<{ slug: string; name: string; runs: number }>>("/api/v1/dungeons", 300),
+  characters: (page = 1, pageSize = 50) => get<CharacterListResponse>(`/api/v1/characters${qs({ page, page_size: pageSize })}`),
   search: (q: string, opts: { namespace?: string; class?: string; exact?: boolean; page?: number } = {}) =>
     get<SearchResponse>(`/api/v1/search${qs({ q, ...opts })}`),
   character: (ns: string, id: string) => get<CharacterProfile>(`/api/v1/characters/${enc(ns)}/${enc(id)}`),

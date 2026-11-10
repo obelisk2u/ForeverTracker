@@ -22,6 +22,7 @@ from app.models import (
 )
 from app.models.base import utcnow
 from app.schemas.api import (
+    CharacterListResponse,
     CharacterProfile,
     Companion,
     Freshness,
@@ -90,6 +91,25 @@ def search(
     duplicates = sorted({r.full_name for r in results if counts[r.full_name.casefold()] > 1})
     return SearchResponse(
         query=query, exact=exact, total=total or 0, page=page, page_size=page_size, results=results, duplicate_names=duplicates
+    )
+
+
+def list_characters(db: Session, settings: Settings, *, page: int = 1, page_size: int = 50) -> CharacterListResponse:
+    """Every visible character, most-seen first (the home page's "Characters observed")."""
+    base = (
+        select(Character, Namespace, CharacterStats.runs_observed)
+        .join(Namespace, Namespace.id == Character.namespace_id)
+        .outerjoin(CharacterStats, CharacterStats.character_id == Character.id)
+        .where(character_visible(settings))
+    )
+    total = db.scalar(select(func.count()).select_from(Character).where(character_visible(settings)))
+    rows = db.execute(
+        base.order_by(func.coalesce(CharacterStats.runs_observed, 0).desc(), Character.last_observed_at.desc(), Character.id)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    return CharacterListResponse(
+        total=total or 0, page=page, page_size=page_size, results=[summarize(c, ns, runs) for c, ns, runs in rows]
     )
 
 

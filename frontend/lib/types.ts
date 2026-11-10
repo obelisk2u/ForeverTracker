@@ -6,6 +6,7 @@ type S = components["schemas"];
 export type CharacterSummary = S["CharacterSummary"];
 export type HiddenCharacter = S["HiddenCharacter"];
 export type SearchResponse = S["SearchResponse"];
+export type CharacterListResponse = S["CharacterListResponse"];
 export type CharacterProfile = S["CharacterProfile"];
 export type RunHistoryResponse = S["RunHistoryResponse"];
 export type RunRow = S["RunRow"];

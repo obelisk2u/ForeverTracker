@@ -10,11 +10,23 @@ import type { ActivityItem, OverviewStats } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function Stat({ label, value, hint }: { label: string; value: number | string; hint: string }) {
-  return (
-    <div className="card p-4" title={hint}>
+function Stat({ label, value, hint, href }: { label: string; value: number | string; hint: string; href?: string }) {
+  const body = (
+    <>
       <div className="text-2xl font-semibold tabular text-text">{typeof value === "number" ? value.toLocaleString("en-US") : value}</div>
-      <div className="text-xs uppercase tracking-wide text-faint mt-1">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-faint mt-1">
+        {label}
+        {href && <span className="text-gold"> →</span>}
+      </div>
+    </>
+  );
+  return href ? (
+    <Link href={href} className="card p-4 hover:border-gold-dim focus-ring" title={hint}>
+      {body}
+    </Link>
+  ) : (
+    <div className="card p-4" title={hint}>
+      {body}
     </div>
   );
 }
@@ -47,7 +59,7 @@ export default async function HomePage() {
 
       {overview && (
         <section aria-label="Featured statistics" className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="Characters observed" value={overview.characters} hint="Distinct characters seen in at least one recorded run" />
+          <Stat label="Characters observed" value={overview.characters} hint="Distinct characters seen in at least one recorded run" href="/characters" />
           <Stat label="Dungeon runs" value={overview.runs} hint="Canonical runs after merging multiple observers" />
           <Stat label="Multi-observer runs" value={overview.reconciled_runs} hint="Runs recorded by two or more ForeverTracker users and reconciled" />
           <Stat label="Confirmed completions" value={overview.confirmed_completions} hint="Runs with an in-game completion event" />

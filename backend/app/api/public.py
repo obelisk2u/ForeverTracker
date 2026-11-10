@@ -11,6 +11,7 @@ from app.config import Settings
 from app.models import Character, DataReport, DungeonRun
 from app.schemas.api import (
     ActivityItem,
+    CharacterListResponse,
     CharacterProfile,
     Companion,
     MetaOut,
@@ -105,6 +106,18 @@ def search(
         raise HTTPException(status_code=422, detail=str(err)) from None
     _cache(response, 30)
     return result
+
+
+@router.get("/characters", response_model=CharacterListResponse)
+def list_characters(
+    response: Response,
+    page: int = Query(1, ge=1, le=1000),
+    page_size: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    _cache(response, 60)
+    return characters.list_characters(db, settings, page=page, page_size=page_size)
 
 
 @router.get("/characters/{namespace}/{character_id}", response_model=CharacterProfile)

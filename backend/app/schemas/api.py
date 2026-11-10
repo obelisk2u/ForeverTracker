@@ -53,6 +53,13 @@ class SearchResponse(BaseModel):
     duplicate_names: list[str] = Field(description="Full names that match more than one character in the results")
 
 
+class CharacterListResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    results: list[CharacterSummary]
+
+
 class StatOut(BaseModel):
     definition: str
     value: float | None
