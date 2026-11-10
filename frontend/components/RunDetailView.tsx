@@ -2,6 +2,7 @@ import { Badge, OutcomeBadge } from "@/components/Badges";
 import { CharacterLink } from "@/components/CharacterLink";
 import { Timestamp } from "@/components/Freshness";
 import { PartyStats } from "@/components/PartyStats";
+import { RunGear } from "@/components/RunGear";
 import { Notice, SectionTitle } from "@/components/States";
 import { formatDuration } from "@/lib/format";
 import { namespaceLabel } from "@/lib/game";
@@ -73,6 +74,11 @@ export function RunDetailView({ run }: { run: RunDetail }) {
             safely (secret or ambiguous identity) and {Number(run.coverage.roster_entries_unidentified) === 1 ? "is" : "are"} not shown.
           </p>
         )}
+      </section>
+
+      <section>
+        <SectionTitle>Gear</SectionTitle>
+        <RunGear participants={run.participants} />
       </section>
 
       <div className="grid lg:grid-cols-2 gap-6">

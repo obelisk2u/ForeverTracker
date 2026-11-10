@@ -13,7 +13,7 @@ from app.models import (
     UploadBatch,
 )
 from app.services.runs import run_detail
-from tests.factories import T0, Member, RunSpec, batch, party, run_observation
+from tests.factories import T0, Member, RunSpec, batch, gear_snapshot, party, run_observation
 from tests.helpers import character, count, ingest, metric, runs
 
 
@@ -270,6 +270,28 @@ def test_each_boss_attempt_keeps_the_best_covered_meter(db, settings):
     detail = run_detail(db, settings, run.public_id)
     assert detail.encounters[0].metrics[mage.public_id] == {"damage_done": 12000, "interrupts": 2}
     assert detail.encounters[1].combat_seconds == 45
+
+
+def test_the_run_page_shows_what_everyone_wore_in_that_run(db, settings):
+    autumn, mah, phineas, asha, _ = party()
+    hour = 3600
+    snapshots = [
+        gear_snapshot("s-1", autumn, mah, T0 - hour, [20] * 10),  # before the run
+        gear_snapshot("s-2", autumn, mah, T0 + 600, [21] * 8),  # during, partly inspected
+        gear_snapshot("s-3", autumn, mah, T0 + 1700, [22] * 12),  # during, the most complete
+        gear_snapshot("s-4", autumn, phineas, T0 - 2 * hour, [17] * 11),  # only before the run
+        gear_snapshot("s-5", autumn, asha, T0 - 8 * hour, [19] * 11),  # too long before
+        gear_snapshot("s-6", autumn, autumn, T0 + 1800 + 300, [18] * 11, source="self"),  # as the run ended
+    ]
+    ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-1", observer="u1")), *snapshots]))
+    (run,) = runs(db)
+    detail = run_detail(db, settings, run.public_id)
+    gear = {p.character.full_name: p.gear for p in detail.participants}
+    assert [i.item_level for i in gear["Mah Beardlong"].items] == [22] * 12
+    assert gear["Mah Beardlong"].items[0].slot_name == "Head"
+    assert gear["Phineas Longhorn"].average_item_level == 17
+    assert gear["Asha Brightvale"] is None
+    assert gear["Autumn Redleaf"].source == "self"
 
 
 def test_ambiguous_match_is_recorded_not_guessed(db, settings):

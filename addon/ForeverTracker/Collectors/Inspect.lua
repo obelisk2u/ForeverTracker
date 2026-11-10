@@ -21,9 +21,11 @@ function Inspect.parseLink(link)
   if not itemString then
     return nil
   end
-  local fields = {}
+  -- Keep each field in its position: real links leave unused fields empty ("item:2985::::::::18:...").
+  local fields, n = {}, 0
   for part in string.gmatch(itemString .. ":", "([^:]*):") do
-    fields[#fields + 1] = tonumber(part)
+    n = n + 1
+    fields[n] = tonumber(part)
   end
   local itemId = fields[1]
   if not itemId or itemId < 1 then
@@ -55,9 +57,16 @@ local function itemLevel(link)
   return nil
 end
 
+-- An item the client has not loaded yet (right after login) has an empty name in its link
+-- ("|h[]|h") and no item level.
+local function unloaded(item)
+  return item.link ~= nil and string.find(item.link, "|h%[%]|h") ~= nil
+end
+
+-- Returns the equipment and how many items were not loaded yet (they are requested now).
 function Inspect.readEquipment(unit)
   local items = {}
-  local missing = 0
+  local missing, loading = 0, 0
   for _, slot in ipairs(SLOTS) do
     local ok, link = Safe.call("GetInventoryItemLink", unit, slot)
     if ok and type(link) ~= "nil" then
@@ -68,6 +77,10 @@ function Inspect.readEquipment(unit)
         local okQ, quality = Safe.call("GetInventoryItemQuality", unit, slot)
         item.quality = okQ and Safe.num(quality) or nil
         items[#items + 1] = item
+        if unloaded(item) then
+          loading = loading + 1
+          Safe.call("C_Item.RequestLoadItemDataByID", item.item_id)
+        end
       else
         missing = missing + 1
       end
@@ -85,7 +98,7 @@ function Inspect.readEquipment(unit)
     avg = nil
   end
   local status = (#items == 0 and "unavailable") or (missing > 0 and "partial") or "observed"
-  return { status = status, average_item_level = avg, items = items }
+  return { status = status, average_item_level = avg, items = items }, loading
 end
 
 local function talents(unit)
@@ -115,21 +128,34 @@ local function talents(unit)
   return { status = str and "observed" or "unavailable", import_string = str, spec_id = spec }
 end
 
+-- Includes whether each item was loaded, so a complete snapshot of the same gear replaces one
+-- taken before the client had loaded the items.
 local function signature(equipment)
   local parts = {}
   for _, item in ipairs(equipment.items) do
-    parts[#parts + 1] = item.slot .. ":" .. item.item_id .. ":" .. tostring(item.enchant_id)
+    parts[#parts + 1] = item.slot .. ":" .. item.item_id .. ":" .. tostring(item.enchant_id) .. (unloaded(item) and "?" or "")
   end
   return table.concat(parts, ",")
 end
 
--- Build and store a character_snapshot observation for a unit.
-function Inspect.snapshot(unit, source)
+Inspect.LOAD_RETRIES = 3
+Inspect.LOAD_RETRY_SECONDS = 5
+
+-- Build and store a character_snapshot observation for a unit. The player's own items may not be
+-- loaded yet (at login): those are requested, and the snapshot is retried a few seconds later.
+function Inspect.snapshot(unit, source, attempt)
   local subject = FT.Identity.read(unit)
   if not subject or subject.identity_status ~= "ok" then
     return nil
   end
-  local equipment = Inspect.readEquipment(unit)
+  local equipment, loading = Inspect.readEquipment(unit)
+  attempt = attempt or 1
+  if loading > 0 and unit == "player" and attempt < Inspect.LOAD_RETRIES then
+    FT.Events.after(Inspect.LOAD_RETRY_SECONDS, "inspect", function()
+      Inspect.snapshot(unit, source, attempt + 1)
+    end)
+    return nil
+  end
   local key = FT.Identity.key(subject)
   FT.db.snapshot_sigs = FT.db.snapshot_sigs or {}
   local sig = signature(equipment) .. "|" .. tostring(subject.level)

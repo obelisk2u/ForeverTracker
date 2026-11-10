@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from app.models import (
     Character,
     Dungeon,
     DungeonRun,
+    EquipmentSnapshot,
     MetricObservation,
     Namespace,
     ParticipantMetric,
@@ -31,10 +33,36 @@ from app.schemas.api import (
     SourceOut,
     WipeOut,
 )
-from app.services.common import NotFound, dungeon_ref, metric_out, observer_labels, summaries
+from app.services.common import NotFound, dungeon_ref, gear_out, metric_out, observer_labels, summaries
 from app.services.visibility import hide_synthetic
 
 ROLE_ORDER = {"TANK": 0, "HEALER": 1, "DAMAGER": 2}
+
+# What someone wore in a run: the addon inspects the group after fights and records the player's
+# own gear as the run ends (a few minutes after its end at most). Without one, gear seen in the
+# hours before the run stands in, since it rarely changes between runs.
+GEAR_AFTER_RUN = timedelta(minutes=10)
+GEAR_BEFORE_RUN = timedelta(hours=6)
+
+
+def run_gear(db: Session, character_ids: list[int], start: datetime, end: datetime) -> dict[int, EquipmentSnapshot]:
+    """Per character: the most complete snapshot taken during the run, else the latest one before it."""
+    if not character_ids:
+        return {}
+    rows = db.scalars(
+        select(EquipmentSnapshot).where(
+            EquipmentSnapshot.character_id.in_(character_ids),
+            EquipmentSnapshot.status != "unavailable",
+            EquipmentSnapshot.observed_at >= start - GEAR_BEFORE_RUN,
+            EquipmentSnapshot.observed_at <= end + GEAR_AFTER_RUN,
+        )
+    )
+    best: dict[int, tuple[tuple[bool, int, datetime], EquipmentSnapshot]] = {}
+    for snap in rows:
+        rank = (snap.observed_at >= start, len(snap.items or []), snap.observed_at)
+        if snap.character_id not in best or rank > best[snap.character_id][0]:
+            best[snap.character_id] = (rank, snap)
+    return {character_id: snap for character_id, (_, snap) in best.items()}
 
 
 def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
@@ -80,6 +108,9 @@ def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
             )
         )
     hidden = {p.character_id for p in participants if getattr(people.get(p.character_id), "hidden", False)}
+    gear = run_gear(
+        db, [p.character_id for p in participants if p.character_id not in hidden], run.started_at, run.ended_at or run.last_observed_at
+    )
 
     encounters = list(db.scalars(select(RunEncounter).where(RunEncounter.run_id == run.id).order_by(RunEncounter.started_at)))
     deaths = list(db.scalars(select(RunDeath).where(RunDeath.run_id == run.id).order_by(RunDeath.occurred_at)))
@@ -141,6 +172,7 @@ def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
                 metrics={} if p.character_id in hidden else metrics[p.character_id],
                 candidates={} if p.character_id in hidden else {k: v for k, v in candidates[p.character_id].items()},
                 conflicts={} if p.character_id in hidden else conflicts[p.character_id],
+                gear=gear_out(gear[p.character_id]) if p.character_id in gear else None,
             )
             for p in ordered
             if p.character_id in people

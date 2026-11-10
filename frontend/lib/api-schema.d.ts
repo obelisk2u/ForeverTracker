@@ -706,6 +706,8 @@ export interface components {
             conflicts: {
                 [key: string]: unknown;
             };
+            /** @description What the character wore in this run, when it was seen */
+            gear?: components["schemas"]["GearSnapshotOut"] | null;
             /** Joined At */
             joined_at: string | null;
             /** Left At */

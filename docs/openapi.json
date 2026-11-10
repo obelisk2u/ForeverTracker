@@ -995,6 +995,17 @@
             "title": "Conflicts",
             "type": "object"
           },
+          "gear": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GearSnapshotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the character wore in this run, when it was seen"
+          },
           "joined_at": {
             "anyOf": [
               {

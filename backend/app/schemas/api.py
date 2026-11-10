@@ -213,6 +213,7 @@ class ParticipantOut(BaseModel):
     metrics: dict[str, MetricOut]
     candidates: dict[str, list[MetricCandidateOut]]
     conflicts: dict[str, Any]
+    gear: GearSnapshotOut | None = Field(default=None, description="What the character wore in this run, when it was seen")
 
 
 class EncounterOut(BaseModel):

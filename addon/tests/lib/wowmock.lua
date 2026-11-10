@@ -438,11 +438,16 @@ function M.installGlobals()
   end
   G.ClearInspectPlayer = function() end
   G.InspectFrame = { IsShown = function() return M.inspectFrameShown end }
+  -- Links in the client's format: unused fields empty, the level at field 9. An item with
+  -- `unloaded = true` has an empty name until C_Item.RequestLoadItemDataByID loads it (1 s later).
   G.GetInventoryItemLink = function(t, slot)
     local u = unit(t)
     local item = u and u.gear and u.gear[slot]
     if not item then return nil end
-    return string.format("|cff0070dd|Hitem:%d:%d:%d:0:0:0:0:0:20|h[%s]|h|r", item.id, item.enchant or 0, item.gem or 0, item.name or "Item")
+    local name = (item.unloaded and not M.loadedItems[item.id]) and "" or (item.name or "Item")
+    local enchant = item.enchant and tostring(item.enchant) or ""
+    local gem = item.gem and tostring(item.gem) or ""
+    return string.format("|cnIQ3:|Hitem:%d:%s:%s:::::::20:1484::1::1:28:5240:::::|h[%s]|h|r", item.id, enchant, gem, name)
   end
   G.GetInventoryItemQuality = function(t, slot)
     local u = unit(t)
@@ -451,10 +456,15 @@ function M.installGlobals()
   end
   G.GetAverageItemLevel = function() local u = unit("player") return u and u.ilvl or 0, u and u.ilvl or 0 end
   G.C_PaperDollInfo = { GetInspectItemLevel = function(t) local u = unit(t) return u and u.ilvl or 0 end }
+  M.loadedItems, M.itemLoadRequests = {}, 0
   G.C_Item = {
     GetDetailedItemLevelInfo = function(link)
       local id = tonumber(string.match(link, "item:(%d+)"))
       return M.itemLevels[id]
+    end,
+    RequestLoadItemDataByID = function(id)
+      M.itemLoadRequests = M.itemLoadRequests + 1
+      addTimer(1, function() M.loadedItems[id] = true end)
     end,
   }
   G.C_Traits = {

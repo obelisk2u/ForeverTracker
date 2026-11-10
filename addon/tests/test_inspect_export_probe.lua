@@ -130,3 +130,63 @@ describe("probe mode", function()
     truthy(Mock.chatContains("unknown command"))
   end)
 end)
+
+describe("item details", function()
+  local function selfSnapshots()
+    local out = {}
+    for _, s in ipairs(observationsOf("character_snapshot")) do
+      if s.source == "self" then
+        out[#out + 1] = s
+      end
+    end
+    return out
+  end
+
+  local function setUnloaded(party)
+    for _, item in pairs(party[1].gear) do
+      item.unloaded = true
+      item.name = "Loaded Name"
+    end
+    return party
+  end
+
+  it("reads enchants and gems from where real links keep them", function()
+    local ft = boot()
+    -- Copied from a live Forever client (build 70862): no enchant, no gems, level 18 at field 9.
+    local real = ft.Inspect.parseLink("|cnIQ2:|Hitem:2985::::::::18:1484::1::1:28:5240:::::|h[Inscribed Leather Breastplate]|h|r")
+    eq(real.item_id, 2985)
+    eq(real.enchant_id, nil)
+    eq(#real.gem_ids, 0)
+    local enchanted = ft.Inspect.parseLink("|cnIQ3:|Hitem:1016:33::2001:::::20:::::|h[Sword]|h|r")
+    eq(enchanted.enchant_id, 33)
+    eq(enchanted.gem_ids[1], 2001)
+  end)
+
+  it("waits for the player's items to load before recording them", function()
+    boot(setUnloaded(DefaultParty()))
+    eq(#selfSnapshots(), 0, "no snapshot of nameless items at login")
+    truthy(Mock.itemLoadRequests > 0, "the items were requested")
+    Mock.advance(6)
+    local snap = selfSnapshots()[1]
+    truthy(snap, "recorded once the items loaded")
+    for _, item in ipairs(snap.equipment.items) do
+      truthy(string.find(item.link, "[Loaded Name]", 1, true), item.link)
+    end
+  end)
+
+  it("replaces a snapshot taken before the items loaded with a complete one", function()
+    local party = setUnloaded(DefaultParty())
+    local request = C_Item.RequestLoadItemDataByID
+    C_Item.RequestLoadItemDataByID = function() end -- the client never answers
+    local ft = boot(party)
+    Mock.advance(20)
+    C_Item.RequestLoadItemDataByID = request
+    eq(#selfSnapshots(), 1, "recorded anyway after the last retry")
+    truthy(string.find(selfSnapshots()[1].equipment.items[1].link, "[]", 1, true), "without names")
+    for _, item in pairs(party[1].gear) do
+      Mock.loadedItems[item.id] = true
+    end
+    ft.Inspect.selfSnapshot(true)
+    eq(#selfSnapshots(), 2, "the same gear, now with names, is recorded again")
+  end)
+end)

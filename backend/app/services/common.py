@@ -7,14 +7,38 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.models import Character, CharacterStats, Dungeon, Namespace, ParticipantMetric
-from app.schemas.api import CharacterSummary, DungeonRef, HiddenCharacter, MetricOut
+from app.models import Character, CharacterStats, Dungeon, EquipmentSnapshot, Namespace, ParticipantMetric
+from app.schemas.api import CharacterSummary, DungeonRef, GearItemOut, GearSnapshotOut, HiddenCharacter, MetricOut
 
 SLOT_NAMES = {
     1: "Head", 2: "Neck", 3: "Shoulder", 4: "Shirt", 5: "Chest", 6: "Waist", 7: "Legs", 8: "Feet",
     9: "Wrist", 10: "Hands", 11: "Finger", 12: "Finger", 13: "Trinket", 14: "Trinket", 15: "Back",
     16: "Main Hand", 17: "Off Hand", 18: "Ranged", 19: "Tabard",
 }
+
+
+def gear_out(snapshot: EquipmentSnapshot) -> GearSnapshotOut:
+    return GearSnapshotOut(
+        observed_at=snapshot.observed_at,
+        source=snapshot.source,
+        status=snapshot.status,
+        average_item_level=snapshot.average_item_level,
+        level=snapshot.level,
+        items=[
+            GearItemOut(
+                slot=i["slot"],
+                slot_name=SLOT_NAMES.get(i["slot"], str(i["slot"])),
+                item_id=i["item_id"],
+                item_level=i.get("item_level"),
+                enchant_id=i.get("enchant_id"),
+                gem_ids=i.get("gem_ids") or [],
+                quality=i.get("quality"),
+                link=i.get("link"),
+            )
+            for i in sorted(snapshot.items, key=lambda i: i["slot"])
+        ],
+        talents_status=(snapshot.talents or {}).get("status"),
+    )
 
 
 class NotFound(Exception):

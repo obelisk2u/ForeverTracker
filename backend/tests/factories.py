@@ -170,3 +170,37 @@ def batch(installation_id: str, observations: list[dict[str, Any]], *, synthetic
         "client": {"game_version": "1.60.1", "build": "70532", "interface": 16001},
         "observations": observations,
     }
+
+
+def gear_snapshot(observation_id: str, observer: Member, subject: Member, at: int, item_levels: list[int], *, source: str = "inspect") -> dict[str, Any]:
+    """A character_snapshot with one item per slot, as the addon records after inspecting someone."""
+    items = [
+        {
+            "slot": slot,
+            "item_id": 1000 + slot,
+            "item_level": ilvl,
+            "quality": 2,
+            "link": f"|cff1eff00|Hitem:{1000 + slot}::::::::20:::::|h[Test Item {slot}]|h|r",
+        }
+        for slot, ilvl in enumerate(item_levels, start=1)
+    ]
+    return {
+        "type": "character_snapshot",
+        "observation_id": observation_id,
+        "revision": 1,
+        "recorded_by": {"guid": observer.guid, "name": observer.name, "surname": observer.surname},
+        "namespace": {"region_id": 1, "region_name": "", "ruleset": "pve"},
+        "realm_label": "70",
+        "client_build": "70532",
+        "observed_at": at,
+        "source": source,
+        "subject": {
+            "guid": subject.guid,
+            "name": subject.name,
+            "surname": subject.surname,
+            "class_file": subject.class_file,
+            "race_file": subject.race_file,
+            "level": subject.level,
+        },
+        "equipment": {"status": "observed", "average_item_level": sum(item_levels) / len(item_levels), "items": items},
+    }

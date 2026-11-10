@@ -26,8 +26,6 @@ from app.schemas.api import (
     CharacterProfile,
     Companion,
     Freshness,
-    GearItemOut,
-    GearSnapshotOut,
     NameHistoryOut,
     PartyMemberOut,
     ProgressionPoint,
@@ -37,7 +35,7 @@ from app.schemas.api import (
     RunSeriesPoint,
     SearchResponse,
 )
-from app.services.common import SLOT_NAMES, NotFound, Suppressed, dungeon_ref, metric_out, summaries, summarize
+from app.services.common import NotFound, Suppressed, dungeon_ref, gear_out, metric_out, summaries, summarize
 from app.services.visibility import character_visible, run_visible
 
 HISTORY_METRICS = ("damage_done", "dps", "healing_done", "hps", "deaths", "interrupts")
@@ -138,29 +136,7 @@ def profile(db: Session, settings: Settings, public_id: str) -> CharacterProfile
         .order_by(EquipmentSnapshot.observed_at.desc())
         .limit(1)
     )
-    gear = None
-    if snapshot is not None:
-        gear = GearSnapshotOut(
-            observed_at=snapshot.observed_at,
-            source=snapshot.source,
-            status=snapshot.status,
-            average_item_level=snapshot.average_item_level,
-            level=snapshot.level,
-            items=[
-                GearItemOut(
-                    slot=i["slot"],
-                    slot_name=SLOT_NAMES.get(i["slot"], str(i["slot"])),
-                    item_id=i["item_id"],
-                    item_level=i.get("item_level"),
-                    enchant_id=i.get("enchant_id"),
-                    gem_ids=i.get("gem_ids") or [],
-                    quality=i.get("quality"),
-                    link=i.get("link"),
-                )
-                for i in sorted(snapshot.items, key=lambda i: i["slot"])
-            ],
-            talents_status=(snapshot.talents or {}).get("status"),
-        )
+    gear = gear_out(snapshot) if snapshot is not None else None
     names = db.scalars(
         select(CharacterIdentityEvidence)
         .where(CharacterIdentityEvidence.character_id == character.id, CharacterIdentityEvidence.kind == "name")

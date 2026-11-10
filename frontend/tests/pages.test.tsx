@@ -86,6 +86,38 @@ describe("run page fight picker", () => {
   });
 });
 
+describe("run page gear", () => {
+  it("shows what each person wore in the run", () => {
+    const gear = {
+      observed_at: "2026-10-14T17:58:00Z",
+      source: "inspect",
+      status: "observed",
+      average_item_level: 21.5,
+      level: 18,
+      talents_status: null,
+      items: [
+        { slot: 1, slot_name: "Head", item_id: 1001, item_level: 22, enchant_id: null, gem_ids: [], quality: 3, link: "|cff0070dd|Hitem:1001::::::::20:::::|h[Thane's Helm]|h|r" },
+        { slot: 16, slot_name: "Main Hand", item_id: 1016, item_level: 21, enchant_id: null, gem_ids: [], quality: 2, link: null },
+      ],
+    };
+    const withGear: RunDetail = {
+      ...r,
+      participants: r.participants.map((x) => (!isHidden(x.character) && x.character.full_name === "Mah Beardlong" ? { ...x, gear } : { ...x, gear: null })),
+    };
+    render(<RunDetailView run={withGear} />);
+    expect(screen.getByRole("heading", { name: "Gear" })).toBeInTheDocument();
+    expect(screen.getByText("21.5")).toBeInTheDocument();
+    expect(screen.getByText("Thane's Helm")).toHaveStyle({ color: "#0070dd" });
+    expect(screen.getByText("Item 1016")).toBeInTheDocument(); // no link: the item ID stands in
+    expect(screen.getAllByText("Gear not seen")).toHaveLength(4);
+  });
+
+  it("says so when nobody's gear was seen", () => {
+    render(<RunDetailView run={{ ...r, participants: r.participants.map((x) => ({ ...x, gear: null })) }} />);
+    expect(screen.getByText(/gear was seen during this run/)).toBeInTheDocument();
+  });
+});
+
 describe("character profile", () => {
   it("shows identity, freshness, statistics and history", () => {
     render(<CharacterProfileView profile={p} history={h} page={1} />);
