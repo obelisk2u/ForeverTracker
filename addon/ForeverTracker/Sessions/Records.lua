@@ -12,7 +12,8 @@ local Records = {}
 FT.Records = Records
 
 -- Version 2 counts a final-boss kill as a completion; older records are rebuilt from stored runs.
-Records.VERSION = 2
+-- Version 3 adds The Hall of Thanes to the final bosses.
+Records.VERSION = 3
 Records.MAX_HISTORY = 500
 Records.MAX_PARTY = 8
 -- A run with less combat than this does not set a DPS/HPS record (one quick pull is not a run).

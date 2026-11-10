@@ -22,6 +22,7 @@
     "349": { "name": "Maraudon", "final": { "429": "Princess Theradras" } },
     "389": { "name": "Ragefire Chasm", "final": { "2735": "Bazzalan" } },
     "429": { "name": "Dire Maul", "final": { "346": "Alzzin the Wildshaper", "361": "Prince Tortheldrin", "368": "King Gordok" } },
-    "2784": { "name": "Demon Fall Canyon", "final": { "3080": "Azgaloth" } }
+    "2784": { "name": "Demon Fall Canyon", "final": { "3080": "Azgaloth" } },
+    "3065": { "name": "The Hall of Thanes", "final": { "3496": "Durgen Dirgehammer" }, "verified_in_game": "2026-11-10" }
   }
 }

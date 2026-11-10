@@ -6,6 +6,10 @@
 --                            |  +-------------------------------+  +--(other dungeon)-----> left
 --                            +---- re-enter same dungeon within grace (corpse run, relog, /reload)
 --
+--   Leaving alive after the dungeon's final boss died ends the run at once ("left"; the final-boss
+--   kill makes it a completion in the records and on the website). A ghost who released after
+--   the last boss still gets the grace period to run back in and loot.
+--
 --   Final states (observation `state`):
 --     completed     only with a completion event (LFG_COMPLETION_REWARD, SCENARIO_COMPLETED,
 --                   CHALLENGE_MODE_COMPLETED). Leaving an instance is NEVER a completion.
@@ -76,6 +80,13 @@ local function collection(run, st)
 end
 RT.updateCollection = collection
 
+-- The records window shows whether a run is being recorded.
+local function refreshWindow()
+  FT.Events.guard("records", function()
+    FT.RecordsUI.refresh()
+  end)
+end
+
 function RT.start(info)
   local t = now()
   local player = FT.Identity.player() or {}
@@ -119,6 +130,7 @@ function RT.start(info)
   FT.Meter.startRun(run, st)
   collection(run, st)
   FT.Inspect.queueGroup()
+  refreshWindow()
   FT.Util.debug("run started: " .. tostring(run.instance.name))
   return run
 end
@@ -168,6 +180,25 @@ function RT.finalize(final, endedAt)
   return run
 end
 
+-- The dungeon's final boss died in this run and the player is alive: nothing left to come back for.
+local function finishedAlive(run)
+  local finals = FT.FINAL_ENCOUNTERS and FT.FINAL_ENCOUNTERS[run.instance.map_id]
+  if not finals then
+    return false
+  end
+  local killed = false
+  for _, e in ipairs(run.encounters or {}) do
+    if e.success == true and finals[e.encounter_id] then
+      killed = true
+    end
+  end
+  if not killed then
+    return false
+  end
+  local ok, dead = Safe.call("UnitIsDeadOrGhost", "player")
+  return ok and Safe.bool(dead) == false
+end
+
 function RT.suspend(reason)
   local run, st = active(), state()
   if not run or not st or st.phase ~= "active" then
@@ -187,6 +218,11 @@ function RT.suspend(reason)
       RT.finalize("unknown", t)
       return
     end
+    if finishedAlive(run) then
+      RT.finalize("left", t)
+      return
+    end
+    refreshWindow()
     local sid = st.suspend.id
     FT.Events.after(FT.Config.LIMITS.resume_grace_seconds, "runtracker", function()
       local st2 = state()
@@ -216,6 +252,7 @@ function RT.resume(kind)
   FT.Deaths.poll(run, st, t)
   touch(run)
   collection(run, st)
+  refreshWindow()
 end
 
 local function expired(st, t)

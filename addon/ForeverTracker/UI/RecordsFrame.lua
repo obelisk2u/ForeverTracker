@@ -554,7 +554,14 @@ function UI.refresh()
   local status = ""
   local run = FT.Storage.activeRun()
   if run and run.instance then
-    status = "   " .. hex(C.good) .. "Recording " .. (run.instance.name or "this dungeon") .. "|r"
+    local where = run.instance.name or "this dungeon"
+    local st = FT.db.active_state
+    if st and st.phase == "suspended" then
+      -- Outside the dungeon: the run stays open a while in case the player goes back in.
+      status = "   " .. hex(C.muted) .. "Paused: " .. where .. "|r"
+    else
+      status = "   " .. hex(C.good) .. "Recording " .. where .. "|r"
+    end
   end
   frame.subtitle:SetText("Dungeon records  " .. hex(C.faint) .. "/|r  " .. who .. status)
   frame.scope.text:SetText(charKey and "This character" or "All characters")

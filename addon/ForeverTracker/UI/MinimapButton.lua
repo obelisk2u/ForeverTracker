@@ -57,7 +57,14 @@ function MB.tooltip(owner)
   GameTooltip:AddLine("ForeverTracker", GOLD[1], GOLD[2], GOLD[3])
   local run = FT.Storage.activeRun()
   if run and run.instance then
-    GameTooltip:AddLine("Recording " .. (run.instance.name or "this dungeon"), 0.42, 0.82, 0.49)
+    local where = run.instance.name or "this dungeon"
+    local st = FT.db.active_state
+    if st and st.phase == "suspended" then
+      GameTooltip:AddLine("Paused: " .. where, 0.62, 0.67, 0.76)
+      GameTooltip:AddLine("Go back in to keep recording this run.", 0.44, 0.49, 0.6, true)
+    else
+      GameTooltip:AddLine("Recording " .. where, 0.42, 0.82, 0.49)
+    end
   else
     local view = FT.Records.view(FT.Records.currentCharKey())
     GameTooltip:AddLine(string.format("%d dungeon run%s recorded", view.totals.runs, view.totals.runs == 1 and "" or "s"), 0.62, 0.67, 0.76)
