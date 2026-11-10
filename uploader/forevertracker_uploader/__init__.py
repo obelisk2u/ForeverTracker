@@ -1,4 +1,4 @@
-"""ForeverTracker desktop uploader.
+"""ForeverTracker companion app.
 
 Guarantees:
 * Never writes, renames, locks or deletes anything inside the World of Warcraft folder.

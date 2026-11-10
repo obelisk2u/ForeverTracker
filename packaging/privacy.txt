@@ -1,4 +1,4 @@
-ForeverTracker desktop app: privacy
+ForeverTracker companion app: privacy
 
 WHAT IT DOES
 After you log out, exit or type /reload, the app reads one file: the ForeverTracker addon's saved

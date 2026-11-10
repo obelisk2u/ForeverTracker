@@ -625,6 +625,17 @@
           "default": null,
           "title": "Group Size"
         },
+        "meter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EncounterMeter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "name": {
           "anyOf": [
             {
@@ -663,6 +674,97 @@
         "started_at"
       ],
       "title": "Encounter",
+      "type": "object"
+    },
+    "EncounterMeter": {
+      "additionalProperties": false,
+      "description": "The damage meter for one boss attempt: the sessions whose time span overlaps it.\n\n\"partial\" means the observer died during the attempt, so their session (and these totals)\nstop there.",
+      "properties": {
+        "combat_seconds": {
+          "anyOf": [
+            {
+              "maximum": 86400,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Combat Seconds"
+        },
+        "observer_died": {
+          "default": false,
+          "title": "Observer Died",
+          "type": "boolean"
+        },
+        "sessions": {
+          "default": 0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Sessions",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "partial"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "totals": {
+          "items": {
+            "$ref": "#/$defs/EncounterMeterTotals"
+          },
+          "maxItems": 40,
+          "title": "Totals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "EncounterMeter",
+      "type": "object"
+    },
+    "EncounterMeterTotals": {
+      "additionalProperties": false,
+      "properties": {
+        "metrics": {
+          "additionalProperties": {
+            "maximum": 10000000000000.0,
+            "minimum": 0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "enum": [
+              "damage_done",
+              "healing_done",
+              "absorbs",
+              "interrupts",
+              "dispels",
+              "damage_taken",
+              "avoidable_damage_taken",
+              "deaths"
+            ]
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "unit_ref": {
+          "maxLength": 16,
+          "minLength": 1,
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Unit Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unit_ref"
+      ],
+      "title": "EncounterMeterTotals",
       "type": "object"
     },
     "Equipment": {

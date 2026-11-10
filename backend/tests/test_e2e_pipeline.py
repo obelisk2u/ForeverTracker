@@ -141,6 +141,12 @@ def test_two_observers_one_run_full_pipeline(client):
     assert round(mage["metrics"]["dps"]["value"], 3) == round(195000 / 250, 3)
     assert len(run["deaths"]) == 1 and run["deaths"][0]["sources"] == ["unit_state"]
     assert run["match_status"] == "single"
+    # Each boss fight has its own meter: only the session that overlaps it, not the trash pull.
+    thane, king = run["encounters"]
+    assert (thane["combat_seconds"], thane["metrics_status"]) == (90, "observed")
+    assert thane["metrics"][by_name["Autumn Redleaf"]["id"]]["damage_done"] == 70000
+    assert thane["metrics"][by_name["Mah Beardlong"]["id"]]["deaths"] == 1
+    assert king["metrics"][by_name["Phineas Longhorn"]["id"]]["healing_done"] == 80000
 
     # 5. A second observer (Phineas, the healer, zoned in 20 s later) uploads the same run.
     #    Their meter showed the tank's damage 5% lower: a genuine conflict to preserve.

@@ -44,7 +44,7 @@ VERSION_INFO = VSVersionInfo(
                     "040904B0",
                     [
                         StringStruct("CompanyName", "ForeverTracker"),
-                        StringStruct("FileDescription", "ForeverTracker desktop uploader"),
+                        StringStruct("FileDescription", "ForeverTracker companion app"),
                         StringStruct("FileVersion", VERSION),
                         StringStruct("InternalName", "ForeverTrackerUploader"),
                         StringStruct("LegalCopyright", "Copyright (c) 2026 Jordan Stout. MIT License."),

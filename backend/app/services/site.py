@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.models import Character, Contributor, Dungeon, DungeonRun, RawObservation, RunDeath, RunParticipant, UploadBatch
 from app.models.base import utcnow
+from app.reconciliation.final_encounters import final_encounters
 from app.schemas.api import ActivityItem, MetaOut, OverviewStats
 from app.schemas.observations import SCHEMA_VERSION
 from app.services.common import dungeon_ref
@@ -111,7 +112,7 @@ def dungeons(db: Session, settings: Settings) -> list[dict]:
             **dungeon_ref(d).model_dump(),
             "instance_type": d.instance_type,
             "catalog_status": d.catalog_status,
-            "final_encounter_known": d.final_encounter_id is not None,
+            "final_encounter_known": bool(final_encounters(d)),
             "encounters": d.encounters,
             "runs": n,
             "is_synthetic": d.is_synthetic,

@@ -216,6 +216,12 @@ class EncounterOut(BaseModel):
     success: bool | None
     observed_by: int
     conflict: bool
+    # Damage meter for this attempt. "partial": the recording player died during the fight.
+    metrics_status: str | None = None
+    combat_seconds: float | None = None
+    metrics: dict[str, dict[str, float]] = Field(
+        default_factory=dict, description="Public character ID -> metric -> value, for this attempt only"
+    )
 
 
 class DeathOut(BaseModel):

@@ -9,6 +9,13 @@
 --   * sessions that appear while the observer is outside the instance are excluded;
 --   * every other session is captured after combat, with retries while values are secret;
 --   * Overall is never used as run totals.
+--
+-- Boss fights: the meter starts a session per combat, and a session belongs to the boss attempt
+-- its time span overlaps most. Its end is when it was first seen after combat (sessions end with
+-- the player's combat, so also when the player dies mid-fight); its start is that minus its
+-- length. Each attempt in run.encounters gets the summed totals of its sessions as `meter`.
+-- (Validated on build 70862: matching by session length alone missed fights the player died in
+-- and pulls that ran straight from trash into the boss.)
 local _, FT = ...
 
 local Meter = {}
@@ -74,7 +81,7 @@ function Meter.startRun(run, state)
     totals = {},
     death_entries = {},
   }
-  state.meter = { baseline = {}, status = {}, values = {}, deaths = {}, durations = {}, captured_at = {}, encounter = {}, attempts = 0 }
+  state.meter = { baseline = {}, status = {}, values = {}, deaths = {}, durations = {}, captured_at = {}, ended_at = {}, attempts = 0 }
   if available then
     for _, s in ipairs(Meter.sessions()) do
       state.meter.baseline[s.id] = true
@@ -197,10 +204,6 @@ function Meter.captureSession(run, state, session)
   m.durations[session.id] = session.duration
   m.captured_at[session.id] = FT.Util.now()
   m.unmatched = (m.unmatched or 0) + unmatched
-  local last = state.last_encounter_end
-  if last and session.duration and math.abs(session.duration - last.duration) <= 10 and FT.Util.now() - last.at <= 120 then
-    m.encounter[session.id] = last.id
-  end
   return "captured"
 end
 
@@ -216,8 +219,12 @@ function Meter.capturePass(run, state)
   local retry = false
   local current = Meter.sessions()
   local present = {}
+  m.ended_at = m.ended_at or {} -- runs resumed from an older version's save
   for _, s in ipairs(current) do
     present[s.id] = true
+    if not m.baseline[s.id] and m.ended_at[s.id] == nil then
+      m.ended_at[s.id] = FT.Util.now() -- first seen out of combat: when it ended
+    end
     if not m.baseline[s.id] and m.status[s.id] ~= "captured" then
       local status = Meter.captureSession(run, state, s)
       if status == "secret" then
@@ -260,6 +267,81 @@ function Meter.schedule(run, state)
 end
 
 -- Turn per-session captures into run totals with per-metric status.
+-- The index in run.encounters of the boss attempt a captured session overlaps most, or nil.
+-- Two seconds of slack at the start covers whole-second clocks and the capture delay.
+function Meter.attemptFor(run, m, id)
+  local ended, duration = m.ended_at and m.ended_at[id], m.durations[id]
+  if not ended or not duration then
+    return nil
+  end
+  local from, to = ended - duration - 2, ended + 1
+  local best, bestOverlap = nil, 0
+  for i, e in ipairs(run.encounters) do
+    local overlap = math.min(to, e.ended_at or ended) - math.max(from, e.started_at)
+    if overlap > bestOverlap then
+      best, bestOverlap = i, overlap
+    end
+  end
+  return best
+end
+
+-- Give each boss attempt the summed totals of its sessions. The status is "partial" when the
+-- observer died during the attempt: their session ended there, so the rest of the fight is missing.
+local function rebuildAttempts(run, m, ids)
+  local enum = Enum and Enum.DamageMeterType or {}
+  local attempts, sessionAttempt = {}, {}
+  for _, id in ipairs(ids) do
+    local i = m.status[id] == "captured" and Meter.attemptFor(run, m, id)
+    if i then
+      sessionAttempt[id] = i
+      local a = attempts[i] or { sessions = 0, combat = 0, values = {} }
+      attempts[i] = a
+      a.sessions = a.sessions + 1
+      a.combat = a.combat + (m.durations[id] or 0)
+      for ref, v in pairs(m.values[id] or {}) do
+        local sums = a.values[ref] or {}
+        a.values[ref] = sums
+        for metric, amount in pairs(v) do
+          sums[metric] = (sums[metric] or 0) + amount
+        end
+      end
+    end
+  end
+  local observer = FT.Roster.observerRef(run)
+  for i, e in ipairs(run.encounters) do
+    local a = attempts[i]
+    if a then
+      local died = false
+      for _, d in ipairs(run.deaths) do
+        if d.unit_ref == observer and d.at >= e.started_at and d.at <= (e.ended_at or d.at) then
+          died = true
+          break
+        end
+      end
+      local totals = {}
+      for _, entry in ipairs(run.roster) do
+        local metrics = {}
+        for _, t in ipairs(Meter.TYPES) do
+          if enum[t[2]] ~= nil then
+            metrics[t[1]] = (a.values[entry.ref] and a.values[entry.ref][t[1]]) or 0
+          end
+        end
+        totals[#totals + 1] = { unit_ref = entry.ref, metrics = metrics }
+      end
+      e.meter = {
+        status = died and "partial" or "observed",
+        observer_died = died or nil,
+        combat_seconds = a.combat,
+        sessions = a.sessions,
+        totals = totals,
+      }
+    else
+      e.meter = nil
+    end
+  end
+  return sessionAttempt
+end
+
 function Meter.rebuild(run, state)
   local m = state.meter
   local meter = run.meter
@@ -270,6 +352,7 @@ function Meter.rebuild(run, state)
     ids[#ids + 1] = id
   end
   table.sort(ids)
+  local sessionAttempt = rebuildAttempts(run, m, ids)
   local combat = 0
   for _, id in ipairs(ids) do
     local status = m.status[id]
@@ -286,7 +369,7 @@ function Meter.rebuild(run, state)
         duration_sec = m.durations[id],
         status = status,
         captured_at = m.captured_at[id],
-        encounter_id = m.encounter[id],
+        encounter_id = sessionAttempt[id] and run.encounters[sessionAttempt[id]].encounter_id or nil,
       }
     end
   end

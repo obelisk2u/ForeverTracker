@@ -22,7 +22,7 @@ def two_observer_run(client, observation_suffix="1", start=T0, **kwargs):
 def test_health_and_meta(client):
     assert client.get("/health").json() == {"status": "ok"}
     ready = client.get("/health/ready").json()
-    assert ready["status"] == "ok" and ready["migration"] == "0002"
+    assert ready["status"] == "ok" and ready["migration"] == "0003"
     meta = client.get("/api/v1/meta").json()
     assert meta["addon_interface"] == 16001 and meta["synthetic_data_present"] is False
     assert client.get("/metrics").status_code == 200

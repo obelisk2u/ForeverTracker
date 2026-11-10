@@ -1,0 +1,27 @@
+{
+  "about": "The boss whose kill finishes each Forever dungeon, keyed by the instance map ID (8th return of GetInstanceInfo). A run that kills one of these counts as completed even without a completion event (groups formed outside the dungeon finder never get one). Source: the last boss in each dungeon's encounter order in the Forever client's DungeonEncounter table (build 1.60.1.70862, wago.tools branch wowf). Where wings share one map, each wing's last boss is listed. Kept in sync with addon/ForeverTracker/Data/Dungeons.lua by a test.",
+  "dungeons": {
+    "33": { "name": "Shadowfang Keep", "final": { "2755": "Archmage Arugal" } },
+    "34": { "name": "Stormwind Stockade", "final": { "2760": "Bazil Thredd" } },
+    "36": { "name": "Deadmines", "final": { "2747": "Edwin VanCleef" }, "verified_in_game": "2026-11-09" },
+    "43": { "name": "Wailing Caverns", "final": { "592": "Mutanus the Devourer" } },
+    "47": { "name": "Razorfen Kraul", "final": { "2778": "Charlga Razorflank" } },
+    "48": { "name": "Blackfathom Deeps", "final": { "2910": "Aku'mai", "2767": "Aku'mai", "2891": "Aku'mai" } },
+    "70": { "name": "Uldaman", "final": { "554": "Archaedas" } },
+    "90": { "name": "Gnomeregan", "final": { "2772": "Mekgineer Thermaplugg", "2940": "Mekgineer Thermaplugg" } },
+    "129": { "name": "Razorfen Downs", "final": { "2785": "Amnennar the Coldbringer" } },
+    "189": {
+      "name": "Scarlet Monastery",
+      "final": { "2779": "Bloodmage Thalnos", "447": "Arcanist Doan", "448": "Herod", "450": "High Inquisitor Whitemane" }
+    },
+    "209": { "name": "Zul'Farrak", "final": { "600": "Chief Ukorz Sandscalp" } },
+    "229": { "name": "Blackrock Spire", "final": { "275": "Overlord Wyrmthalak", "3069": "General Drakkisath" } },
+    "230": { "name": "Blackrock Depths", "final": { "2790": "Emperor Dagran Thaurissan" } },
+    "289": { "name": "Scholomance", "final": { "2801": "Darkmaster Gandling" } },
+    "329": { "name": "Stratholme", "final": { "478": "Balnazzar", "484": "Baron Rivendare" } },
+    "349": { "name": "Maraudon", "final": { "429": "Princess Theradras" } },
+    "389": { "name": "Ragefire Chasm", "final": { "2735": "Bazzalan" } },
+    "429": { "name": "Dire Maul", "final": { "346": "Alzzin the Wildshaper", "361": "Prince Tortheldrin", "368": "King Gordok" } },
+    "2784": { "name": "Demon Fall Canyon", "final": { "3080": "Azgaloth" } }
+  }
+}

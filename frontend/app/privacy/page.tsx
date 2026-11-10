@@ -23,9 +23,9 @@ export default function PrivacyPage() {
         with counts of accepted and rejected records used to detect abuse. Contributors appear publicly only as
         &ldquo;Observer A&rdquo;, &ldquo;Observer B&rdquo; and so on, per run.
       </p>
-      <h2 className="font-display text-xl text-gold">The desktop app</h2>
+      <h2 className="font-display text-xl text-gold">The companion app</h2>
       <p>
-        After you log out, exit or type /reload, the ForeverTracker desktop app reads one file, the addon&apos;s saved data,
+        After you log out, exit or type /reload, the ForeverTracker companion app reads one file, the addon&apos;s saved data,
         and uploads the runs recorded there over HTTPS: the dungeon, the characters in your group, boss kills, deaths,
         damage-meter totals and equipment; the name, surname, class and race (not level) of everyone you group with,
         outside dungeons too; and the addon&apos;s check of which game features work and its installation ID. Once a day it also asks for a newer version of itself, sending only its version number. It sends no account
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
         contributing at any time by disabling the addon or the uploader, and delete your local data with /ft purge confirm.
       </p>
       <p>
-        For the desktop app: turn off starting with Windows in Settings → Apps → Startup; pause uploads with{" "}
+        For the companion app: turn off starting with Windows in Settings → Apps → Startup; pause uploads with{" "}
         <code className="text-text">ForeverTrackerUploader.exe pause</code>; see exactly what would be sent with{" "}
         <code className="text-text">ForeverTrackerUploader.exe disclose</code>; turn off self-updates by setting{" "}
         <code className="text-text">&quot;auto_update&quot;: false</code> in{" "}

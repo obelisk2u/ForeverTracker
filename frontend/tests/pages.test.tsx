@@ -1,10 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { CharacterProfileView } from "@/components/CharacterProfileView";
 import { RunDetailView } from "@/components/RunDetailView";
 import { RunHistoryTable } from "@/components/RunHistoryTable";
-import type { CharacterProfile, RunDetail, RunHistoryResponse } from "@/lib/types";
+import { isHidden, type CharacterProfile, type RunDetail, type RunHistoryResponse } from "@/lib/types";
 
 import history from "./fixtures/e2e/history.json";
 import profile from "./fixtures/e2e/profile.json";
@@ -50,9 +51,38 @@ describe("run page", () => {
     }
     expect(screen.getAllByLabelText("observers disagree").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Killed")).toHaveLength(2);
-    expect(screen.getAllByText("Observer A").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Observer B").length).toBeGreaterThan(0);
-    expect(screen.getByText(/not verified by Blizzard/)).toBeInTheDocument();
+    // No per-observer detail: who saw what, candidate values, or where the data came from.
+    expect(screen.queryByText(/seen by/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Sources and candidate values")).not.toBeInTheDocument();
+    expect(screen.queryByText("Where this data comes from")).not.toBeInTheDocument();
+    expect(screen.queryByText("Observer A")).not.toBeInTheDocument();
+  });
+});
+
+describe("run page fight picker", () => {
+  it("shows one boss fight's numbers when it is picked", async () => {
+    const mage = r.participants.find((x) => !isHidden(x.character) && x.character.full_name === "Autumn Redleaf")!;
+    const id = (mage.character as { id: string }).id;
+    const withFight: RunDetail = {
+      ...r,
+      encounters: r.encounters.map((e, i) =>
+        i === 0 ? { ...e, combat_seconds: 40, metrics_status: "partial", metrics: { [id]: { damage_done: 8000, interrupts: 3 } } } : e,
+      ),
+    };
+    render(<RunDetailView run={withFight} />);
+    expect(screen.getByRole("button", { name: "Whole run" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Presence")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Thane Ironvow" }));
+    const row = screen.getAllByRole("row").find((tr) => within(tr).queryByText("Autumn Redleaf"))!;
+    expect(within(row).getByText("8,000")).toBeInTheDocument();
+    expect(within(row).getByText("200")).toBeInTheDocument(); // 8,000 damage over 40 s of combat
+    expect(within(row).getByText("3")).toBeInTheDocument();
+    expect(screen.queryByText("Presence")).toBeNull();
+    expect(screen.getByText(/died during it/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "The Hollow King" }));
+    expect(screen.getByText(/No damage-meter data/)).toBeInTheDocument();
   });
 });
 

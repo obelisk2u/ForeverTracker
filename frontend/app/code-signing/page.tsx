@@ -25,7 +25,7 @@ export default async function CodeSigningPage() {
 
       <h2 className="font-display text-xl text-gold">What is signed</h2>
       <p>
-        The Windows desktop app (ForeverTrackerUploader.exe) and its installer. Both are built by GitHub Actions from the
+        The Windows companion app (ForeverTrackerUploader.exe) and its installer. Both are built by GitHub Actions from the
         public source code in the{" "}
         <a href={REPO_URL} className="underline">
           ForeverTracker repository
@@ -51,7 +51,7 @@ export default async function CodeSigningPage() {
 
       <h2 className="font-display text-xl text-gold">Privacy</h2>
       <p>
-        The desktop app uploads the dungeon runs recorded by the addon to ForeverTracker, and checks once a day for a newer
+        The companion app uploads the dungeon runs recorded by the addon to ForeverTracker, and checks once a day for a newer
         version. The <Link href="/privacy" className="underline">privacy notice</Link> lists exactly what it sends and how
         to turn it off, and the installer shows the same information before it installs anything.
       </p>

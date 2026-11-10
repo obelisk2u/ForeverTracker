@@ -38,7 +38,7 @@ export function DownloadButton({ release }: { release: UploaderRelease }) {
     <>
       {system && (
         <p className="rounded-lg border border-warn/40 bg-warn/8 px-4 py-3 text-sm text-warn">
-          The ForeverTracker app is for Windows, so it won&apos;t run on {system}. If you play World of Warcraft: Forever
+          The ForeverTracker companion app is for Windows, so it won&apos;t run on {system}. If you play World of Warcraft: Forever
           on a Windows PC, download it there.
         </p>
       )}

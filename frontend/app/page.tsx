@@ -82,7 +82,7 @@ export default async function HomePage() {
           <ol className="flex flex-col gap-3 text-sm">
             {[
               ["Play with the addon", "ForeverTracker records the dungeon runs you join: party roster, bosses, deaths and the totals from Blizzard's built-in damage meter. It makes no network requests."],
-              ["Uploaded after you log out", "WoW saves addon data when you log out or type /reload, and the ForeverTracker desktop app uploads it automatically."],
+              ["Uploaded after you log out", "WoW saves addon data when you log out or type /reload, and the ForeverTracker companion app uploads it automatically."],
               ["Records are reconciled", "When several group members upload the same run, their records are merged, deaths are de-duplicated and disagreements are kept visible."],
             ].map(([title, text], i) => (
               <li key={title} className="card p-4 flex gap-3">

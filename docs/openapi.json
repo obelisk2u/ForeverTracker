@@ -328,6 +328,17 @@
       },
       "EncounterOut": {
         "properties": {
+          "combat_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Combat Seconds"
+          },
           "conflict": {
             "title": "Conflict",
             "type": "boolean"
@@ -347,6 +358,28 @@
               }
             ],
             "title": "Ended At"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            "description": "Public character ID -> metric -> value, for this attempt only",
+            "title": "Metrics",
+            "type": "object"
+          },
+          "metrics_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics Status"
           },
           "name": {
             "anyOf": [

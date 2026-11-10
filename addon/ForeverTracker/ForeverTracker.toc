@@ -1,10 +1,13 @@
 ## Interface: 16001
 ## Title: ForeverTracker
-## Notes: Records the dungeon runs you take part in (party roster, bosses, deaths, native damage-meter totals, equipment) for upload to ForeverTracker. Makes no network requests.
+## Notes: Records the dungeon runs you take part in (party roster, bosses, deaths, native damage-meter totals, equipment) and shows your personal dungeon records in game (minimap button or /ft). Makes no network requests.
 ## Author: ForeverTracker
-## Version: 0.1.0
+## Version: 0.2.0
 ## SavedVariables: ForeverTrackerDB
-## IconTexture: Interface\Icons\INV_Misc_Book_11
+## IconTexture: Interface\AddOns\ForeverTracker\Media\Emblem
+## AddonCompartmentFunc: ForeverTracker_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: ForeverTracker_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: ForeverTracker_OnAddonCompartmentLeave
 ## X-Schema-Version: 1
 ## X-Verification: pending live validation on the Forever client (see docs/FOREVER_LAUNCH_VALIDATION.md)
 
@@ -13,6 +16,7 @@ Core\Safe.lua
 Core\Config.lua
 Core\Events.lua
 Core\Storage.lua
+Data\Dungeons.lua
 Collectors\Identity.lua
 Collectors\Instance.lua
 Collectors\Roster.lua
@@ -22,8 +26,11 @@ Collectors\DamageMeter.lua
 Collectors\Inspect.lua
 Collectors\Group.lua
 Sessions\RunTracker.lua
+Sessions\Records.lua
 Export\Json.lua
 Export\ExportFrame.lua
 Diagnostics\Probe.lua
 Diagnostics\Commands.lua
+UI\RecordsFrame.lua
+UI\MinimapButton.lua
 Core\Init.lua

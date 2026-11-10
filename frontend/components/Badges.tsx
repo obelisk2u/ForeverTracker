@@ -25,14 +25,13 @@ export function OutcomeBadge({ outcome, confidence }: { outcome: string; confide
     outcome === "completed"
       ? confidence === "verified"
         ? "Completion confirmed by an in-game completion event"
-        : "Completion inferred from the final boss kill"
+        : "The final boss was killed (groups formed outside the dungeon finder get no completion event)"
       : outcome === "left" || outcome === "disconnected"
         ? "Observers left before any completion event; this does not mean the group failed"
         : undefined;
   return (
     <Badge tone={info.tone} title={title}>
       {info.label}
-      {outcome === "completed" && confidence === "probable" ? " (probable)" : ""}
     </Badge>
   );
 }

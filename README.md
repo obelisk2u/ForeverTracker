@@ -42,10 +42,10 @@ SavedVariables files, and checks reconciliation, conflicts and statistics throug
 
 | Path | Contents |
 |---|---|
-| `addon/ForeverTracker` | The WoW addon (interface 16001). `/ft help` in game. |
+| `addon/ForeverTracker` | The WoW addon (interface 16001). Records dungeon runs and shows your personal records in game (minimap button or `/ft`); `/ft help` lists the commands. |
 | `backend` | FastAPI + SQLAlchemy + Alembic: ingestion, identity, reconciliation, analytics, public and admin API |
 | `frontend` | Next.js website |
-| `uploader` | Desktop uploader (`forevertracker-uploader`); `background` mode starts with Windows and uploads automatically |
+| `uploader` | Companion app (`forevertracker-uploader`); `background` mode starts with Windows and uploads automatically |
 | `packaging` | One-download Windows installer (addon + uploader exe); see [`packaging/README.md`](packaging/README.md) |
 | `packages/savedvariables` | Data-only SavedVariables parser shared by the backend and the uploader |
 | `tools/simulator` | Synthetic data generator (development only) |
@@ -64,7 +64,7 @@ SavedVariables files, and checks reconciliation, conflicts and statistics throug
 
 ## Code signing policy
 
-The Windows desktop app (`ForeverTrackerUploader.exe`) and its installer are signed with
+The Windows companion app (`ForeverTrackerUploader.exe`) and its installer are signed with
 [Azure Artifact Signing](https://azure.microsoft.com/products/artifact-signing); Windows shows the publisher as
 Jordan Stout. Both are built from this repository by GitHub Actions
 ([`windows-app.yml`](.github/workflows/windows-app.yml)) and signed in the same run, only on the `main` branch, with a
@@ -77,7 +77,7 @@ addon is plain Lua source and is not signed.
 | Reviewers (review every change from outside contributors) | Jordan Stout |
 | Approvers (approve each signing request) | Jordan Stout |
 
-**Privacy:** the desktop app uploads the dungeon runs recorded by the addon to the ForeverTracker server, and checks
+**Privacy:** the companion app uploads the dungeon runs recorded by the addon to the ForeverTracker server, and checks
 once a day for a newer version. [`packaging/privacy.txt`](packaging/privacy.txt) lists exactly what it sends and how
 to turn it off; the installer shows it before installing anything.
 

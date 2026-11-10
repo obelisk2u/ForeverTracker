@@ -134,16 +134,6 @@ class TimelineEvent(Strict):
     ] = Field(default_factory=dict)
 
 
-class Encounter(Strict):
-    encounter_id: int = Field(ge=0, le=100_000_000)
-    name: ShortText | None = None
-    difficulty_id: int | None = Field(default=None, ge=0, le=1000)
-    group_size: int | None = Field(default=None, ge=0, le=80)
-    started_at: Epoch
-    ended_at: Epoch | None = None
-    success: bool | None = None
-
-
 class Death(Strict):
     unit_ref: UnitRef
     at: Epoch
@@ -189,6 +179,36 @@ class MeterDeathEntry(Strict):
     death_time_sec: float | None = Field(default=None, ge=-1, le=86_400)
     death_recap_id: int | None = Field(default=None, ge=0, le=2**31)
     total: Amount | None = None
+
+
+class EncounterMeterTotals(Strict):
+    unit_ref: UnitRef
+    metrics: Annotated[dict[MeterMetric, Amount], BeforeValidator(_empty_list_as_dict)] = Field(default_factory=dict)
+
+
+class EncounterMeter(Strict):
+    """The damage meter for one boss attempt: the sessions whose time span overlaps it.
+
+    "partial" means the observer died during the attempt, so their session (and these totals)
+    stop there.
+    """
+
+    status: Literal["observed", "partial"]
+    observer_died: bool = False
+    combat_seconds: float | None = Field(default=None, ge=0, le=86_400)
+    sessions: int = Field(default=0, ge=0, le=1000)
+    totals: _list(40, EncounterMeterTotals) = Field(default_factory=list)
+
+
+class Encounter(Strict):
+    encounter_id: int = Field(ge=0, le=100_000_000)
+    name: ShortText | None = None
+    difficulty_id: int | None = Field(default=None, ge=0, le=1000)
+    group_size: int | None = Field(default=None, ge=0, le=80)
+    started_at: Epoch
+    ended_at: Epoch | None = None
+    success: bool | None = None
+    meter: EncounterMeter | None = None
 
 
 class MeterData(Strict):

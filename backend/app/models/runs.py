@@ -147,6 +147,11 @@ class RunEncounter(Base):
     success: Mapped[bool | None]
     observation_count: Mapped[int] = mapped_column(default=1)
     conflict: Mapped[bool] = mapped_column(default=False)
+    # Damage-meter totals for this attempt: character id (as a string) -> metric -> value, from
+    # the observer whose sessions covered it best. "partial": that observer died during the fight.
+    metrics: Mapped[dict[str, Any]] = mapped_column(default=dict)
+    metrics_status: Mapped[str | None] = mapped_column(String(16))
+    combat_seconds: Mapped[float | None]
 
 
 class RunDeath(Base):

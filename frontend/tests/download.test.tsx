@@ -58,7 +58,7 @@ describe("download page", () => {
     render(await DownloadPage());
     expect(screen.queryByRole("button", { name: /Download for Windows/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Download for Windows/ })).toBeNull();
-    expect(screen.getByText(/nonintrusive desktop app/)).toBeInTheDocument();
+    expect(screen.getByText(/nonintrusive companion app/)).toBeInTheDocument();
   });
 });
 

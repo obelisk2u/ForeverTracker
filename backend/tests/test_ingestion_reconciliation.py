@@ -12,6 +12,7 @@ from app.models import (
     RunParticipant,
     UploadBatch,
 )
+from app.services.runs import run_detail
 from tests.factories import T0, Member, RunSpec, batch, party, run_observation
 from tests.helpers import character, count, ingest, metric, runs
 
@@ -210,6 +211,65 @@ def test_abandoned_and_left_runs_are_not_completions(db, settings):
     ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-2", observer="u1", state="abandoned", verified=False, start=T0 + 7200))]))
     outcomes = sorted((r.outcome, r.completion_confidence) for r in runs(db))
     assert outcomes == [("abandoned", "none"), ("left", "none")]
+
+
+def test_killing_the_final_boss_completes_a_run_without_a_completion_event(db, settings):
+    # Deadmines with a group formed outside the dungeon finder: no completion event ever fires.
+    # The observer died on VanCleef, the group killed him, and the observer hearthed out.
+    cleared = [(2741, 300, True), (2746, 1500, True), (2747, 2400, True)]
+    stopped = [(2741, 300, True), (2747, 900, False)]  # wiped on VanCleef and gave up
+    for obs_id, start, encounters in (("r-1", T0, cleared), ("r-2", T0 + 7200, stopped)):
+        spec = RunSpec(obs_id, observer="u1", map_id=36, name="Deadmines", state="left", verified=False, start=start, encounters=encounters)
+        ingest(db, settings, batch("install-aaaa1111", [run_observation(spec)]))
+    cleared_run, stopped_run = sorted(runs(db), key=lambda r: r.started_at)
+    assert (cleared_run.outcome, cleared_run.completion_confidence) == ("completed", "probable")
+    assert cleared_run.outcome_evidence == [{"kind": "final_encounter_killed", "encounter_id": 2747}]
+    assert (stopped_run.outcome, stopped_run.completion_confidence) == ("left", "none")
+
+
+def test_every_wing_of_a_shared_map_has_a_final_boss(db, settings):
+    # Scarlet Monastery's wings share map 189: a Graveyard run ends on Bloodmage Thalnos.
+    spec = RunSpec("r-1", observer="u1", map_id=189, name="Scarlet Monastery", state="left", verified=False, encounters=[(444, 300, True), (2779, 900, True)])
+    ingest(db, settings, batch("install-aaaa1111", [run_observation(spec)]))
+    (run,) = runs(db)
+    assert (run.outcome, run.completion_confidence) == ("completed", "probable")
+
+
+def test_each_boss_attempt_keeps_the_best_covered_meter(db, settings):
+    def fight_meter(status: str, seconds: float, mage_damage: float) -> dict:
+        return {
+            "status": status,
+            "observer_died": status == "partial",
+            "combat_seconds": seconds,
+            "sessions": 1,
+            "totals": [
+                {"unit_ref": "u1", "metrics": {"damage_done": mage_damage, "interrupts": 2}},
+                {"unit_ref": "u3", "metrics": {"healing_done": 9000}},
+            ],
+        }
+
+    # Two observers recorded the same two pulls. The first died 20 s into the second boss.
+    first = run_observation(RunSpec("r-1", observer="u1"))
+    first["encounters"][0]["meter"] = fight_meter("observed", 60, 12000)
+    first["encounters"][1]["meter"] = fight_meter("partial", 20, 3000)
+    second = run_observation(RunSpec("x-77", observer="u3", start=T0 + 40, duration=1770))
+    second["encounters"][1]["meter"] = fight_meter("observed", 45, 7000)
+    ingest(db, settings, batch("install-aaaa1111", [first]))
+    ingest(db, settings, batch("install-bbbb2222", [second]))
+
+    (run,) = runs(db)
+    pulls = db.scalars(select(RunEncounter).where(RunEncounter.run_id == run.id).order_by(RunEncounter.started_at)).all()
+    mage, priest = character(db, "Autumn Redleaf"), character(db, "Phineas Longhorn")
+    assert (pulls[0].metrics_status, pulls[0].combat_seconds) == ("observed", 60)
+    assert pulls[0].metrics[str(mage.id)] == {"damage_done": 12000, "interrupts": 2}
+    # The second observer stayed alive for the whole fight, so their meter wins.
+    assert (pulls[1].metrics_status, pulls[1].combat_seconds) == ("observed", 45)
+    assert pulls[1].metrics[str(mage.id)]["damage_done"] == 7000
+    assert pulls[1].metrics[str(priest.id)] == {"healing_done": 9000}
+
+    detail = run_detail(db, settings, run.public_id)
+    assert detail.encounters[0].metrics[mage.public_id] == {"damage_done": 12000, "interrupts": 2}
+    assert detail.encounters[1].combat_seconds == 45
 
 
 def test_ambiguous_match_is_recorded_not_guessed(db, settings):

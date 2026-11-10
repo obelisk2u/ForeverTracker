@@ -31,6 +31,7 @@ from app.models import (
     RunParticipant,
 )
 from app.models.base import from_epoch
+from app.reconciliation.final_encounters import final_encounters
 from app.reconciliation.matcher import member_intervals
 from app.reconciliation.metrics import (
     Candidate,
@@ -41,7 +42,7 @@ from app.reconciliation.metrics import (
     meter_candidates,
     resolve,
 )
-from app.schemas.observations import DungeonRunObservation
+from app.schemas.observations import DungeonRunObservation, EncounterMeter
 
 ENCOUNTER_CLUSTER_SECONDS = 120
 
@@ -97,10 +98,10 @@ def _outcome(links: list[LinkedObservation], dungeon: Dungeon, encounters: list[
                 evidence.append({"kind": ev.kind, "at": ev.at, "observation": link.raw.id})
     if evidence:
         return "completed", "verified", evidence
-    if dungeon.final_encounter_id is not None:
-        kills = [e for e in encounters if e.encounter_id == dungeon.final_encounter_id and e.success]
-        if kills:
-            return "completed", "probable", [{"kind": "final_encounter_killed", "encounter_id": dungeon.final_encounter_id}]
+    finals = final_encounters(dungeon)
+    kills = [e for e in encounters if e.encounter_id in finals and e.success]
+    if kills:
+        return "completed", "probable", [{"kind": "final_encounter_killed", "encounter_id": kills[0].encounter_id}]
     states = [link.obs.state for link in links]
     if "abandoned" in states:
         return "abandoned", "none", [{"kind": "abandon_vote_passed"}]
@@ -219,16 +220,18 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
         )
         participants[char_id] = p
 
-    # Encounters: cluster the same boss pull reported by several observers.
-    pulls: list[tuple[int, datetime, datetime | None, bool | None, str | None, int]] = []
+    # Encounters: cluster the same boss pull reported by several observers. Each pull keeps the
+    # damage meter of the observer who covered it best (alive for the whole fight, then longest).
+    pulls: list[tuple[int, datetime, datetime | None, bool | None, str | None, EncounterMeter | None, dict[str, int]]] = []
     for link in links:
         for enc in link.obs.encounters:
             pulls.append(
-                (enc.encounter_id, from_epoch(enc.started_at), from_epoch(enc.ended_at), enc.success, enc.name, link.raw.contributor_id)
+                (enc.encounter_id, from_epoch(enc.started_at), from_epoch(enc.ended_at), enc.success, enc.name, enc.meter, link.identities)
             )
     pulls.sort(key=lambda p: (p[0], p[1]))
     encounters: list[RunEncounter] = []
-    for enc_id, start, end, success, name, contributor in pulls:
+    best_meter: dict[int, tuple[tuple[bool, float], EncounterMeter, dict[str, int]]] = {}
+    for enc_id, start, end, success, name, meter, identities in pulls:
         current = encounters[-1] if encounters else None
         if (
             current is not None
@@ -243,19 +246,32 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
                     current.success = success
                 elif current.success is not None and current.success != success:
                     current.success, current.conflict = None, True
-            continue
-        encounters.append(
-            RunEncounter(
-                run_id=run.id,
-                encounter_id=enc_id,
-                name=name,
-                started_at=start,
-                ended_at=end,
-                success=success,
-                observation_count=1,
-                conflict=False,
+        else:
+            encounters.append(
+                RunEncounter(
+                    run_id=run.id,
+                    encounter_id=enc_id,
+                    name=name,
+                    started_at=start,
+                    ended_at=end,
+                    success=success,
+                    observation_count=1,
+                    conflict=False,
+                    metrics={},
+                )
             )
-        )
+        if meter is not None:
+            index = len(encounters) - 1
+            rank = (meter.status == "observed", meter.combat_seconds or 0.0)
+            if index not in best_meter or rank > best_meter[index][0]:
+                best_meter[index] = (rank, meter, identities)
+    for index, (_, meter, identities) in best_meter.items():
+        encounter = encounters[index]
+        encounter.metrics = {
+            str(identities[t.unit_ref]): dict(t.metrics) for t in meter.totals if t.unit_ref in identities
+        }
+        encounter.metrics_status = meter.status
+        encounter.combat_seconds = meter.combat_seconds
     encounters.sort(key=lambda e: e.started_at)
     _learn_encounters(dungeon, encounters)
 

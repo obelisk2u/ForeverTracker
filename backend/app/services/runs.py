@@ -154,6 +154,13 @@ def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
                 success=e.success,
                 observed_by=e.observation_count,
                 conflict=e.conflict,
+                metrics_status=e.metrics_status,
+                combat_seconds=e.combat_seconds,
+                metrics={
+                    public_ids[int(cid)]: values
+                    for cid, values in (e.metrics or {}).items()
+                    if int(cid) in public_ids and int(cid) not in hidden
+                },
             )
             for e in encounters
         ],

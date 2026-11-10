@@ -20,20 +20,20 @@ export default function AboutPage() {
         <p className="text-muted mt-2">This page is ForeverTracker&apos;s data collection policy.</p>
       </header>
 
-      <Section title="Why a desktop app is needed">
+      <Section title="Why a companion app is needed">
         <p>
           World of Warcraft does not let addons connect to the internet. An addon can only save its data to a file on your
           computer, and the game writes that file only when you log out, exit or type /reload. Something outside the game
           therefore has to send your recorded runs to ForeverTracker.
         </p>
         <p>
-          The ForeverTracker desktop app does this. When the game saves the file, the app uploads any new runs a few
+          The ForeverTracker companion app does this. When the game saves the file, the app uploads any new runs a few
           seconds later, so there is nothing to remember. It only reads the addon&apos;s file: it never changes anything in
           your WoW folder and does not interact with the game itself.
         </p>
         <p>
           You can pause it at any time, and it can show you exactly what it will send before sending it.{" "}
-          <Link href="/download" className="underline">Get the desktop app</Link>.
+          <Link href="/download" className="underline">Get the companion app</Link>.
         </p>
       </Section>
 

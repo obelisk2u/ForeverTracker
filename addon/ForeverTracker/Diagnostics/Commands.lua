@@ -5,6 +5,8 @@ local Commands = {}
 FT.Commands = Commands
 
 local HELP = {
+  "/ft - show or hide your dungeon records",
+  "/ft minimap - show or hide the minimap button",
   "/ft status - what is being recorded right now",
   "/ft probe - test which game APIs work on this client (saved as an uploadable report)",
   "/ft probe persist - two-step test that saved data survives /reload or a restart",
@@ -44,9 +46,17 @@ end
 
 function Commands.handle(msg)
   local cmd, rest = string.match(string.lower(msg or ""), "^%s*(%S*)%s*(.-)%s*$")
-  if cmd == "" or cmd == "help" then
+  if cmd == "" or cmd == "records" then
+    FT.RecordsUI.toggle()
+  elseif cmd == "help" then
     for _, line in ipairs(HELP) do
       FT.Util.print(line)
+    end
+  elseif cmd == "minimap" then
+    if FT.MinimapButton.toggle() then
+      FT.Util.print("minimap button shown.")
+    else
+      FT.Util.print("minimap button hidden. /ft minimap brings it back; /ft opens your records.")
     end
   elseif cmd == "status" then
     status()

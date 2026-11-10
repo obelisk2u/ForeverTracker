@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as navigation from "next/navigation";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SearchBox } from "@/components/SearchBox";
 import { SearchResults } from "@/components/SearchResults";
@@ -28,6 +28,60 @@ describe("SearchBox", () => {
     await userEvent.click(screen.getByRole("button", { name: "Search" }));
     expect(push).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent("at least 2 characters");
+  });
+});
+
+describe("SearchBox suggestions", () => {
+  const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, json: async () => search }));
+  beforeEach(() => {
+    push.mockClear();
+    fetchMock.mockClear();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("suggests matching characters as you type", async () => {
+    render(<SearchBox compact />);
+    await userEvent.type(screen.getByLabelText("Character name"), "brig");
+    const list = await screen.findByRole("listbox", { name: "Matching characters" });
+    const options = within(list).getAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual([
+      expect.stringContaining("Thalen Brightvale"),
+      expect.stringContaining("Asha Brightvale"),
+      "See all results for “brig”",
+    ]);
+    expect(options[0]).toHaveTextContent("Hunter");
+    expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("/api/v1/search?q=brig&page_size=6");
+  });
+
+  it("opens a suggestion with the keyboard or a click", async () => {
+    render(<SearchBox compact />);
+    const box = screen.getByLabelText("Character name");
+    await userEvent.type(box, "brig");
+    await screen.findByRole("listbox");
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+    expect(push).toHaveBeenCalledWith("/character/us-pve/6395cpuwfy");
+    push.mockClear();
+    await userEvent.type(box, "h");
+    await userEvent.click(await screen.findByRole("option", { name: /Thalen Brightvale/ }));
+    expect(push).toHaveBeenCalledWith("/character/us-pve/hdwfnhy7sy");
+  });
+
+  it("still searches everything with Enter, and Escape closes the list", async () => {
+    render(<SearchBox />);
+    await userEvent.type(screen.getByLabelText("Character name"), "brig");
+    await screen.findByRole("listbox");
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    await userEvent.keyboard("{Enter}");
+    expect(push).toHaveBeenCalledWith("/search?q=brig");
+  });
+
+  it("waits for two characters before asking", async () => {
+    render(<SearchBox compact />);
+    await userEvent.type(screen.getByLabelText("Character name"), "b");
+    await new Promise((r) => setTimeout(r, 250));
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

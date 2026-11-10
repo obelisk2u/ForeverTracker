@@ -5,6 +5,7 @@
 --   active_run   : the run in progress, so a /reload or relog can resume it
 --   group_seen   : when each group member was last recorded (Collectors/Group.lua)
 --   diagnostics  : persistence-test marker and the last probe summary
+--   records      : the player's own dungeon records for the records window (Sessions/Records.lua)
 --
 -- The client writes SavedVariables on logout, exit and /reload, never continuously. During
 -- the beta (build 69893) it also failed to *load* them; Storage never assumes earlier data
@@ -118,4 +119,6 @@ function Storage.purge()
   FT.db.snapshot_sigs = {}
   FT.db.group_seen = {}
   FT.db.dropped = { observations = 0 }
+  FT.db.records = FT.Records.fresh()
+  FT.db.records.backfilled = true
 end

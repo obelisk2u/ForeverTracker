@@ -453,12 +453,25 @@ export interface components {
         };
         /** EncounterOut */
         EncounterOut: {
+            /** Combat Seconds */
+            combat_seconds?: number | null;
             /** Conflict */
             conflict: boolean;
             /** Encounter Id */
             encounter_id: number;
             /** Ended At */
             ended_at: string | null;
+            /**
+             * Metrics
+             * @description Public character ID -> metric -> value, for this attempt only
+             */
+            metrics?: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            /** Metrics Status */
+            metrics_status?: string | null;
             /** Name */
             name: string | null;
             /** Observed By */

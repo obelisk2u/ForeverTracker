@@ -158,6 +158,11 @@ function RT.finalize(final, endedAt)
   FT.Storage.push(run)
   FT.Storage.setActiveRun(nil)
   FT.db.active_state = nil
+  -- The player's own records (the records window); a failure there never loses the run.
+  FT.Events.guard("records", function()
+    FT.Records.addRun(run)
+    FT.RecordsUI.refresh()
+  end)
   FT.Util.debug("run finished: " .. name)
   FT.Inspect.selfSnapshot(true)
   return run

@@ -323,6 +323,27 @@ function M.installGlobals()
   G.CreateFrame = makeFrame
   G.UIParent = stub()
   G.DEFAULT_CHAT_FRAME = { AddMessage = function(_, msg) table.insert(M.chat, msg) end }
+
+  -- What the records window and the minimap button use.
+  G.Minimap = stub()
+  G.Minimap.GetWidth = function() return 140 end
+  G.Minimap.GetHeight = function() return 140 end
+  G.Minimap.GetCenter = function() return 1000, 600 end
+  G.Minimap.GetEffectiveScale = function() return 1 end
+  M.cursor = { 1000, 600 }
+  G.GetCursorPosition = function() return M.cursor[1], M.cursor[2] end
+  M.tooltip = {}
+  local tip = stub()
+  tip.SetOwner = function() M.tooltip = {} end
+  tip.AddLine = function(_, text) table.insert(M.tooltip, tostring(text)) end
+  tip.AddDoubleLine = function(_, left, right) table.insert(M.tooltip, tostring(left) .. " | " .. tostring(right)) end
+  G.GameTooltip = tip
+  G.UISpecialFrames = {}
+  G.RAID_CLASS_COLORS = {
+    MAGE = { r = 0.25, g = 0.78, b = 0.92 }, WARRIOR = { r = 0.78, g = 0.61, b = 0.43 }, PRIEST = { r = 1, g = 1, b = 1 },
+    ROGUE = { r = 1, g = 0.96, b = 0.41 }, HUNTER = { r = 0.67, g = 0.83, b = 0.45 }, PALADIN = { r = 0.96, g = 0.55, b = 0.73 },
+  }
+  G.date = os.date
   G.UNKNOWNOBJECT = "Unknown"
   G.WOW_PROJECT_ID, G.WOW_PROJECT_MAINLINE = 1, 1
   G.C_Timer = {
@@ -544,6 +565,28 @@ end
 
 function M.slash(msg)
   SlashCmdList.FOREVERTRACKER(msg)
+end
+
+-- Every non-empty text currently set on a frame, font string or texture under `root` (for UI tests).
+function M.texts(root)
+  local out = {}
+  local seen = {}
+  local function walk(obj)
+    if type(obj) ~= "table" or seen[obj] then
+      return
+    end
+    seen[obj] = true
+    if type(rawget(obj, "_text")) == "string" and obj._text ~= "" then
+      out[#out + 1] = obj._text
+    end
+    for k, v in pairs(obj) do
+      if k ~= "_scripts" then
+        walk(v)
+      end
+    end
+  end
+  walk(root)
+  return out
 end
 
 function M.chatContains(fragment)

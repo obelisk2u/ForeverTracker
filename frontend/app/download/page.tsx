@@ -16,15 +16,15 @@ export default async function DownloadPage() {
       <div>
         <h1 className="font-display text-3xl">Get the ForeverTracker addon</h1>
         <p className="text-muted mt-2">
-          The addon runs entirely inside the game and never connects to the internet, so a small, nonintrusive desktop
-          app sends its records to ForeverTracker.
+          The addon runs entirely inside the game and never connects to the internet, so a small, nonintrusive
+          companion app sends its records to ForeverTracker.
         </p>
       </div>
       {release && (
         <div className="flex flex-col gap-2">
           <DownloadButton release={release} />
           <p className="text-sm text-muted">
-            Installs the desktop app, plus the addon if you don&apos;t have it yet. The app keeps itself up to date; the
+            Installs the companion app, plus the addon if you don&apos;t have it yet. The app keeps itself up to date; the
             addon updates through CurseForge. See the{" "}
             <Link href="/code-signing" className="underline">
               code signing policy
@@ -37,6 +37,8 @@ export default async function DownloadPage() {
         <h2 className="font-display text-xl text-gold">Commands</h2>
         <ul className="grid sm:grid-cols-2 gap-2 text-sm">
           {[
+            ["/ft", "your dungeon records (or click the minimap button)"],
+            ["/ft minimap", "show or hide the minimap button"],
             ["/ft status", "what is being recorded"],
             ["/ft probe", "test which APIs work"],
             ["/ft probe persist", "check that saved data survives a restart"],
@@ -50,7 +52,7 @@ export default async function DownloadPage() {
         </ul>
       </section>
       <section id="uploader" className="flex flex-col gap-3 text-muted">
-        <h2 className="font-display text-xl text-gold">Desktop uploader</h2>
+        <h2 className="font-display text-xl text-gold">Companion app</h2>
         <p>
           Addons cannot connect to the internet, so this small program is what gets your runs onto ForeverTracker. It
           watches the addon&apos;s SavedVariables file and uploads new records after you log out. It only reads files,
