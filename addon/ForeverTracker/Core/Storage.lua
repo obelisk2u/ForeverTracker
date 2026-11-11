@@ -116,6 +116,7 @@ function Storage.purge()
   FT.db.observations = {}
   FT.db.active_run = nil
   FT.db.active_state = nil
+  FT.db.finished_here = nil
   FT.db.snapshot_sigs = {}
   FT.db.group_seen = {}
   FT.db.dropped = { observations = 0 }

@@ -6,9 +6,12 @@
 --                            |  +-------------------------------+  +--(other dungeon)-----> left
 --                            +---- re-enter same dungeon within grace (corpse run, relog, /reload)
 --
---   Leaving alive after the dungeon's final boss died ends the run at once ("left"; the final-boss
---   kill makes it a completion in the records and on the website). A ghost who released after
---   the last boss still gets the grace period to run back in and loot.
+--   The run ends FINISH_DELAY_SECONDS after the dungeon's final boss dies (time for the damage
+--   meter to read the fight), with state "unknown" unless a completion event came: the final-boss
+--   kill makes it a completion in the records and on the website. Staying inside afterwards
+--   (looting, /reload, a corpse run back in) does not start a new run. Leaving alive before that
+--   ends it at once ("left"). Leaving the group while outside also ends the run, and going back in
+--   with a different group starts a new one.
 --
 --   Final states (observation `state`):
 --     completed     only with a completion event (LFG_COMPLETION_REWARD, SCENARIO_COMPLETED,
@@ -180,23 +183,288 @@ function RT.finalize(final, endedAt)
   return run
 end
 
+-- Splitting a merged run -------------------------------------------------------------------------
+-- Addon 0.2.2 and earlier resumed the open run when the player went back into the same dungeon
+-- within the grace period, even after leaving the group outside: the next group's run was added
+-- to the previous one. RT.splitMerged separates such a run where the player went back in.
+
+-- When the player left the first run and when they went back in for the second, or nil.
+local function mergedAt(run)
+  local leftAt, groupLeft = nil, false
+  for _, e in ipairs(run.timeline or {}) do
+    if e.kind == "left_instance" then
+      leftAt, groupLeft = e.at, false
+    elseif e.kind == "group_left" then
+      groupLeft = leftAt ~= nil
+    elseif e.kind == "reentered" then
+      if leftAt and groupLeft then
+        return leftAt, e.at
+      end
+      leftAt, groupLeft = nil, false
+    end
+  end
+  return nil
+end
+
+local function filter(list, keep)
+  local out = {}
+  for _, v in ipairs(list or {}) do
+    if keep(v) then
+      out[#out + 1] = v
+    end
+  end
+  return out
+end
+
+local function copy(t)
+  local out = {}
+  for k, v in pairs(t or {}) do
+    out[k] = v
+  end
+  return out
+end
+
+-- Roster entries with only their presence before (after = false) or from (after = true) `at`.
+-- Zero-length presence (seen and gone in the same instant) is dropped.
+local function rosterSide(roster, at, after)
+  local out = {}
+  for _, entry in ipairs(roster or {}) do
+    local presence = filter(entry.presence, function(p)
+      return (p.start >= at) == after and p["end"] ~= p.start
+    end)
+    if #presence > 0 then
+      local e = copy(entry)
+      e.presence = presence
+      if after then
+        e.connection_drops = 0
+      end
+      out[#out + 1] = e
+    end
+  end
+  return out
+end
+
+local METER_KEYS = { "status", "values", "deaths", "durations", "captured_at", "ended_at" }
+
+-- The meter bookkeeping for the sessions on one side of `at`. Each side treats the other side's
+-- sessions as baseline, so they are never captured into it.
+local function meterSide(m, at, after)
+  local side = copy(m)
+  side.baseline = copy(m.baseline)
+  for _, key in ipairs(METER_KEYS) do
+    side[key] = {}
+  end
+  for id in pairs(m.status) do
+    local t = (m.ended_at and m.ended_at[id]) or (m.captured_at and m.captured_at[id])
+    if (t == nil or t >= at) == after then
+      for _, key in ipairs(METER_KEYS) do
+        side[key][id] = m[key] and m[key][id]
+      end
+    else
+      side.baseline[id] = true
+    end
+  end
+  return side
+end
+
+local function metered(run)
+  return run.meter and run.meter.status ~= "disabled" and run.meter.status ~= "unavailable"
+end
+
+function RT.splitMerged()
+  local run, st = active(), state()
+  if not run or not st then
+    return nil
+  end
+  local leftAt, backAt = mergedAt(run)
+  if not backAt then
+    return nil
+  end
+  local function before(t)
+    return t ~= nil and t < backAt
+  end
+
+  -- Build both halves before changing anything: an error leaves the run as it was.
+  local first = copy(run)
+  first.timeline = filter(run.timeline, function(e)
+    return before(e.at)
+  end)
+  first.encounters = filter(run.encounters, function(e)
+    return before(e.started_at)
+  end)
+  first.deaths = filter(run.deaths, function(d)
+    return before(d.at)
+  end)
+  first.roster = rosterSide(run.roster, backAt, false)
+  local firstEvidence = filter(run.completion.evidence, function(ev)
+    return before(ev.at)
+  end)
+  first.completion = { status = #firstEvidence > 0 and "verified" or "none", evidence = firstEvidence }
+  first.flags = copy(run.flags)
+  first.flags.party_guid_changed = nil
+  first.flags.split_from_merged = true
+  first.timing = copy(run.timing)
+  first.timing.ended_at = leftAt
+  first.timing.last_updated_at = leftAt
+  first.meter = copy(run.meter)
+  first.state = first.completion.status == "verified" and "completed" or "left"
+  first.revision = run.revision + 1
+
+  local timeline = filter(run.timeline, function(e)
+    return not before(e.at) and not (e.kind == "reentered" and e.at == backAt)
+  end)
+  table.insert(timeline, 1, { at = backAt, kind = "entered", detail = { map_id = run.instance.map_id } })
+  local encounters = filter(run.encounters, function(e)
+    return not before(e.started_at)
+  end)
+  local deaths = filter(run.deaths, function(d)
+    return not before(d.at)
+  end)
+  local roster = rosterSide(run.roster, backAt, true)
+  local evidence = filter(run.completion.evidence, function(ev)
+    return not before(ev.at)
+  end)
+
+  local secondMeter
+  if st.meter and metered(run) then
+    secondMeter = meterSide(st.meter, backAt, true)
+    FT.Meter.rebuild(first, { meter = meterSide(st.meter, backAt, false) })
+    if #first.meter.sessions == 0 then
+      first.meter.status = "unavailable"
+      first.meter.reason = "no_sessions_observed"
+    end
+  end
+  collection(first, st)
+
+  -- The first run is finished.
+  FT.Storage.push(first)
+  FT.Events.guard("records", function()
+    FT.Records.addRun(first)
+  end)
+
+  -- The open run continues as the second one.
+  run.observation_id = FT.Storage.nextId("r")
+  run.revision = 1
+  run.timing.started_at = backAt
+  run.timing.ended_at = nil
+  run.timeline = timeline
+  run.encounters = encounters
+  run.deaths = deaths
+  run.roster = roster
+  run.completion = { status = #evidence > 0 and "verified" or "none", evidence = evidence }
+  run.flags.party_guid_changed = nil
+  run.flags.split_from_merged = true
+  run.party_guid = FT.db.group and FT.db.group.party_guid or nil
+  local refs = {}
+  for _, entry in ipairs(roster) do
+    refs[entry.ref] = true
+  end
+  for key, ref in pairs(st.refs or {}) do
+    if not refs[ref] then
+      st.refs[key] = nil
+    end
+  end
+  st.finishing = nil
+  if secondMeter then
+    st.meter = secondMeter
+    FT.Meter.rebuild(run, st)
+  end
+  collection(run, st)
+  touch(run)
+  refreshWindow()
+  FT.Util.debug("split a merged run")
+  return first, run
+end
+
 -- The dungeon's final boss died in this run and the player is alive: nothing left to come back for.
-local function finishedAlive(run)
+local function killedFinal(run)
   local finals = FT.FINAL_ENCOUNTERS and FT.FINAL_ENCOUNTERS[run.instance.map_id]
   if not finals then
     return false
   end
-  local killed = false
   for _, e in ipairs(run.encounters or {}) do
     if e.success == true and finals[e.encounter_id] then
-      killed = true
+      return true
     end
   end
-  if not killed then
-    return false
-  end
+  return false
+end
+
+local function playerAlive()
   local ok, dead = Safe.call("UnitIsDeadOrGhost", "player")
   return ok and Safe.bool(dead) == false
+end
+
+local function finishedAlive(run)
+  return killedFinal(run) and playerAlive()
+end
+
+-- Outside the dungeon with nothing to go back for: the player left the group after leaving the
+-- dungeon, or the final boss is dead and the player alive. (Checked again on load, for a run
+-- left while an earlier version was running.)
+local function overOutside(run, st)
+  local leftAt = st.suspend and st.suspend.at
+  for _, e in ipairs(run.timeline or {}) do
+    if e.kind == "group_left" and leftAt and e.at >= leftAt then
+      return true
+    end
+  end
+  return finishedAlive(run)
+end
+
+RT.FINISH_DELAY_SECONDS = 20
+RT.FINISH_RETRY_SECONDS = 5
+RT.FINISH_MAX_TRIES = 12
+
+-- The final boss died: end the run once the meter has read the fight (out of combat).
+function RT.afterBossKill(run)
+  local st = state()
+  if not st or st.finishing or not killedFinal(run) then
+    return
+  end
+  st.finishing = true
+  local tries = 0
+  local function finish()
+    tries = tries + 1
+    local st2 = state()
+    if active() ~= run or not st2 or st2.phase ~= "active" then
+      return -- already over, or outside (the leaving rules apply)
+    end
+    if FT.Meter.inCombat() and tries < RT.FINISH_MAX_TRIES then
+      FT.Events.after(RT.FINISH_RETRY_SECONDS, "runtracker", finish)
+      return
+    end
+    RT.finalize("unknown", now())
+    if not active() then
+      FT.db.finished_here = { map_id = run.instance.map_id, at = now() }
+    end
+  end
+  FT.Events.after(RT.FINISH_DELAY_SECONDS, "runtracker", finish)
+end
+
+-- After a run ended at its final boss the player may stay inside (loot, /reload, relog) or, as a
+-- ghost, go back in for their corpse: none of that is a new run. Leaving alive, entering another
+-- dungeon or the grace period passing clears it.
+local function stillFinished(info, inDungeon)
+  local done = FT.db.finished_here
+  if not done then
+    return false
+  end
+  if now() - (done.at or 0) > FT.Config.LIMITS.resume_grace_seconds then
+    FT.db.finished_here = nil
+    return false
+  end
+  if inDungeon then
+    if info.map_id == done.map_id then
+      return true
+    end
+    FT.db.finished_here = nil
+    return false
+  end
+  if playerAlive() then
+    FT.db.finished_here = nil
+  end
+  return false
 end
 
 function RT.suspend(reason)
@@ -208,6 +476,7 @@ function RT.suspend(reason)
   FT.Meter.suspend(run, st)
   FT.Roster.closeAll(run, t)
   st.phase = "suspended"
+  st.finishing = nil -- a pending end at the final boss restarts on resume
   st.suspend = { reason = reason, at = t, id = ((st.suspend_seq or 0) + 1) }
   st.suspend_seq = st.suspend.id
   RT.mark(reason == "session_end" and "logout" or "left_instance", {})
@@ -253,6 +522,7 @@ function RT.resume(kind)
   touch(run)
   collection(run, st)
   refreshWindow()
+  RT.afterBossKill(run)
 end
 
 local function expired(st, t)
@@ -266,6 +536,9 @@ function RT.onEnteringWorld(isInitialLogin, isReloadingUi)
   local run, st = active(), state()
   local t = now()
   local sessionStart = (Safe.bool(isInitialLogin) == true) or (Safe.bool(isReloadingUi) == true)
+  if sessionStart and run and st then
+    FT.Events.guard("runtracker", RT.splitMerged)
+  end
 
   if run and not st then
     -- Run saved without its bookkeeping (should not happen): keep the data, mark it partial.
@@ -297,8 +570,10 @@ function RT.onEnteringWorld(isInitialLogin, isReloadingUi)
       end
       return
     end
-    -- Suspended.
-    if sameDungeon and not expired(st, t) then
+    -- Suspended. Going back in with a different group is a new run.
+    local group = FT.db.group and FT.db.group.party_guid
+    local sameGroup = not (run.party_guid and group and group ~= run.party_guid)
+    if sameDungeon and sameGroup and not expired(st, t) then
       local kind = "reentered"
       if Safe.bool(isReloadingUi) == true then
         kind = "reload"
@@ -311,6 +586,8 @@ function RT.onEnteringWorld(isInitialLogin, isReloadingUi)
     if st.suspend.reason == "session_end" then
       if expired(st, t) or inDungeon then
         RT.finalize("disconnected", st.suspend.at)
+      elseif overOutside(run, st) then
+        RT.finalize("left", st.suspend.at)
       else
         -- Back in the world outside the dungeon within the grace period (e.g. ported out on
         -- login): wait it out like a normal exit; RT.tick finalizes it when the grace expires.
@@ -318,11 +595,14 @@ function RT.onEnteringWorld(isInitialLogin, isReloadingUi)
         RT.mark("left_instance", {})
         return
       end
-    elseif expired(st, t) or inDungeon then
+    elseif expired(st, t) or inDungeon or overOutside(run, st) then
       RT.finalize("left", st.suspend.at)
     else
       return -- still outside, within the grace period
     end
+  end
+  if stillFinished(info, inDungeon) then
+    return
   end
   if inDungeon then
     RT.start(info)
@@ -368,8 +648,13 @@ end
 
 function RT.onGroupLeft()
   FT.db.group = nil
-  if active() then
+  local run, st = active(), state()
+  if run then
     RT.mark("group_left", {})
+    if st and st.phase == "suspended" and st.suspend and st.suspend.reason == "left_instance" then
+      RT.finalize("left", st.suspend.at) -- left the group outside the dungeon: that run is over
+      return
+    end
     RT.onRosterUpdate()
   end
 end
@@ -458,6 +743,7 @@ function RT.register()
     E.on("ENCOUNTER_START", "encounters", RT.withActive(FT.Encounters.start))
     E.on("ENCOUNTER_END", "encounters", RT.withActive(function(run, st, t, id, _, _, _, success)
       FT.Encounters.finish(run, st, t, id, success)
+      RT.afterBossKill(run)
     end))
   end
   E.on("PLAYER_DEAD", "deaths_unit_state", RT.withActive(FT.Deaths.playerDead))

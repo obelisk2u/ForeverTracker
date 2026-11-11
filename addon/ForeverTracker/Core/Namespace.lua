@@ -2,7 +2,7 @@
 local addonName, FT = ...
 
 FT.name = addonName
-FT.version = "0.2.2"
+FT.version = "0.2.4"
 FT.SCHEMA_VERSION = 1
 FT.SV_FORMAT = "forevertracker.savedvariables"
 FT.EXPORT_FORMAT = "forevertracker.savedvariables"

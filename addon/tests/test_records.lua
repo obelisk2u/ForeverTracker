@@ -104,17 +104,22 @@ describe("personal records", function()
     Mock.advance(25)
     Mock.fire("ENCOUNTER_END", 2747, "Edwin VanCleef", 1, 5, 1, {})
     Mock.advance(60)
+    falsy(activeRun(), "the run ended with the final boss")
+    local run = lastObservation("dungeon_run")
+    eq(run.timing.ended_at - run.encounters[2].ended_at, 20, "once the meter had read the fight")
     Mock.leaveInstance() -- released as a ghost
-    truthy(activeRun(), "a ghost can still run back in")
     Mock.advance(150)
-    Mock.setDead("Autumn", false)
     Mock.enterDungeon({ name = "Deadmines", mapId = 36 }) -- ran back in
+    Mock.setDead("Autumn", false)
+    falsy(activeRun(), "going back in for the corpse is not a new run")
+    Mock.reload()
+    falsy(activeRun(), "nor is a /reload inside")
     Mock.advance(400)
     Mock.leaveInstance() -- hearthstone
     Mock.advance(901)
 
-    local run = lastObservation("dungeon_run")
-    eq(run.state, "left", "the uploaded record states only what happened")
+    eq(#observationsOf("dungeon_run"), 1)
+    eq(run.state, "unknown", "the uploaded record states only what happened")
     eq(run.completion.status, "none")
     local s = records().history[1]
     eq(s.result, "completed")
@@ -123,7 +128,7 @@ describe("personal records", function()
     truthy(Mock.ft.Records.view(AUTUMN).bests.fastest, "it can be a fastest clear")
   end)
 
-  it("ends the run as soon as the player leaves alive after the final boss", function()
+  it("ends the run shortly after the final boss dies", function()
     -- The Hall of Thanes (Forever), cleared on 2026-11-10 in this order.
     boot()
     Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
@@ -131,13 +136,57 @@ describe("personal records", function()
     boss(3495, "Infurnus", true)
     boss(3494, "Plunder", true)
     boss(3496, "Durgen Dirgehammer", true)
-    Mock.advance(300)
-    Mock.leaveInstance() -- hearthstone
-
-    falsy(activeRun(), "no waiting for a corpse run")
+    Mock.advance(10)
+    truthy(activeRun(), "the meter is still reading the fight")
+    Mock.advance(10)
+    falsy(activeRun())
     local run = lastObservation("dungeon_run")
-    eq(run.state, "left")
-    truthy(run.timing.ended_at)
+    eq(run.state, "unknown")
+    eq(#run.encounters, 4)
+    eq(records().history[1].result, "completed")
+
+    Mock.advance(120)
+    Mock.leaveInstance() -- hearthstone
+    Mock.advance(60)
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    truthy(activeRun(), "leaving alive and coming back is the next run")
+    eq(#observationsOf("dungeon_run"), 1)
+  end)
+
+  it("waits for combat to end before ending the run at the final boss", function()
+    boot()
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    Mock.startCombat()
+    boss(3496, "Durgen Dirgehammer", true)
+    Mock.advance(30)
+    truthy(activeRun(), "still fighting the adds")
+    Mock.endCombat(90, { Autumn = { damage_done = 30000 } })
+    Mock.advance(12)
+    falsy(activeRun())
+    eq(records().history[1].damage, 30000, "the last fight is in the run")
+  end)
+
+  it("still ends the run at the final boss after a /reload right after the kill", function()
+    boot()
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    boss(3496, "Durgen Dirgehammer", true)
+    Mock.advance(5)
+    Mock.reload()
+    truthy(activeRun())
+    Mock.advance(21)
+    falsy(activeRun())
+    eq(#observationsOf("dungeon_run"), 1)
+    eq(records().history[1].result, "completed")
+  end)
+
+  it("ends the run at once when the player leaves alive right after the final boss", function()
+    boot()
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    boss(3496, "Durgen Dirgehammer", true)
+    Mock.advance(5)
+    Mock.leaveInstance()
+    falsy(activeRun(), "no waiting for a corpse run")
+    eq(lastObservation("dungeon_run").state, "left")
     eq(records().history[1].result, "completed")
   end)
 
@@ -150,6 +199,138 @@ describe("personal records", function()
     Mock.advance(901)
     falsy(activeRun())
     eq(records().history[1].result, "left")
+  end)
+
+  it("ends the run when the player leaves the group outside the dungeon", function()
+    boot()
+    Mock.fire("GROUP_JOINED", 1, "Party-1-AAAA")
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    boss(3493, "Faldrim Anvilmar", true)
+    Mock.leaveInstance()
+    truthy(activeRun(), "the group may still go back in")
+    Mock.advance(5)
+    Mock.fire("GROUP_LEFT")
+    falsy(activeRun(), "no group, no run to go back to")
+    local run = lastObservation("dungeon_run")
+    eq(run.state, "left")
+    eq(#run.encounters, 1)
+  end)
+
+  it("starts a new run when the player goes back in with a different group", function()
+    boot()
+    Mock.fire("GROUP_JOINED", 1, "Party-1-AAAA")
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    boss(3493, "Faldrim Anvilmar", true)
+    Mock.leaveInstance()
+    Mock.advance(120)
+    Mock.fire("GROUP_JOINED", 1, "Party-1-BBBB") -- straight into another group
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+
+    local finished = observationsOf("dungeon_run")
+    eq(#finished, 1, "the first group's run is over")
+    eq(finished[1].party_guid, "Party-1-AAAA")
+    eq(activeRun().party_guid, "Party-1-BBBB")
+    eq(#activeRun().encounters, 0)
+  end)
+
+  it("splits a run that an earlier version merged with the next group's run", function()
+    local ft = boot()
+    Mock.fire("GROUP_JOINED", 1, "Party-1-AAAA")
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    boss(3493, "Faldrim Anvilmar", true)
+    fight(90, { Autumn = { damage_done = 50000 }, Mah = { damage_done = 30000 } })
+
+    -- What 0.2.2 and earlier did: killing the last boss, leaving and then leaving the group kept
+    -- the run open, so going back in with a new group resumed it.
+    local RT = ft.RunTracker
+    local finalize = RT.finalize
+    RT.finalize = function() end
+    boss(3496, "Durgen Dirgehammer", true)
+    Mock.advance(60)
+    Mock.leaveInstance()
+    local leftAt = Mock.clock
+    Mock.advance(5)
+    Mock.setParty({ DefaultParty()[1] })
+    Mock.fire("GROUP_LEFT")
+    Mock.advance(300)
+    local newParty = {
+      DefaultParty()[1],
+      { name = "Bram", surname = "Stonefist", guid = "Player-4620-0000B2", class = "WARRIOR", race = "Dwarf", level = 18, role = "TANK" },
+      { name = "Cyra", surname = "Dawnmere", guid = "Player-4620-0000B3", class = "PRIEST", race = "Human", level = 18, role = "HEALER" },
+      { name = "Dov", surname = "Ashgrove", guid = "Player-4620-0000B4", class = "ROGUE", race = "Human", level = 18, role = "DAMAGER" },
+      { name = "Esk", surname = "Ashgrove", guid = "Player-4620-0000B5", class = "HUNTER", race = "Dwarf", level = 18, role = "DAMAGER" },
+    }
+    Mock.enterDungeon({ name = "The Hall of Thanes", mapId = 3065 })
+    local backAt = Mock.clock
+    Mock.setParty(newParty)
+    Mock.fire("GROUP_JOINED", 1, "Party-1-BBBB")
+    local merged = activeRun().observation_id
+    boss(3493, "Faldrim Anvilmar", true)
+    fight(60, { Autumn = { damage_done = 20000 }, Bram = { damage_done = 10000 } })
+    eq(#activeRun().encounters, 3, "merged, as the earlier version left it")
+
+    -- The new version splits it on the next load.
+    RT.finalize = finalize
+    ft = Mock.reload()
+    local finished = observationsOf("dungeon_run")
+    eq(#finished, 1)
+    local first, second = finished[1], activeRun()
+    eq(first.observation_id, merged, "the first run keeps its identity")
+    truthy(first.revision > 1, "and replaces what was uploaded before")
+    eq(first.state, "left")
+    eq(first.timing.ended_at, leftAt)
+    eq(#first.encounters, 2)
+    eq(first.encounters[2].name, "Durgen Dirgehammer")
+    eq(#first.roster, 5)
+    eq(first.party_guid, "Party-1-AAAA")
+    for _, e in ipairs(first.roster) do
+      truthy(e.name ~= "Bram", "the second group is not in the first run")
+    end
+    local function damage(run, name)
+      for _, entry in ipairs(run.roster) do
+        if entry.name == name then
+          for _, t in ipairs(run.meter.totals) do
+            if t.unit_ref == entry.ref then
+              return t.metrics.damage_done.value
+            end
+          end
+        end
+      end
+    end
+    eq(damage(first, "Autumn"), 50000)
+    eq(damage(first, "Mah"), 30000)
+
+    truthy(second.observation_id ~= merged, "the second run is a new one")
+    eq(second.revision, 1)
+    eq(second.timing.started_at, backAt)
+    eq(second.party_guid, "Party-1-BBBB")
+    eq(second.timeline[1].kind, "entered")
+    eq(#second.encounters, 1)
+    eq(#second.roster, 5)
+    eq(damage(second, "Autumn"), 20000)
+    eq(damage(second, "Bram"), 10000)
+    local refs = {}
+    for _, e in ipairs(second.roster) do
+      falsy(refs[e.ref], "unit refs stay unique")
+      refs[e.ref] = true
+    end
+
+    local s = records().history[1]
+    eq(s.result, "completed", "the first run killed the final boss")
+    eq(s.damage, 50000)
+    eq(#s.party, 4)
+
+    -- The second run goes on normally, and the split happens only once.
+    boss(3496, "Durgen Dirgehammer", true)
+    Mock.leaveInstance()
+    falsy(activeRun())
+    local runs = observationsOf("dungeon_run")
+    eq(#runs, 2)
+    eq(#runs[2].encounters, 2)
+    eq(damage(runs[2], "Autumn"), 20000)
+    Mock.reload()
+    eq(#observationsOf("dungeon_run"), 2)
+    eq(#records().history, 2)
   end)
 
   it("does not count a wipe on the final boss as a completion", function()

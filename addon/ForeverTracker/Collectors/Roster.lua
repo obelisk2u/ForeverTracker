@@ -61,6 +61,18 @@ local function update(entry, member)
   entry.race_id = entry.race_id or member.race_id
 end
 
+-- The next unused unit ref. Counting entries is not enough: a split run keeps its refs.
+local function nextRef(run)
+  local n = #run.roster
+  for _, e in ipairs(run.roster) do
+    local k = tonumber(string.match(e.ref or "", "^u(%d+)$"))
+    if k and k > n then
+      n = k
+    end
+  end
+  return "u" .. (n + 1)
+end
+
 local function openInterval(entry, now)
   local p = entry.presence
   local last = p[#p]
@@ -112,7 +124,7 @@ function Roster.scan(run, state, now)
       end
       if not entry and #run.roster < FT.Config.LIMITS.max_roster then
         entry = {
-          ref = "u" .. (#run.roster + 1),
+          ref = nextRef(run),
           identity_status = member.identity_status,
           is_observer = unit == "player",
           presence = {},

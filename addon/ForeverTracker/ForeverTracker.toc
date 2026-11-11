@@ -2,7 +2,7 @@
 ## Title: ForeverTracker
 ## Notes: Records the dungeon runs you take part in (party roster, bosses, deaths, native damage-meter totals, equipment) and shows your personal dungeon records in game (minimap button or /ft). Makes no network requests.
 ## Author: ForeverTracker
-## Version: 0.2.2
+## Version: 0.2.4
 ## SavedVariables: ForeverTrackerDB
 ## IconTexture: Interface\AddOns\ForeverTracker\Media\Emblem
 ## AddonCompartmentFunc: ForeverTracker_OnAddonCompartmentClick
