@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     allow_synthetic_data: bool | None = None
 
     # Ingestion limits (untrusted input).
-    max_upload_bytes: int = 2_000_000
+    max_upload_bytes: int = 8_000_000  # a batch of 200 snapshots with item tooltips stays well under this
     max_savedvariables_bytes: int = 8_000_000
     max_observations_per_batch: int = 500
     rate_limit_uploads_per_hour: int = 120

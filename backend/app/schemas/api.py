@@ -92,6 +92,13 @@ class MetricCandidateOut(BaseModel):
     collected_at: datetime
 
 
+class TooltipLineOut(BaseModel):
+    left: str
+    color: str | None = None
+    right: str | None = None
+    right_color: str | None = None
+
+
 class GearItemOut(BaseModel):
     slot: int
     slot_name: str
@@ -101,6 +108,8 @@ class GearItemOut(BaseModel):
     gem_ids: list[int]
     quality: int | None
     link: str | None
+    # The game's tooltip for the item as the addon read it; None when it was not recorded.
+    tooltip: list[TooltipLineOut] | None = None
 
 
 class GearSnapshotOut(BaseModel):
@@ -260,6 +269,13 @@ class SourceOut(BaseModel):
     uploaded_at: datetime
 
 
+class PassedThroughOut(BaseModel):
+    """Someone in the group only briefly, at no boss pull: named on the run page, not a participant."""
+
+    character: CharacterSummary | HiddenCharacter
+    seconds: int
+
+
 class RunDetail(BaseModel):
     run_id: str
     dungeon: DungeonRef
@@ -278,6 +294,7 @@ class RunDetail(BaseModel):
     contributor_count: int
     coverage: dict[str, Any]
     participants: list[ParticipantOut]
+    passed_through: list[PassedThroughOut] = []
     encounters: list[EncounterOut]
     deaths: list[DeathOut]
     wipes: list[WipeOut]

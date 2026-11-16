@@ -74,6 +74,18 @@ export function RunDetailView({ run }: { run: RunDetail }) {
             safely (secret or ambiguous identity) and {Number(run.coverage.roster_entries_unidentified) === 1 ? "is" : "are"} not shown.
           </p>
         )}
+        {run.passed_through.length > 0 && (
+          <p className="mt-2 text-xs text-faint">
+            Also in the group for a moment:{" "}
+            {run.passed_through.map((p, i) => (
+              <span key={i}>
+                {i > 0 && ", "}
+                <CharacterLink character={p.character} showDot={false} /> ({formatDuration(p.seconds)})
+              </span>
+            ))}
+            . They left before any boss fight and are not counted in this run.
+          </p>
+        )}
       </section>
 
       <section>

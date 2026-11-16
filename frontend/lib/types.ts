@@ -25,6 +25,7 @@ export type MetaOut = S["MetaOut"];
 export type UploadResult = S["UploadResult"];
 export type UploaderRelease = S["UploaderRelease"];
 export type GearSnapshot = S["GearSnapshotOut"];
+export type GearItem = S["GearItemOut"];
 export type DungeonRef = S["DungeonRef"];
 
 export interface StatValue {

@@ -68,7 +68,9 @@ idempotent.
 * **Outcome**: `completed/verified` if any observer saw a completion event; `completed/probable` if the curated final
   boss was killed; else `abandoned`, `in_progress`, `disconnected`, `left` or `unknown`.
 * **Participants**: union of presence intervals, most frequent assigned role, highest level, count of observers that
-  saw them.
+  saw them. Someone in the group for under `PASSED_THROUGH_SECONDS` (5 minutes) and at no boss pull only passed
+  through (left as the run began and was replaced): they are not a participant, so the run does not appear in their
+  history or statistics, and the run page names them separately.
 * **Encounters**: the same boss pull from several observers (start within 120 s) becomes one row; contradicting
   kill/wipe results are flagged `conflict`.
 * **Deaths**: events for the same character within `DEATH_DEDUPE_WINDOW_SECONDS` (3 s) are one death, with every

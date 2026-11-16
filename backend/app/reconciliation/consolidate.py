@@ -14,7 +14,7 @@ from sqlalchemy import delete, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.analytics.definitions import COMPLETE_COVERAGE_RATIO, METRIC_VERSION, METRICS
+from app.analytics.definitions import COMPLETE_COVERAGE_RATIO, METRIC_VERSION, METRICS, PASSED_THROUGH_SECONDS
 from app.config import Settings
 from app.models import (
     Character,
@@ -71,6 +71,19 @@ class _ParticipantAcc:
 def _clamp(interval: tuple[datetime, datetime], lo: datetime, hi: datetime) -> tuple[datetime, datetime] | None:
     s, e = max(interval[0], lo), min(interval[1], hi)
     return (s, e) if e > s else None
+
+
+def _passed_through(acc: dict[int, _ParticipantAcc], encounters: list[RunEncounter], window_seconds: float) -> dict[int, int]:
+    """Group members who were in the run only briefly and at no boss pull -> seconds present."""
+    out: dict[int, int] = {}
+    for char_id, a in acc.items():
+        seconds = interval_union_seconds(a.intervals)
+        if not a.intervals or seconds >= PASSED_THROUGH_SECONDS or seconds >= window_seconds / 2:
+            continue
+        if any(start <= (e.ended_at or e.started_at) and e.started_at <= end for start, end in a.intervals for e in encounters):
+            continue
+        out[char_id] = int(seconds)
+    return out
 
 
 def _load_links(db: Session, run_id: int) -> list[LinkedObservation]:
@@ -275,13 +288,21 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
     encounters.sort(key=lambda e: e.started_at)
     _learn_encounters(dungeon, encounters)
 
+    # Someone who left as the run began (and was replaced) did not take part in it: no participant
+    # row, metrics or deaths. The run page names them separately.
+    passed = _passed_through(acc, encounters, window_seconds)
+    for char_id in passed:
+        del acc[char_id], participants[char_id]
+    for encounter in encounters:
+        encounter.metrics = {k: v for k, v in encounter.metrics.items() if int(k) not in passed}
+
     # Deaths: the same death seen by several observers (or sources) is counted once.
     window = timedelta(seconds=settings.death_dedupe_window_seconds)
     events: dict[int, list[tuple[datetime, str, int, int | None]]] = defaultdict(list)
     for link in links:
         for d in link.obs.deaths:
             char_id = link.identities.get(d.unit_ref)
-            if char_id is not None:
+            if char_id is not None and char_id not in passed:
                 events[char_id].append((from_epoch(d.at), d.source, link.raw.contributor_id, d.encounter_id))
     death_counts: dict[int, int] = {}
     death_rows: list[RunDeath] = []
@@ -324,6 +345,7 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
                 death_interpretation=settings.meter_death_interpretation,
             )
         )
+    candidates = [c for c in candidates if c.character_id not in passed]
     tracked_all = [i for ivs in observer_tracking.values() for i in ivs]
     if tracked_all:
         latest_link = max(links, key=lambda l: l.obs.timing.last_updated_at)
@@ -444,6 +466,7 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
             for l in links
         ),
         "party_guid_conflict": len(guids) > 1,
+        "passed_through": [{"character_id": c, "seconds": s} for c, s in sorted(passed.items(), key=lambda kv: (-kv[1], kv[0]))],
     }
 
     _bulk_insert(db, RunParticipant, list(participants.values()))
@@ -453,7 +476,7 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
     _bulk_insert(db, ParticipantMetric, resolved_rows)
     _record_levels(db, links)
     db.flush()
-    return previous_chars | set(participants)
+    return previous_chars | set(participants) | set(passed)
 
 
 def _unit(metric: str) -> str:

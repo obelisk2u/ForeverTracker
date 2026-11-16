@@ -333,6 +333,34 @@ describe("personal records", function()
     eq(#records().history, 2)
   end)
 
+  it("leaves out of the group whoever only passed through", function()
+    boot()
+    Mock.enterDungeon({ name = "Hall of Thanes", mapId = 990001 })
+    Mock.advance(60)
+    Mock.removeMember("Thalen") -- left as the run began
+    Mock.advance(30)
+    local party = DefaultParty()
+    party[5] = { name = "Kira", surname = "Stonefist", guid = "Player-4620-0000B1", class = "PALADIN", race = "Dwarf", level = 18, role = "DAMAGER" }
+    Mock.setParty(party)
+    Mock.advance(28)
+    Mock.removeMember("Kira") -- so did the first one to take the place
+    Mock.advance(60)
+    party[5] = { name = "Bram", surname = "Stonefist", guid = "Player-4620-0000B2", class = "WARRIOR", race = "Dwarf", level = 18, role = "DAMAGER" }
+    Mock.setParty(party)
+    Mock.advance(30)
+    boss(3001, "Thane Gorrak", true, 90)
+    Mock.advance(600)
+    Mock.fire("LFG_COMPLETION_REWARD")
+    Mock.leaveInstance()
+
+    local names = {}
+    for _, p in ipairs(records().history[1].party) do
+      names[#names + 1] = p.name
+    end
+    eq(table.concat(names, ","), "Mah,Phineas,Asha,Bram")
+    eq(#lastObservation("dungeon_run").roster, 7, "the uploaded record keeps everyone")
+  end)
+
   it("does not count a wipe on the final boss as a completion", function()
     boot()
     Mock.enterDungeon({ name = "Deadmines", mapId = 36 })

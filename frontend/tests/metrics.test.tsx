@@ -38,13 +38,17 @@ describe("MetricValue", () => {
     expect(container.textContent).toContain("0");
   });
 
-  it("marks partial coverage, disagreement and corroboration", () => {
-    render(<MetricValue metric={{ ...base, coverage: "partial_session", status: "incomplete" }} />);
-    expect(screen.getByLabelText("partial coverage")).toBeInTheDocument();
-    render(<MetricValue metric={{ ...base, resolution: "conflicted" }} />);
-    expect(screen.getByLabelText("observers disagree")).toBeInTheDocument();
-    render(<MetricValue metric={{ ...base, resolution: "corroborated" }} />);
-    expect(screen.getByLabelText("corroborated")).toBeInTheDocument();
+  it("shows only the number, whatever the coverage or agreement", () => {
+    for (const metric of [
+      { ...base, coverage: "partial_session", status: "incomplete" },
+      { ...base, resolution: "conflicted" },
+      { ...base, resolution: "corroborated" },
+    ] as const) {
+      const { container, unmount } = render(<MetricValue metric={metric} />);
+      expect(container.textContent).toBe(container.querySelector("[title]")?.textContent);
+      expect(container.textContent).toMatch(/^[\d.,]+$/);
+      unmount();
+    }
   });
 
   it("explains provenance in the tooltip", () => {

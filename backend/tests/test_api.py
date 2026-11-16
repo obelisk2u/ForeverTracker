@@ -131,7 +131,7 @@ def test_savedvariables_upload(client):
 def test_malformed_and_oversized_uploads(client, monkeypatch):
     assert client.post("/api/v1/ingest/batches", content=b"{not json").status_code == 422
     assert post_batch(client, {"format": "forevertracker.batch"}).status_code == 422
-    big = b'{"x": "' + b"a" * 2_100_000 + b'"}'
+    big = b'{"x": "' + b"a" * 8_100_000 + b'"}'
     assert client.post("/api/v1/ingest/batches", content=big).status_code == 413
     # Individually invalid observations are rejected without sinking the batch.
     good = run_observation(RunSpec("r-1", observer="u1"))

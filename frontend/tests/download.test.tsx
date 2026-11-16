@@ -7,7 +7,7 @@ vi.mock("@/lib/api", () => ({ api: { uploaderRelease } }));
 
 import DownloadPage from "@/app/download/page";
 import { otherSystem } from "@/components/DownloadButton";
-import { AUTHOR_URL, REPO_URL } from "@/lib/site";
+import { AUTHOR_URL, CURSEFORGE_URL, REPO_URL } from "@/lib/site";
 
 const url = "https://forevertracker.example/ForeverTracker-Setup-0.2.0.exe";
 const release = { version: "0.2.0", download_url: url, sha256: "ab".repeat(32) };
@@ -59,6 +59,27 @@ describe("download page", () => {
     expect(screen.queryByRole("button", { name: /Download for Windows/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Download for Windows/ })).toBeNull();
     expect(screen.getByText(/nonintrusive companion app/)).toBeInTheDocument();
+    // The addon alone is still on offer.
+    expect(screen.getByRole("link", { name: /CurseForge/ })).toHaveAttribute("href", CURSEFORGE_URL);
+  });
+
+  it("offers the addon alone on CurseForge first, then the addon with the app", async () => {
+    uploaderRelease.mockResolvedValue({ ...release, signed: true });
+    render(await DownloadPage());
+    const [addonOnly, withApp] = screen.getAllByRole("heading", { level: 2 }).slice(0, 2);
+    expect(addonOnly).toHaveTextContent("Just the addon");
+    expect(withApp).toHaveTextContent("Addon + companion app (Windows)");
+    const curseforge = within(screen.getByRole("region", { name: "Just the addon" })).getByRole("link", {
+      name: "Get the addon on CurseForge ↗",
+    });
+    expect(curseforge).toHaveAttribute("href", CURSEFORGE_URL);
+    expect(curseforge).toHaveAttribute("target", "_blank");
+    expect(screen.getByText("Opens curseforge.com")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "Addon + companion app (Windows)" })).getByRole("button", {
+        name: /Download for Windows/,
+      }),
+    ).toBeInTheDocument();
   });
 });
 

@@ -94,7 +94,7 @@ export function PartyStats({
           {hasData && fight.metrics_status === "partial" && " · The player recording this fight died during it, so these numbers stop there."}
         </p>
       )}
-      <div className="card overflow-x-auto">
+      <div className="card relative overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-faint border-b border-line">
             <tr>

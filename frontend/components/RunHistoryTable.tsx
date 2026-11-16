@@ -22,7 +22,7 @@ function PerformanceCell({ row }: { row: RunRow }) {
 export function RunHistoryTable({ rows, characterId }: { rows: RunRow[]; characterId: string }) {
   return (
     <div>
-      <div className="hidden md:block overflow-x-auto card" data-testid="history-table">
+      <div className="hidden md:block relative overflow-x-auto card" data-testid="history-table">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-faint border-b border-line">
             <tr>

@@ -82,8 +82,13 @@ session's sources has an observed 0 for that metric, because the meter covered t
 ## `character_snapshot`
 
 `observed_at`, `source` (`self` or `inspect`), `subject` (identity, class, race, level), `equipment` (`status`,
-`average_item_level`, `items[]` with `slot`, `item_id`, `item_level`, `enchant_id`, `gem_ids`, `quality`, `link`) and
-`talents` (`status`, `spec_id`, `import_string`).
+`average_item_level`, `items[]` with `slot`, `item_id`, `item_level`, `enchant_id`, `gem_ids`, `quality`, `link` and
+`tooltip`) and `talents` (`status`, `spec_id`, `import_string`).
+
+`tooltip` (addon 0.2.6 and later) is the game's own tooltip for the item, read with `C_TooltipInfo` for the wearer's
+slot: up to 40 lines of `left` and optional `right` text, each with an optional `color`/`right_color` as `rrggbb`
+(missing means white). The sell price is left out. It is missing when the client had not loaded the item. The website
+shows it only if its first line is the item name in `link`.
 
 `source: "group"` is a group member seen anywhere, not only in a dungeon (`Collectors/Group.lua`): `subject` carries
 GUID, name, surname, class and race only, never level or role, and there is no `equipment` or `talents`. The addon

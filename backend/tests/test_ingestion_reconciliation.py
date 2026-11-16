@@ -326,3 +326,66 @@ def test_identity_evidence_records_renames(db, settings):
         )
     ).all()
     assert sorted(names) == ["Autumn Redleaf", "Autumne Redleaf"]
+
+
+def test_someone_who_left_as_the_run_began_is_not_in_the_run(db, settings):
+    # The fifth member left early. A stand-in (Oro) fought the first boss and left; Tobin joined
+    # after it, left 28 s later at no boss, and Kel took the place for the rest of the run.
+    autumn, mah, phineas, asha, _ = party()
+    gone = Member("u6", "Tobin", "Quickfoot", "Player-4620-0000C6", "ROGUE", "Human", 18, "DAMAGER", presence=[(T0 + 400, T0 + 428)])
+    late = Member("u7", "Kel", "Dunmore", "Player-4620-0000C7", "HUNTER", "Dwarf", 18, "DAMAGER", presence=[(T0 + 450, T0 + 1800)])
+    brief = Member("u8", "Oro", "Fen", "Player-4620-0000C8", "DRUID", "NightElf", 18, "DAMAGER", presence=[(T0 + 200, T0 + 330)])
+    spec = RunSpec("r-1", observer="u1", members=[autumn, mah, phineas, asha, gone, late, brief], deaths={"u6": [410]})
+    ingest(db, settings, batch("install-aaaa1111", [run_observation(spec)]))
+
+    (run,) = runs(db)
+    tobin = character(db, "Tobin Quickfoot")
+    assert count(db, RunParticipant) == 6
+    assert db.scalar(select(RunParticipant).where(RunParticipant.character_id == tobin.id)) is None
+    assert metric(db, run.id, tobin.id, "damage_done") is None
+    assert db.scalar(select(RunDeath).where(RunDeath.character_id == tobin.id)) is None
+
+    detail = run_detail(db, settings, run.public_id)
+    assert "Tobin Quickfoot" not in {p.character.full_name for p in detail.participants}
+    assert "Oro Fen" in {p.character.full_name for p in detail.participants}
+    assert [(p.character.full_name, p.seconds) for p in detail.passed_through] == [("Tobin Quickfoot", 28)]
+    assert "passed_through" not in detail.coverage
+
+
+def test_a_short_run_keeps_everyone(db, settings):
+    spec = RunSpec("r-1", observer="u1", duration=60, combat_seconds=30, encounters=[], state="left", verified=False)
+    ingest(db, settings, batch("install-aaaa1111", [run_observation(spec)]))
+    (run,) = runs(db)
+    assert count(db, RunParticipant) == 5
+    assert run_detail(db, settings, run.public_id).passed_through == []
+
+
+def test_the_run_page_shows_each_item_s_tooltip_as_the_game_did(db, settings):
+    autumn, mah, *_ = party()
+    snap = gear_snapshot("s-1", autumn, mah, T0 + 600, [22] * 3)
+    head, chest, legs = snap["equipment"]["items"]
+    head["tooltip"] = [
+        {"left": "Test Item 1", "color": "1eff00"},
+        {"left": "Head", "right": "Plate"},
+        {"left": "Equip: Increases your defense by 3.", "color": "00ff00"},
+    ]
+    chest["tooltip"] = [{"left": "Some Other Item"}]  # not this item's tooltip
+    ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-1", observer="u1")), snap]))
+    (run,) = runs(db)
+    gear = next(p.gear for p in run_detail(db, settings, run.public_id).participants if p.character.full_name == "Mah Beardlong")
+    tip = gear.items[0].tooltip
+    assert [(t.left, t.color, t.right) for t in tip] == [
+        ("Test Item 1", "1eff00", None),
+        ("Head", None, "Plate"),
+        ("Equip: Increases your defense by 3.", "00ff00", None),
+    ]
+    assert gear.items[1].tooltip is None
+    assert gear.items[2].tooltip is None
+
+
+def test_a_tooltip_colour_must_be_a_hex_colour(db, settings):
+    autumn, mah, *_ = party()
+    snap = gear_snapshot("s-1", autumn, mah, T0 + 600, [22])
+    snap["equipment"]["items"][0]["tooltip"] = [{"left": "Test Item 1", "color": "red; background: url(x)"}]
+    result = ingest(db, settings, batch("install-aaaa1111", [snap]))
+    assert result.observations[0].status == "rejected"

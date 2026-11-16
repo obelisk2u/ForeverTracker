@@ -13,9 +13,13 @@ FT.Records = Records
 
 -- Version 2 counts a final-boss kill as a completion; older records are rebuilt from stored runs.
 -- Version 3 adds The Hall of Thanes to the final bosses.
-Records.VERSION = 3
+-- Version 4 leaves out of the group whoever only passed through.
+Records.VERSION = 4
 Records.MAX_HISTORY = 500
 Records.MAX_PARTY = 8
+-- Someone in the group for less than this, and at no boss pull, only passed through (left as the
+-- run began and was replaced): not part of the run's group. The website uses the same rule.
+Records.PASSED_THROUGH_SECONDS = 300
 -- A run with less combat than this does not set a DPS/HPS record (one quick pull is not a run).
 Records.MIN_RATE_COMBAT_SECONDS = 60
 
@@ -62,6 +66,28 @@ function Records.dungeonKey(s)
   return tostring(s.map_id or s.dungeon or "?") .. ":" .. tostring(s.difficulty_id or 0)
 end
 
+local function passedThrough(run, entry, started, ended)
+  local spans, seconds = {}, 0
+  for _, p in ipairs(entry.presence or {}) do
+    local from, to = math.max(p.start or started, started), math.min(p["end"] or ended, ended)
+    if to > from then
+      spans[#spans + 1] = { from, to }
+      seconds = seconds + (to - from)
+    end
+  end
+  if #spans == 0 or seconds >= Records.PASSED_THROUGH_SECONDS or seconds >= (ended - started) / 2 then
+    return false
+  end
+  for _, e in ipairs(run.encounters or {}) do
+    for _, span in ipairs(spans) do
+      if e.started_at and span[1] <= (e.ended_at or e.started_at) and e.started_at <= span[2] then
+        return false
+      end
+    end
+  end
+  return true
+end
+
 -- One finished run -> a compact summary from the observer's point of view.
 function Records.summarize(run)
   if type(run) ~= "table" or run.type ~= "dungeon_run" or not run.timing or not run.instance then
@@ -100,7 +126,7 @@ function Records.summarize(run)
   end
   local party = {}
   for _, entry in ipairs(run.roster or {}) do
-    if not entry.is_observer and entry.name and #party < Records.MAX_PARTY then
+    if not entry.is_observer and entry.name and #party < Records.MAX_PARTY and not passedThrough(run, entry, started, ended) then
       party[#party + 1] = { name = entry.name, surname = entry.surname, class_file = entry.class_file, role = entry.role }
     end
   end

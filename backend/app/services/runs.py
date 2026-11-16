@@ -29,6 +29,7 @@ from app.schemas.api import (
     MetricCandidateOut,
     NamespaceOut,
     ParticipantOut,
+    PassedThroughOut,
     RunDetail,
     SourceOut,
     WipeOut,
@@ -85,6 +86,8 @@ def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
 
     participants = list(db.scalars(select(RunParticipant).where(RunParticipant.run_id == run.id)))
     people = summaries(db, settings, [p.character_id for p in participants])
+    passed = run.coverage.get("passed_through") or []
+    passers = summaries(db, settings, [p["character_id"] for p in passed])
     public_ids = dict(
         db.execute(select(Character.id, Character.public_id).where(Character.id.in_([p.character_id for p in participants]))).all()
     )
@@ -156,7 +159,10 @@ def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
         match_status=run.match_status,
         observation_count=run.observation_count,
         contributor_count=run.contributor_count,
-        coverage=run.coverage,
+        coverage={k: v for k, v in run.coverage.items() if k != "passed_through"},
+        passed_through=[
+            PassedThroughOut(character=passers[p["character_id"]], seconds=p["seconds"]) for p in passed if p["character_id"] in passers
+        ],
         participants=[
             ParticipantOut(
                 character=people[p.character_id],

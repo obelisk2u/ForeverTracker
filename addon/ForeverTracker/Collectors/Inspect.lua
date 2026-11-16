@@ -3,7 +3,8 @@
 -- Inspection is out of combat only, one request at a time, at least inspect_interval_seconds
 -- apart, never while the player has the Inspect window open, and each GUID is refreshed at
 -- most every inspect_refresh_seconds. Item details come from the documented item-link format
--- ("item:itemID:enchantID:gem1:gem2:gem3:gem4:...").
+-- ("item:itemID:enchantID:gem1:gem2:gem3:gem4:..."), and each item's tooltip, line by line, from
+-- C_TooltipInfo, so the website can show it as the game does.
 local _, FT = ...
 
 local Inspect = {}
@@ -63,6 +64,69 @@ local function unloaded(item)
   return item.link ~= nil and string.find(item.link, "|h%[%]|h") ~= nil
 end
 
+Inspect.TOOLTIP_MAX_LINES = 30
+
+-- "rrggbb", or nil for white (the default) and anything unreadable.
+local function hexColor(color)
+  if type(color) ~= "table" or Safe.isSecretTable(color) then
+    return nil
+  end
+  local r, g, b = Safe.num(color.r), Safe.num(color.g), Safe.num(color.b)
+  if not (r and g and b) then
+    return nil
+  end
+  local function byte(v)
+    return math.max(0, math.min(255, math.floor(v * 255 + 0.5)))
+  end
+  local hex = string.format("%02x%02x%02x", byte(r), byte(g), byte(b))
+  return hex ~= "ffffff" and hex or nil
+end
+
+local function lineText(v, maxLen)
+  local s = Safe.str(v, maxLen)
+  return s and (string.gsub(s, "[%z\1-\31]", " ")) or nil
+end
+
+-- The tooltip as the client would draw it: { left, color, right, right_color } per line, without
+-- the sell price. nil when the item is not loaded yet or nothing readable came back.
+function Inspect.tooltipLines(data)
+  if type(data) ~= "table" or Safe.isSecretTable(data) or type(data.lines) ~= "table" then
+    return nil
+  end
+  local lines = {}
+  for _, line in ipairs(data.lines) do
+    if #lines >= Inspect.TOOLTIP_MAX_LINES then
+      break
+    end
+    if type(line) == "table" and not Safe.isSecretTable(line) and type(line.price) == "nil" then
+      local right = lineText(line.rightText, 60)
+      lines[#lines + 1] = {
+        left = lineText(line.leftText, 200) or "",
+        color = hexColor(line.leftColor),
+        right = right,
+        right_color = right and hexColor(line.rightColor) or nil,
+      }
+    end
+  end
+  local title = lines[1] and lines[1].left
+  if not title or title == "" or title == _G.RETRIEVING_ITEM_INFO then
+    return nil
+  end
+  return lines
+end
+
+-- What the unit's own tooltip shows for that slot (the wearer's set pieces, for example); the
+-- link's tooltip when that is unavailable.
+local function tooltip(unit, slot, link)
+  local ok, data = Safe.call("C_TooltipInfo.GetInventoryItem", unit, slot)
+  local lines = ok and Inspect.tooltipLines(data) or nil
+  if not lines then
+    ok, data = Safe.call("C_TooltipInfo.GetHyperlink", link)
+    lines = ok and Inspect.tooltipLines(data) or nil
+  end
+  return lines
+end
+
 -- Returns the equipment and how many items were not loaded yet (they are requested now).
 function Inspect.readEquipment(unit)
   local items = {}
@@ -80,6 +144,8 @@ function Inspect.readEquipment(unit)
         if unloaded(item) then
           loading = loading + 1
           Safe.call("C_Item.RequestLoadItemDataByID", item.item_id)
+        else
+          item.tooltip = tooltip(unit, slot, link)
         end
       else
         missing = missing + 1
@@ -128,12 +194,14 @@ local function talents(unit)
   return { status = str and "observed" or "unavailable", import_string = str, spec_id = spec }
 end
 
--- Includes whether each item was loaded, so a complete snapshot of the same gear replaces one
--- taken before the client had loaded the items.
+-- Includes whether each item was loaded and its tooltip read, so a complete snapshot of the same
+-- gear replaces one taken before the client had loaded the items, or by a version that did not
+-- record tooltips (its signatures have no "t").
 local function signature(equipment)
   local parts = {}
   for _, item in ipairs(equipment.items) do
     parts[#parts + 1] = item.slot .. ":" .. item.item_id .. ":" .. tostring(item.enchant_id) .. (unloaded(item) and "?" or "")
+      .. (item.tooltip and "t" or "")
   end
   return table.concat(parts, ",")
 end

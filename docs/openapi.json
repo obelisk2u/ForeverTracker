@@ -552,6 +552,20 @@
           "slot_name": {
             "title": "Slot Name",
             "type": "string"
+          },
+          "tooltip": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TooltipLineOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tooltip"
           }
         },
         "required": [
@@ -1141,6 +1155,32 @@
         "title": "PartyMemberOut",
         "type": "object"
       },
+      "PassedThroughOut": {
+        "description": "Someone in the group only briefly, at no boss pull: named on the run page, not a participant.",
+        "properties": {
+          "character": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CharacterSummary"
+              },
+              {
+                "$ref": "#/components/schemas/HiddenCharacter"
+              }
+            ],
+            "title": "Character"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "character",
+          "seconds"
+        ],
+        "title": "PassedThroughOut",
+        "type": "object"
+      },
       "ProgressionPoint": {
         "properties": {
           "at": {
@@ -1406,6 +1446,14 @@
               "$ref": "#/components/schemas/ParticipantOut"
             },
             "title": "Participants",
+            "type": "array"
+          },
+          "passed_through": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PassedThroughOut"
+            },
+            "title": "Passed Through",
             "type": "array"
           },
           "run_id": {
@@ -1833,6 +1881,52 @@
           "uploaded_at"
         ],
         "title": "SourceOut",
+        "type": "object"
+      },
+      "TooltipLineOut": {
+        "properties": {
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "left": {
+            "title": "Left",
+            "type": "string"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right"
+          },
+          "right_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right Color"
+          }
+        },
+        "required": [
+          "left"
+        ],
+        "title": "TooltipLineOut",
         "type": "object"
       },
       "UploadObservationOut": {

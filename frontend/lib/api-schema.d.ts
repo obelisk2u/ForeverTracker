@@ -542,6 +542,8 @@ export interface components {
             slot: number;
             /** Slot Name */
             slot_name: string;
+            /** Tooltip */
+            tooltip?: components["schemas"]["TooltipLineOut"][] | null;
         };
         /** GearSnapshotOut */
         GearSnapshotOut: {
@@ -736,6 +738,16 @@ export interface components {
             /** Role */
             role: string | null;
         };
+        /**
+         * PassedThroughOut
+         * @description Someone in the group only briefly, at no boss pull: named on the run page, not a participant.
+         */
+        PassedThroughOut: {
+            /** Character */
+            character: components["schemas"]["CharacterSummary"] | components["schemas"]["HiddenCharacter"];
+            /** Seconds */
+            seconds: number;
+        };
         /** ProgressionPoint */
         ProgressionPoint: {
             /**
@@ -826,6 +838,11 @@ export interface components {
             }[];
             /** Participants */
             participants: components["schemas"]["ParticipantOut"][];
+            /**
+             * Passed Through
+             * @default []
+             */
+            passed_through: components["schemas"]["PassedThroughOut"][];
             /** Run Id */
             run_id: string;
             /** Sources */
@@ -959,6 +976,17 @@ export interface components {
              * Format: date-time
              */
             uploaded_at: string;
+        };
+        /** TooltipLineOut */
+        TooltipLineOut: {
+            /** Color */
+            color?: string | null;
+            /** Left */
+            left: string;
+            /** Right */
+            right?: string | null;
+            /** Right Color */
+            right_color?: string | null;
         };
         /** UploadObservationOut */
         UploadObservationOut: {

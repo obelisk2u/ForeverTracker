@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import string
 from collections.abc import Iterable
 
@@ -8,13 +9,27 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.models import Character, CharacterStats, Dungeon, EquipmentSnapshot, Namespace, ParticipantMetric
-from app.schemas.api import CharacterSummary, DungeonRef, GearItemOut, GearSnapshotOut, HiddenCharacter, MetricOut
+from app.schemas.api import CharacterSummary, DungeonRef, GearItemOut, GearSnapshotOut, HiddenCharacter, MetricOut, TooltipLineOut
 
 SLOT_NAMES = {
     1: "Head", 2: "Neck", 3: "Shoulder", 4: "Shirt", 5: "Chest", 6: "Waist", 7: "Legs", 8: "Feet",
     9: "Wrist", 10: "Hands", 11: "Finger", 12: "Finger", 13: "Trinket", 14: "Trinket", 15: "Back",
     16: "Main Hand", 17: "Off Hand", 18: "Ranged", 19: "Tabard",
 }
+
+
+_ESCAPES = re.compile(r"\|c(?:[0-9a-fA-F]{8}|n[A-Za-z0-9_]+:)|\|r|\|H[^|]*\|h|\|h|\|T[^|]*\|t|\|A[^|]*\|a")
+
+
+def _tooltip(item: dict) -> list[TooltipLineOut] | None:
+    """The recorded tooltip, if its first line names the item in the link (else it is not this item's)."""
+    lines = item.get("tooltip")
+    if not lines:
+        return None
+    name = re.search(r"\[(.+?)\]", item.get("link") or "")
+    if name and _ESCAPES.sub("", lines[0].get("left", "")).strip() != name.group(1):
+        return None
+    return [TooltipLineOut(**line) for line in lines]
 
 
 def gear_out(snapshot: EquipmentSnapshot) -> GearSnapshotOut:
@@ -34,6 +49,7 @@ def gear_out(snapshot: EquipmentSnapshot) -> GearSnapshotOut:
                 gem_ids=i.get("gem_ids") or [],
                 quality=i.get("quality"),
                 link=i.get("link"),
+                tooltip=_tooltip(i),
             )
             for i in sorted(snapshot.items, key=lambda i: i["slot"])
         ],

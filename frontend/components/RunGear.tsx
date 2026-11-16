@@ -1,12 +1,21 @@
-import { classColor } from "@/lib/game";
-import { isHidden, type Participant } from "@/lib/types";
-
-// The game's item quality colours (poor, common, uncommon, rare, epic, legendary, artifact, heirloom).
-const QUALITY = ["#9d9d9d", "#ffffff", "#1eff00", "#0070dd", "#a335ee", "#ff8000", "#e6cc80", "#00ccff"];
+import { ItemTooltip, type TooltipLine } from "@/components/ItemTooltip";
+import { classColor, qualityColor } from "@/lib/game";
+import { isHidden, type GearItem, type Participant } from "@/lib/types";
 
 function itemName(link: string | null | undefined, itemId: number): string {
   const m = link?.match(/\[(.+?)\]/);
   return m ? m[1] : `Item ${itemId}`;
+}
+
+// The game's tooltip as the addon recorded it; for items recorded before that (or before the game
+// had loaded them), what is known: name, item level and slot.
+export function itemTooltip(item: GearItem): TooltipLine[] {
+  if (item.tooltip && item.tooltip.length > 0) return item.tooltip;
+  const lines: TooltipLine[] = [{ left: itemName(item.link, item.item_id), color: qualityColor(item.quality).slice(1) }];
+  if (item.item_level !== null && item.item_level !== undefined) lines.push({ left: `Item Level ${item.item_level}`, color: "ffd100" });
+  lines.push({ left: item.slot_name });
+  lines.push({ left: "The item's stats were not recorded.", color: "808080" });
+  return lines;
 }
 
 // What each party member wore in this run, one collapsible card per person.
@@ -50,8 +59,10 @@ export function RunGear({ participants }: { participants: Participant[] }) {
               {p.gear.items.map((item) => (
                 <li key={item.slot} className="flex items-baseline justify-between gap-3 border-t border-line/40 py-1">
                   <span className="text-faint w-20 shrink-0">{item.slot_name}</span>
-                  <span className="truncate flex-1" style={{ color: QUALITY[item.quality ?? 1] ?? QUALITY[1] }}>
-                    {itemName(item.link, item.item_id)}
+                  <span className="flex-1 min-w-0">
+                    <ItemTooltip lines={itemTooltip(item)} className="inline-block max-w-full truncate align-bottom" style={{ color: qualityColor(item.quality) }}>
+                      {itemName(item.link, item.item_id)}
+                    </ItemTooltip>
                   </span>
                   <span className="tabular text-muted">{item.item_level ?? "—"}</span>
                 </li>

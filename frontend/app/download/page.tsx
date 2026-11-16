@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { DownloadButton } from "@/components/DownloadButton";
 import { api } from "@/lib/api";
+import { CURSEFORGE_URL } from "@/lib/site";
 import type { UploaderRelease } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Get the addon" };
@@ -20,18 +21,44 @@ export default async function DownloadPage() {
           companion app sends its records to ForeverTracker.
         </p>
       </div>
+      <section aria-labelledby="addon-only" className="card p-5 flex flex-col gap-3">
+        <h2 id="addon-only" className="font-display text-xl text-gold">
+          Just the addon
+        </h2>
+        <p className="text-muted">
+          Records your dungeon runs in game; type <code className="text-text">/ft</code> to see them. On its own it
+          doesn&apos;t upload anything to this site.
+        </p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <a
+            href={CURSEFORGE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2 rounded-lg border border-line text-text hover:bg-surface-2 focus-ring"
+          >
+            Get the addon on CurseForge ↗
+          </a>
+          <span className="text-sm text-faint">Opens curseforge.com</span>
+        </div>
+      </section>
       {release && (
-        <div className="flex flex-col gap-2">
+        <section aria-labelledby="addon-and-app" className="card p-5 flex flex-col gap-3">
+          <h2 id="addon-and-app" className="font-display text-xl text-gold">
+            Addon + companion app <span className="text-muted text-base">(Windows)</span>
+          </h2>
+          <p className="text-muted">
+            Puts your runs on ForeverTracker. Installs the addon if you don&apos;t have it, plus a small app that uploads
+            what it records.
+          </p>
           <DownloadButton release={release} />
           <p className="text-sm text-muted">
-            Installs the companion app, plus the addon if you don&apos;t have it yet. The app keeps itself up to date; the
-            addon updates through CurseForge. See the{" "}
+            The app keeps itself up to date; the addon updates through CurseForge. See the{" "}
             <Link href="/code-signing" className="underline">
               code signing policy
             </Link>
             .
           </p>
-        </div>
+        </section>
       )}
       <section className="flex flex-col gap-3 text-muted">
         <h2 className="font-display text-xl text-gold">Commands</h2>

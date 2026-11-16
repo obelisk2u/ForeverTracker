@@ -16,6 +16,9 @@ STATS_DEFINITIONS_VERSION = 1
 MIN_PRESENCE_RATIO = 0.9
 # An observer must have covered this share of the run for its meter data to be "complete".
 COMPLETE_COVERAGE_RATIO = 0.95
+# A group member in the run for less than this, and at no boss pull, only passed through (left as
+# the run began and was replaced): not a participant, so the run is not theirs and not counted.
+PASSED_THROUGH_SECONDS = 300
 
 
 @dataclass(frozen=True)
