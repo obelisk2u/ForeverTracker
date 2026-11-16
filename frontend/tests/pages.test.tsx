@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { CharacterProfileView } from "@/components/CharacterProfileView";
-import { tooltipSegments } from "@/components/ItemTooltip";
 import { RunDetailView } from "@/components/RunDetailView";
 import { RunHistoryTable } from "@/components/RunHistoryTable";
 import { isHidden, type CharacterProfile, type RunDetail, type RunHistoryResponse } from "@/lib/types";
@@ -130,70 +129,6 @@ describe("run page gear", () => {
   it("says so when nobody's gear was seen", () => {
     render(<RunDetailView run={{ ...r, participants: r.participants.map((x) => ({ ...x, gear: null })) }} />);
     expect(screen.getByText(/gear was seen during this run/)).toBeInTheDocument();
-  });
-});
-
-describe("item tooltips", () => {
-  const helm = {
-    slot: 1,
-    slot_name: "Head",
-    item_id: 1001,
-    item_level: 22,
-    enchant_id: null,
-    gem_ids: [],
-    quality: 3,
-    link: "|cff0070dd|Hitem:1001::::::::20:::::|h[Thane's Helm]|h|r",
-    tooltip: [
-      { left: "Thane's Helm", color: "0070dd" },
-      { left: "Binds when picked up" },
-      { left: "Head", right: "Plate" },
-      { left: "Equip: Increases your defense by |cffffffff3|r.", color: "00ff00" },
-    ],
-  };
-  const sword = { slot: 16, slot_name: "Main Hand", item_id: 1016, item_level: 21, enchant_id: null, gem_ids: [], quality: 2, link: "|cnIQ2:|Hitem:1016::::::::20:::::|h[Old Sword]|h|r" };
-  const withGear = (): RunDetail => ({
-    ...r,
-    participants: r.participants.map((x) =>
-      !isHidden(x.character) && x.character.full_name === "Mah Beardlong"
-        ? {
-            ...x,
-            gear: { observed_at: "2026-10-14T17:58:00Z", source: "inspect", status: "observed", average_item_level: 21.5, level: 18, talents_status: null, items: [helm, sword] },
-          }
-        : { ...x, gear: null },
-    ),
-  });
-
-  it("shows the item's tooltip as the game did when the pointer is over it", async () => {
-    render(<RunDetailView run={withGear()} />);
-    await userEvent.hover(screen.getByRole("button", { name: "Thane's Helm" }));
-    const tip = screen.getByRole("tooltip");
-    expect(within(tip).getByText("Binds when picked up")).toBeInTheDocument();
-    expect(within(tip).getByText("Plate")).toBeInTheDocument();
-    expect(within(tip).getByText("Equip: Increases your defense by")).toHaveStyle({ color: "#00ff00" });
-    expect(within(tip).getByText("3")).toHaveStyle({ color: "#ffffff" });
-    await userEvent.unhover(screen.getByRole("button", { name: "Thane's Helm" }));
-    expect(screen.queryByRole("tooltip")).toBeNull();
-  });
-
-  it("shows what is known about an item whose tooltip was not recorded", async () => {
-    render(<RunDetailView run={withGear()} />);
-    screen.getByRole("button", { name: "Old Sword" }).focus();
-    const tip = await screen.findByRole("tooltip");
-    expect(within(tip).getByText("Item Level 21")).toBeInTheDocument();
-    expect(within(tip).getByText("Main Hand")).toBeInTheDocument();
-    expect(within(tip).getByText(/stats were not recorded/)).toBeInTheDocument();
-    await userEvent.keyboard("{Escape}");
-    expect(screen.queryByRole("tooltip")).toBeNull();
-  });
-
-  it("reads the game's colour codes, icons and links", () => {
-    expect(tooltipSegments("|cff1eff00Green|r and |cnIQ4:epic|r||x|TInterface\\Icons\\Gem:0|t", "#ffffff")).toEqual([
-      { text: "Green", color: "#1eff00" },
-      { text: " and ", color: "#ffffff" },
-      { text: "epic", color: "#a335ee" },
-      { text: "|", color: "#ffffff" },
-      { text: "x", color: "#ffffff" },
-    ]);
   });
 });
 

@@ -92,13 +92,6 @@ class MetricCandidateOut(BaseModel):
     collected_at: datetime
 
 
-class TooltipLineOut(BaseModel):
-    left: str
-    color: str | None = None
-    right: str | None = None
-    right_color: str | None = None
-
-
 class GearItemOut(BaseModel):
     slot: int
     slot_name: str
@@ -108,8 +101,6 @@ class GearItemOut(BaseModel):
     gem_ids: list[int]
     quality: int | None
     link: str | None
-    # The game's tooltip for the item as the addon read it; None when it was not recorded.
-    tooltip: list[TooltipLineOut] | None = None
 
 
 class GearSnapshotOut(BaseModel):

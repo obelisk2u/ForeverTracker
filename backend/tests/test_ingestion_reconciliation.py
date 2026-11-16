@@ -1,9 +1,12 @@
+import json
+
 from sqlalchemy import select
 
 from app.models import (
     Character,
     CharacterIdentityEvidence,
     DungeonRun,
+    EquipmentSnapshot,
     MetricObservation,
     RawObservation,
     RunDeath,
@@ -360,32 +363,17 @@ def test_a_short_run_keeps_everyone(db, settings):
     assert run_detail(db, settings, run.public_id).passed_through == []
 
 
-def test_the_run_page_shows_each_item_s_tooltip_as_the_game_did(db, settings):
+def test_tooltips_sent_by_addon_0_2_6_are_accepted_and_dropped(db, settings):
     autumn, mah, *_ = party()
-    snap = gear_snapshot("s-1", autumn, mah, T0 + 600, [22] * 3)
-    head, chest, legs = snap["equipment"]["items"]
-    head["tooltip"] = [
-        {"left": "Test Item 1", "color": "1eff00"},
-        {"left": "Head", "right": "Plate"},
-        {"left": "Equip: Increases your defense by 3.", "color": "00ff00"},
-    ]
-    chest["tooltip"] = [{"left": "Some Other Item"}]  # not this item's tooltip
-    ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-1", observer="u1")), snap]))
+    snap = gear_snapshot("s-1", autumn, mah, T0 + 600, [22] * 2)
+    snap["equipment"]["items"][0]["tooltip"] = [{"left": "Test Item 1", "color": "1eff00"}, {"left": "Head", "right": "Plate"}]
+    result = ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-1", observer="u1")), snap]))
+    assert [o.status for o in result.observations] == ["accepted", "accepted"]
+
+    stored = db.scalar(select(RawObservation).where(RawObservation.type == "character_snapshot"))
+    assert "tooltip" not in json.dumps(stored.payload)
+    (gear,) = db.scalars(select(EquipmentSnapshot)).all()
+    assert all("tooltip" not in item for item in gear.items)
     (run,) = runs(db)
-    gear = next(p.gear for p in run_detail(db, settings, run.public_id).participants if p.character.full_name == "Mah Beardlong")
-    tip = gear.items[0].tooltip
-    assert [(t.left, t.color, t.right) for t in tip] == [
-        ("Test Item 1", "1eff00", None),
-        ("Head", None, "Plate"),
-        ("Equip: Increases your defense by 3.", "00ff00", None),
-    ]
-    assert gear.items[1].tooltip is None
-    assert gear.items[2].tooltip is None
-
-
-def test_a_tooltip_colour_must_be_a_hex_colour(db, settings):
-    autumn, mah, *_ = party()
-    snap = gear_snapshot("s-1", autumn, mah, T0 + 600, [22])
-    snap["equipment"]["items"][0]["tooltip"] = [{"left": "Test Item 1", "color": "red; background: url(x)"}]
-    result = ingest(db, settings, batch("install-aaaa1111", [snap]))
-    assert result.observations[0].status == "rejected"
+    served = next(p.gear for p in run_detail(db, settings, run.public_id).participants if p.character.full_name == "Mah Beardlong")
+    assert "tooltip" not in served.items[0].model_dump()

@@ -257,19 +257,6 @@ class DungeonRunObservation(_ObservationBase):
     ] = Field(default_factory=dict)
 
 
-TooltipText = Annotated[str, Field(max_length=200, pattern=r"^[^\x00-\x1f\x7f]*$")]
-HexColor = Annotated[str, Field(pattern=r"^[0-9a-f]{6}$")]
-
-
-class TooltipLine(Strict):
-    """One line of the game's tooltip for an item. A missing colour is white."""
-
-    left: TooltipText = ""
-    color: HexColor | None = None
-    right: TooltipText | None = None
-    right_color: HexColor | None = None
-
-
 class EquippedItem(Strict):
     slot: int = Field(ge=1, le=19)
     item_id: int = Field(ge=1, le=100_000_000)
@@ -278,8 +265,9 @@ class EquippedItem(Strict):
     gem_ids: _list(4, Annotated[int, Field(ge=0, le=100_000_000)]) = Field(default_factory=list)
     quality: int | None = Field(default=None, ge=0, le=10)
     link: Annotated[str, Field(max_length=400, pattern=r"^[^\x00-\x1f\x7f]*$")] | None = None
-    # What the game's tooltip showed for the item, line by line (addon 0.2.6 and later).
-    tooltip: _list(40, TooltipLine) | None = None
+    # Addon 0.2.6 sent the item's tooltip. It is accepted, so those snapshots are not rejected, and
+    # dropped: never stored or shown.
+    tooltip: Any = Field(default=None, exclude=True, description="Sent by addon 0.2.6 only; ignored.")
 
 
 class Equipment(Strict):

@@ -552,20 +552,6 @@
           "slot_name": {
             "title": "Slot Name",
             "type": "string"
-          },
-          "tooltip": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/TooltipLineOut"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tooltip"
           }
         },
         "required": [
@@ -1881,52 +1867,6 @@
           "uploaded_at"
         ],
         "title": "SourceOut",
-        "type": "object"
-      },
-      "TooltipLineOut": {
-        "properties": {
-          "color": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Color"
-          },
-          "left": {
-            "title": "Left",
-            "type": "string"
-          },
-          "right": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Right"
-          },
-          "right_color": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Right Color"
-          }
-        },
-        "required": [
-          "left"
-        ],
-        "title": "TooltipLineOut",
         "type": "object"
       },
       "UploadObservationOut": {

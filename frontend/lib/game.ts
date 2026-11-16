@@ -21,13 +21,6 @@ export function classColor(file: string | null | undefined): string {
   return (file && CLASS_INFO[file]?.color) || "#9ca3af";
 }
 
-// The game's item quality colours (poor, common, uncommon, rare, epic, legendary, artifact, heirloom).
-export const ITEM_QUALITY_COLOR = ["#9d9d9d", "#ffffff", "#1eff00", "#0070dd", "#a335ee", "#ff8000", "#e6cc80", "#00ccff"];
-
-export function qualityColor(quality: number | null | undefined): string {
-  return ITEM_QUALITY_COLOR[quality ?? 1] ?? ITEM_QUALITY_COLOR[1];
-}
-
 const RACE_NAMES: Record<string, string> = {
   NightElf: "Night Elf",
   Scourge: "Undead",
