@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ClassName } from "@/components/Badges";
 import { CharacterLink } from "@/components/CharacterLink";
 import { MetricValue } from "@/components/MetricValue";
-import { formatAmount, formatCount, formatDuration, formatRate, percent } from "@/lib/format";
+import { formatAmount, formatCount, formatDuration, formatRate } from "@/lib/format";
 import { METRIC_LABEL, roleLabel } from "@/lib/game";
 import { isHidden, type DeathOut, type EncounterOut, type Participant } from "@/lib/types";
 
@@ -100,7 +100,6 @@ export function PartyStats({
             <tr>
               <th className="px-4 py-3 font-medium">Character</th>
               <th className="px-3 py-3 font-medium">Role</th>
-              {!fight && <th className="px-3 py-3 font-medium text-right">Presence</th>}
               {COLUMNS.map((c) => (
                 <th key={c} className="px-3 py-3 font-medium text-right">
                   {METRIC_LABEL[c]}
@@ -123,7 +122,6 @@ export function PartyStats({
                   </div>
                 </td>
                 <td className="px-3 py-3 text-muted">{roleLabel(p.role)}</td>
-                {!fight && <td className="px-3 py-3 text-right tabular text-muted">{percent((p.presence_ratio ?? 0) * 100)}</td>}
                 {COLUMNS.map((c) => (
                   <td key={c} className="px-3 py-3 text-right">
                     {fight ? (

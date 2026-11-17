@@ -86,11 +86,8 @@ Candidates per (participant, metric):
 * each observer's native-meter totals: coverage `complete_session` only if every session the observer saw was
   captured and the observer was present for at least 95% of the run;
   * runs recorded before addon 0.2.10 (no `addon_version`): a session "captured" at 1 s or less was read as the group
-    pulled and never again, so that fight's numbers are lost. It counts as not captured. When half the observer's
-    fights or more were lost, their totals are `unavailable` (shown as —). `run.coverage.meter_fights_lost` says how
-    many, and the run page notes it;
-  * a boss attempt's meter covering 1 s or less of a fight that lasted 5 s or more is dropped (any version): the
-    attempt shows no numbers rather than near-zero ones;
+    pulled and never again. When every session the observer captured was read that way, their totals are
+    `unavailable` (shown as —) rather than near-zero numbers;
 * for deaths, also the deduplicated death events: complete if observers with death tracking covered at least 95% of
   the participant's presence.
 

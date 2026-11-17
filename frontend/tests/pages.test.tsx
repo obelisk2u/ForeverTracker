@@ -70,14 +70,12 @@ describe("run page fight picker", () => {
     };
     render(<RunDetailView run={withFight} />);
     expect(screen.getByRole("button", { name: "Whole run" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("Presence")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Thane Ironvow" }));
     const row = screen.getAllByRole("row").find((tr) => within(tr).queryByText("Autumn Redleaf"))!;
     expect(within(row).getByText("8,000")).toBeInTheDocument();
     expect(within(row).getByText("200")).toBeInTheDocument(); // 8,000 damage over 40 s of combat
     expect(within(row).getByText("3")).toBeInTheDocument();
-    expect(screen.queryByText("Presence")).toBeNull();
     expect(screen.getByText(/died during it/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "The Hollow King" }));
@@ -152,13 +150,5 @@ describe("run page notes", () => {
   it("says when the player marked the run as completed", () => {
     render(<RunDetailView run={{ ...r, outcome: "completed", completion_confidence: "reported" }} />);
     expect(screen.getByText(/marked it as completed in the addon/)).toBeInTheDocument();
-  });
-
-  it("says how many fights the damage meter missed, and nothing when it missed none", () => {
-    const { unmount } = render(<RunDetailView run={{ ...r, coverage: { ...r.coverage, meter_fights_lost: 5, meter_fights: 6 } }} />);
-    expect(screen.getByText(/damage meter missed 5 of 6 fights/)).toBeInTheDocument();
-    unmount();
-    render(<RunDetailView run={r} />);
-    expect(screen.queryByText(/damage meter missed/)).toBeNull();
   });
 });

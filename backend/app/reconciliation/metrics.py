@@ -128,11 +128,11 @@ def meter_candidates(
     if meter is None or meter.status in ("unavailable", "disabled"):
         return []
     seen = len(meter.sessions)
-    # A fight lost to the pull-read bug counts as not captured. When half the fights or more were
-    # lost, the totals are an arbitrary part of the run, so none are published.
+    captured = sum(1 for s in meter.sessions if s.status == "captured")
+    # Every fight read as the group pulled (pull-read bug): the totals are near-zero, not the run's,
+    # so none are published.
     lost = lost_sessions(obs)
-    captured = sum(1 for s in meter.sessions if s.status == "captured") - lost
-    mostly_lost = lost > 0 and lost >= captured
+    nothing_read = lost > 0 and lost == captured
     session_ratio = captured / seen if seen else 0.0
     complete = (
         meter.status == "observed" and seen > 0 and captured == seen and observer_coverage_ratio >= COMPLETE_COVERAGE_RATIO
@@ -153,7 +153,7 @@ def meter_candidates(
         if character_id is None:
             continue
         for metric, mv in totals.metrics.items():
-            if mostly_lost:
+            if nothing_read:
                 status, value = "unavailable", None
             elif mv.status == "observed":
                 status = "observed" if complete else "incomplete"

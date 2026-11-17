@@ -71,13 +71,6 @@ export function RunDetailView({ run }: { run: RunDetail }) {
       <section>
         <SectionTitle>Party</SectionTitle>
         <PartyStats participants={run.participants} encounters={run.encounters} deaths={run.deaths} />
-        {Number(run.coverage.meter_fights_lost ?? 0) > 0 && (
-          <p className="mt-2 text-xs text-faint">
-            The damage meter missed {String(run.coverage.meter_fights_lost)} of {String(run.coverage.meter_fights)} fights in this run
-            (a ForeverTracker bug fixed in version 0.2.10), so the whole-run numbers are incomplete, or not shown when half or more
-            were missed.
-          </p>
-        )}
         {Number(run.coverage.roster_entries_unidentified ?? 0) > 0 && (
           <p className="mt-2 text-xs text-faint">
             {String(run.coverage.roster_entries_unidentified)} roster entr{Number(run.coverage.roster_entries_unidentified) === 1 ? "y" : "ies"} could not be identified

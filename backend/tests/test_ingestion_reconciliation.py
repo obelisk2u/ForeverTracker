@@ -415,10 +415,10 @@ def _sessions(lost: int, read: int) -> list[dict]:
     ]
 
 
-def test_most_fights_read_at_the_pull_leave_the_run_without_totals(db, settings):
+def test_a_run_with_every_fight_read_at_the_pull_has_no_totals(db, settings):
     # Addons before 0.2.10 could read a fight's meter as the group pulled and never again.
     obs = run_observation(RunSpec("r-1", observer="u1", deaths={"u2": [600]}))
-    obs["meter"]["sessions"] = _sessions(lost=5, read=1)
+    obs["meter"]["sessions"] = _sessions(lost=6, read=0)
     ingest(db, settings, batch("install-aaaa1111", [obs]))
     (run,) = runs(db)
     tank = character(db, "Mah Beardlong")
@@ -426,46 +426,25 @@ def test_most_fights_read_at_the_pull_leave_the_run_without_totals(db, settings)
     assert (damage.value, damage.status) == (None, "unavailable")
     assert metric(db, run.id, tank.id, "dps") is None
     assert metric(db, run.id, tank.id, "deaths").value == 1, "deaths still come from the death events"
-    assert (run.coverage["meter_fights_lost"], run.coverage["meter_fights"]) == (5, 6)
 
 
-def test_a_few_fights_read_at_the_pull_make_the_totals_partial(db, settings):
+def test_a_run_with_some_fights_read_at_the_pull_keeps_its_totals(db, settings):
     obs = run_observation(RunSpec("r-1", observer="u1"))
-    obs["meter"]["sessions"] = _sessions(lost=1, read=5)
-    ingest(db, settings, batch("install-aaaa1111", [obs]))
-    (run,) = runs(db)
-    damage = metric(db, run.id, character(db, "Mah Beardlong").id, "damage_done")
-    assert (damage.value, damage.status, damage.coverage) == (301_000.0, "incomplete", "partial_session")
-    assert run.coverage["meter_fights_lost"] == 1
-
-
-def test_short_fights_recorded_by_addon_0_2_10_are_trusted(db, settings):
-    obs = run_observation(RunSpec("r-1", observer="u1"))
-    obs["addon_version"] = "0.2.10"
     obs["meter"]["sessions"] = _sessions(lost=5, read=1)
     ingest(db, settings, batch("install-aaaa1111", [obs]))
     (run,) = runs(db)
     damage = metric(db, run.id, character(db, "Mah Beardlong").id, "damage_done")
     assert (damage.value, damage.status, damage.coverage) == (301_000.0, "observed", "complete_session")
-    assert run.coverage["meter_fights_lost"] == 0
 
 
-def test_a_boss_fight_read_at_the_pull_has_no_numbers(db, settings):
-    def fight_meter(seconds: float, damage: float) -> dict:
-        return {"status": "observed", "combat_seconds": seconds, "sessions": 1, "totals": [{"unit_ref": "u1", "metrics": {"damage_done": damage}}]}
-
-    obs = run_observation(RunSpec("r-1", observer="u1", encounters=[(3001, 300, True), (3002, 900, True), (3003, 1200, True)]))
-    obs["encounters"][0]["meter"] = fight_meter(0.0, 40)  # a 90 s fight read as it was pulled
-    obs["encounters"][1]["meter"] = fight_meter(85.0, 9000)
-    obs["encounters"][2]["ended_at"] = obs["encounters"][2]["started_at"] + 3  # killed in a moment
-    obs["encounters"][2]["meter"] = fight_meter(1.0, 700)
+def test_short_fights_recorded_by_addon_0_2_10_are_trusted(db, settings):
+    obs = run_observation(RunSpec("r-1", observer="u1"))
+    obs["addon_version"] = "0.2.10"
+    obs["meter"]["sessions"] = _sessions(lost=6, read=0)
     ingest(db, settings, batch("install-aaaa1111", [obs]))
     (run,) = runs(db)
-    pulls = db.scalars(select(RunEncounter).where(RunEncounter.run_id == run.id).order_by(RunEncounter.started_at)).all()
-    mage = character(db, "Autumn Redleaf")
-    assert (pulls[0].metrics, pulls[0].metrics_status) == ({}, None)
-    assert pulls[1].metrics[str(mage.id)] == {"damage_done": 9000}
-    assert pulls[2].metrics[str(mage.id)] == {"damage_done": 700}
+    damage = metric(db, run.id, character(db, "Mah Beardlong").id, "damage_done")
+    assert (damage.value, damage.status, damage.coverage) == (301_000.0, "observed", "complete_session")
 
 
 def test_a_run_the_player_marked_as_completed(db, settings):
