@@ -277,17 +277,35 @@ function M.startCombat()
   M.fire("PLAYER_REGEN_DISABLED")
 end
 
+-- Someone else in the group pulls: the meter starts the fight's session at once, still empty,
+-- while the player is not in combat yet (seen on build 70862). M.endCombat fills that session
+-- instead of adding another.
+function M.groupPull()
+  local id = #M.meter.sessions + 1 + (M.meter.idOffset or 0)
+  local s = { id = id, duration = 0, values = {}, opts = {} }
+  M.meter.sessions[#M.meter.sessions + 1] = s
+  M.meter.open = s
+  M.fire("DAMAGE_METER_COMBAT_SESSION_UPDATED", 0, id)
+  return id
+end
+
 -- values: { [name] = { damage_done = n, healing_done = n, interrupts = n, deaths = n, ... } }
 -- deathEntries: list of names (one entry per death in the Deaths type)
 function M.endCombat(duration, values, opts)
   opts = opts or {}
   M.combat = false
-  local id = #M.meter.sessions + 1 + (M.meter.idOffset or 0)
-  M.meter.sessions[#M.meter.sessions + 1] = { id = id, duration = duration, values = values or {}, opts = opts }
+  local s = M.meter.open
+  M.meter.open = nil
+  if s then
+    s.duration, s.values, s.opts = duration, values or {}, opts
+  else
+    s = { id = #M.meter.sessions + 1 + (M.meter.idOffset or 0), duration = duration, values = values or {}, opts = opts }
+    M.meter.sessions[#M.meter.sessions + 1] = s
+  end
   M.meter.secretUntil = M.gameTime + (opts.secretFor or 0)
   M.fire("PLAYER_REGEN_ENABLED")
-  M.fire("DAMAGE_METER_COMBAT_SESSION_UPDATED", 0, id)
-  return id
+  M.fire("DAMAGE_METER_COMBAT_SESSION_UPDATED", 0, s.id)
+  return s.id
 end
 
 -- The meter's numbers for the fight under way (Current session), set by M.combatProgress.

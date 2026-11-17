@@ -7,13 +7,15 @@
 -- Scoping, without touching the player's own meter (ResetAllCombatSessions is never called):
 --   * sessions that already existed when the run started are excluded (baseline);
 --   * sessions that appear while the observer is outside the instance are excluded;
---   * every other session is captured after combat, with retries while values are secret;
+--   * every other session is captured after combat, with retries while values are secret, and
+--     read again whenever it has grown since (a session starts as the group pulls, which can be
+--     before the player is in combat; read then, it is empty);
 --   * Overall is never used as run totals.
 --
 -- Boss fights: the meter starts a session per combat, and a session belongs to the boss attempt
--- its time span overlaps most. Its end is when it was first seen after combat (sessions end with
--- the player's combat, so also when the player dies mid-fight); its start is that minus its
--- length. Each attempt in run.encounters gets the summed totals of its sessions as `meter`.
+-- its time span overlaps most. Its end is when it was first seen out of combat at its final length
+-- (sessions end with the player's combat, so also when the player dies mid-fight); its start is
+-- that minus its length. Each attempt in run.encounters gets the summed totals of its sessions as `meter`.
 -- (Validated on build 70862: matching by session length alone missed fights the player died in
 -- and pulls that ran straight from trash into the boss.)
 local _, FT = ...
@@ -222,13 +224,22 @@ function Meter.capturePass(run, state)
   m.ended_at = m.ended_at or {} -- runs resumed from an older version's save
   for _, s in ipairs(current) do
     present[s.id] = true
-    if not m.baseline[s.id] and m.ended_at[s.id] == nil then
-      m.ended_at[s.id] = FT.Util.now() -- first seen out of combat: when it ended
-    end
-    if not m.baseline[s.id] and m.status[s.id] ~= "captured" then
-      local status = Meter.captureSession(run, state, s)
-      if status == "secret" then
-        retry = true
+    if not m.baseline[s.id] then
+      -- The meter starts a fight's session as the group pulls, which can be before the player is
+      -- in combat: read then, it was empty. A session longer now than when it was read is read again.
+      local captured = m.status[s.id] == "captured"
+      local grew = captured and s.duration ~= nil and s.duration > (m.durations[s.id] or 0)
+      if m.ended_at[s.id] == nil or grew then
+        m.ended_at[s.id] = FT.Util.now() -- seen out of combat at this length: when it ended
+      end
+      if not captured or grew then
+        local status = Meter.captureSession(run, state, s)
+        if status == "secret" then
+          retry = true
+        end
+        if grew and status ~= "captured" then
+          m.status[s.id] = "captured" -- keep the earlier read; a later pass reads it again
+        end
       end
     end
   end
