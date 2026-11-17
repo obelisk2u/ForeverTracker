@@ -147,3 +147,18 @@ describe("character profile", () => {
     expect(screen.queryByRole("link", { name: /Report incorrect data/ })).not.toBeInTheDocument();
   });
 });
+
+describe("run page notes", () => {
+  it("says when the player marked the run as completed", () => {
+    render(<RunDetailView run={{ ...r, outcome: "completed", completion_confidence: "reported" }} />);
+    expect(screen.getByText(/marked it as completed in the addon/)).toBeInTheDocument();
+  });
+
+  it("says how many fights the damage meter missed, and nothing when it missed none", () => {
+    const { unmount } = render(<RunDetailView run={{ ...r, coverage: { ...r.coverage, meter_fights_lost: 5, meter_fights: 6 } }} />);
+    expect(screen.getByText(/damage meter missed 5 of 6 fights/)).toBeInTheDocument();
+    unmount();
+    render(<RunDetailView run={r} />);
+    expect(screen.queryByText(/damage meter missed/)).toBeNull();
+  });
+});

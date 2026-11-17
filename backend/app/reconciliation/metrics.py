@@ -27,6 +27,8 @@ from app.analytics.definitions import (
     COVERAGE_RANK,
     DEFAULT_SOURCE_PRIORITY,
     METRICS,
+    PULL_READ_FIXED_IN,
+    PULL_READ_MAX_SECONDS,
     SOURCE_PRIORITY,
     STATUS_RANK,
 )
@@ -95,6 +97,23 @@ def intersect_union_seconds(a: list[tuple[datetime, datetime]], b: list[tuple[da
     return interval_union_seconds(pieces)
 
 
+def recorded_before(obs: DungeonRunObservation, version: tuple[int, ...]) -> bool:
+    """True if an addon older than ``version`` recorded the run. Runs from before 0.2.10 do not say."""
+    try:
+        return tuple(int(p) for p in (obs.addon_version or "").split(".")) < version
+    except ValueError:
+        return True
+
+
+def lost_sessions(obs: DungeonRunObservation) -> int:
+    """Meter sessions an addon before 0.2.10 read as the group pulled and never again."""
+    if obs.meter is None or not recorded_before(obs, PULL_READ_FIXED_IN):
+        return 0
+    return sum(
+        1 for s in obs.meter.sessions if s.status == "captured" and (s.duration_sec or 0) <= PULL_READ_MAX_SECONDS
+    )
+
+
 def meter_candidates(
     obs: DungeonRunObservation,
     *,
@@ -109,7 +128,11 @@ def meter_candidates(
     if meter is None or meter.status in ("unavailable", "disabled"):
         return []
     seen = len(meter.sessions)
-    captured = sum(1 for s in meter.sessions if s.status == "captured")
+    # A fight lost to the pull-read bug counts as not captured. When half the fights or more were
+    # lost, the totals are an arbitrary part of the run, so none are published.
+    lost = lost_sessions(obs)
+    captured = sum(1 for s in meter.sessions if s.status == "captured") - lost
+    mostly_lost = lost > 0 and lost >= captured
     session_ratio = captured / seen if seen else 0.0
     complete = (
         meter.status == "observed" and seen > 0 and captured == seen and observer_coverage_ratio >= COMPLETE_COVERAGE_RATIO
@@ -130,7 +153,9 @@ def meter_candidates(
         if character_id is None:
             continue
         for metric, mv in totals.metrics.items():
-            if mv.status == "observed":
+            if mostly_lost:
+                status, value = "unavailable", None
+            elif mv.status == "observed":
                 status = "observed" if complete else "incomplete"
                 value = mv.value
             elif mv.status == "partial":
@@ -138,6 +163,8 @@ def meter_candidates(
             else:
                 status, value = "unavailable", None
             details = {"sessions": mv.sessions, "sessions_seen": seen, "sessions_captured": captured, "raw_status": mv.status}
+            if lost:
+                details["sessions_lost"] = lost
             if metric == "deaths" and status != "unavailable":
                 details["total_amount"] = mv.value
                 details["death_entries"] = death_counts.get(ref, 0)

@@ -34,6 +34,7 @@ own, so one bad record never rejects the rest of the batch.
 | `namespace` | `region_id`, `region_name`, `ruleset` (`pve`/`pvp`/`rp`/`hardcore`/`unknown`). Forever names are unique per region. |
 | `realm_label` | Whatever `GetRealmName()` returned. Recorded, **never** used for identity. |
 | `client_build` | Client build number |
+| `addon_version` | `dungeon_run` only, from addon 0.2.10: the version that started recording the run (kept if a newer one resumes it). Absent means an older version. |
 
 `identity_status` is `ok`, `secret` (the client returned a secret value) or `unavailable`. A secret identity is
 never guessed at; such roster entries stay unidentified.
@@ -70,6 +71,10 @@ never guessed at; such roster entries stay unidentified.
   "flags": {"resumed_after_reload": true}
 }
 ```
+
+`flags.marked_completed` (addon 0.2.10): the player marked the run as completed in the addon (the records window's
+button or `/ft complete`). The run still ends `unknown` (or `left` from outside), since no completion event came; the
+website counts it as completed with `reported` confidence.
 
 All timestamps are **server epoch seconds** (`GetServerTime()`), so different observers' records share one clock.
 `local_clock_offset` records the gap between the local and server clocks.

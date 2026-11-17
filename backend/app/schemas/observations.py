@@ -237,6 +237,9 @@ class _ObservationBase(Strict):
 
 class DungeonRunObservation(_ObservationBase):
     type: Literal["dungeon_run"]
+    # Sent from addon 0.2.10: the version that started recording the run (kept if the run is
+    # resumed by a newer one), so data from versions with a known bug can be treated as such.
+    addon_version: Annotated[str, Field(max_length=16, pattern=r"^[0-9.]*$")] | None = None
     instance: InstanceInfo
     party_guid: Guid | None = None
     timing: RunTiming

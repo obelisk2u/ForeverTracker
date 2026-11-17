@@ -389,6 +389,20 @@
     "DungeonRunObservation": {
       "additionalProperties": false,
       "properties": {
+        "addon_version": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "pattern": "^[0-9.]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Addon Version"
+        },
         "client_build": {
           "anyOf": [
             {

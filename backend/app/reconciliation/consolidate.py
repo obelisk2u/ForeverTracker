@@ -14,7 +14,14 @@ from sqlalchemy import delete, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.analytics.definitions import COMPLETE_COVERAGE_RATIO, METRIC_VERSION, METRICS, PASSED_THROUGH_SECONDS
+from app.analytics.definitions import (
+    COMPLETE_COVERAGE_RATIO,
+    METRIC_VERSION,
+    METRICS,
+    PASSED_THROUGH_SECONDS,
+    PULL_READ_FIGHT_SECONDS,
+    PULL_READ_MAX_SECONDS,
+)
 from app.config import Settings
 from app.models import (
     Character,
@@ -39,6 +46,7 @@ from app.reconciliation.metrics import (
     derive_rate,
     interval_union_seconds,
     intersect_union_seconds,
+    lost_sessions,
     meter_candidates,
     resolve,
 )
@@ -86,6 +94,14 @@ def _passed_through(acc: dict[int, _ParticipantAcc], encounters: list[RunEncount
     return out
 
 
+def _usable_fight_meter(meter: EncounterMeter, start: datetime, end: datetime | None) -> bool:
+    """False for a boss attempt's meter that covers a second or less of a longer fight: it was read
+    as the group pulled, so its numbers are not the fight's."""
+    if (meter.combat_seconds or 0.0) > PULL_READ_MAX_SECONDS:
+        return True
+    return end is not None and (end - start).total_seconds() < PULL_READ_FIGHT_SECONDS
+
+
 def _load_links(db: Session, run_id: int) -> list[LinkedObservation]:
     rows = db.execute(
         select(RunObservation, RawObservation)
@@ -118,6 +134,10 @@ def _outcome(links: list[LinkedObservation], dungeon: Dungeon, encounters: list[
     states = [link.obs.state for link in links]
     if "abandoned" in states:
         return "abandoned", "none", [{"kind": "abandon_vote_passed"}]
+    # The player marked the run as completed in the addon: their word, below any game evidence.
+    marked = [link.raw.id for link in links if link.obs.flags.get("marked_completed")]
+    if marked:
+        return "completed", "reported", [{"kind": "marked_by_player", "observation": marked[0]}]
     if all(s == "in_progress" for s in states):
         return "in_progress", "none", []
     finished = [s for s in states if s != "in_progress"]
@@ -273,7 +293,7 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
                     metrics={},
                 )
             )
-        if meter is not None:
+        if meter is not None and _usable_fight_meter(meter, start, end):
             index = len(encounters) - 1
             rank = (meter.status == "observed", meter.combat_seconds or 0.0)
             if index not in best_meter or rank > best_meter[index][0]:
@@ -445,6 +465,14 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
             "presence_ratio": p.presence_ratio,
         }
 
+    # Fights the best-recorded meter lost to the pull-read bug (addon before 0.2.10).
+    metered = [
+        (lost_sessions(l.obs), len(l.obs.meter.sessions))
+        for l in links
+        if l.obs.meter is not None and l.obs.meter.status not in ("unavailable", "disabled") and l.obs.meter.sessions
+    ]
+    lost_fights, meter_fights = min(metered) if metered else (0, 0)
+
     contributors = {l.raw.contributor_id for l in links}
     run.observation_count = len(links)
     run.contributor_count = len(contributors)
@@ -466,6 +494,8 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
             for l in links
         ),
         "party_guid_conflict": len(guids) > 1,
+        "meter_fights": meter_fights,
+        "meter_fights_lost": lost_fights,
         "passed_through": [{"character_id": c, "seconds": s} for c, s in sorted(passed.items(), key=lambda kv: (-kv[1], kv[0]))],
     }
 

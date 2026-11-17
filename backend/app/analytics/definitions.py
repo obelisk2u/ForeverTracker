@@ -19,6 +19,14 @@ COMPLETE_COVERAGE_RATIO = 0.95
 # A group member in the run for less than this, and at no boss pull, only passed through (left as
 # the run began and was replaced): not a participant, so the run is not theirs and not counted.
 PASSED_THROUGH_SECONDS = 300
+# Addon versions before 0.2.10 could read a fight's meter session as the group pulled (before the
+# recording player was in combat) and never again: "captured", but this long at most and nearly
+# empty. Such a fight's numbers are lost.
+PULL_READ_FIXED_IN = (0, 2, 10)
+PULL_READ_MAX_SECONDS = 1.0
+# A boss attempt whose meter covers PULL_READ_MAX_SECONDS or less of a fight at least this long has
+# no usable numbers, whichever version recorded it.
+PULL_READ_FIGHT_SECONDS = 5.0
 
 
 @dataclass(frozen=True)

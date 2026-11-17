@@ -45,7 +45,7 @@ class DungeonRun(TimestampMixin, Base):
         CheckConstraint(
             "outcome IN ('completed','abandoned','left','disconnected','in_progress','unknown')", name="outcome"
         ),
-        CheckConstraint("completion_confidence IN ('verified','probable','none')", name="completion_confidence"),
+        CheckConstraint("completion_confidence IN ('verified','probable','reported','none')", name="completion_confidence"),
         CheckConstraint("match_status IN ('single','reconciled','unresolved')", name="match_status"),
         Index("ix_runs_match_window", "namespace_id", "dungeon_id", "started_at"),
         Index("ix_runs_started_at", "started_at"),

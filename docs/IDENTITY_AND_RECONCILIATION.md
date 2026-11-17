@@ -66,7 +66,9 @@ idempotent.
 * **Timing**: earliest start, latest end among finished records (an observer still "in progress" does not hold the
   run open once another observer has finished it).
 * **Outcome**: `completed/verified` if any observer saw a completion event; `completed/probable` if the curated final
-  boss was killed; else `abandoned`, `in_progress`, `disconnected`, `left` or `unknown`.
+  boss was killed; else `abandoned` if an abandon vote passed; else `completed/reported` if an observer marked the run
+  as completed in the addon (`flags.marked_completed`); else `in_progress`, `disconnected`, `left` or `unknown`. Only
+  `verified` completions count in completion statistics.
 * **Participants**: union of presence intervals, most frequent assigned role, highest level, count of observers that
   saw them. Someone in the group for under `PASSED_THROUGH_SECONDS` (5 minutes) and at no boss pull only passed
   through (left as the run began and was replaced): they are not a participant, so the run does not appear in their
@@ -83,6 +85,12 @@ Candidates per (participant, metric):
 
 * each observer's native-meter totals: coverage `complete_session` only if every session the observer saw was
   captured and the observer was present for at least 95% of the run;
+  * runs recorded before addon 0.2.10 (no `addon_version`): a session "captured" at 1 s or less was read as the group
+    pulled and never again, so that fight's numbers are lost. It counts as not captured. When half the observer's
+    fights or more were lost, their totals are `unavailable` (shown as —). `run.coverage.meter_fights_lost` says how
+    many, and the run page notes it;
+  * a boss attempt's meter covering 1 s or less of a fight that lasted 5 s or more is dropped (any version): the
+    attempt shows no numbers rather than near-zero ones;
 * for deaths, also the deduplicated death events: complete if observers with death tracking covered at least 95% of
   the participant's presence.
 
