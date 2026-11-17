@@ -937,6 +937,88 @@ describe("scoreboard", function()
   end)
 end)
 
+describe("mark as completed", function()
+  -- A dungeon whose final boss the addon does not know: the run never ends on its own inside.
+  local SOMEWHERE = { name = "City of Somewhere", mapId = 990002 }
+
+  local function button(ft)
+    return ft.RecordsUI.frame().pages.scoreboard.complete
+  end
+
+  local function click(b)
+    b._scripts.OnClick(b)
+  end
+
+  it("ends the run from the scoreboard after a second click, and counts it as completed", function()
+    local ft = boot()
+    Mock.slash("records")
+    falsy(button(ft):IsShown(), "no run, no button")
+    Mock.enterDungeon(SOMEWHERE)
+    boss(3001, "First Boss", true)
+    boss(3002, "Last Boss", true)
+    Mock.advance(30)
+    local b = button(ft)
+    truthy(b:IsShown())
+
+    click(b)
+    truthy(activeRun(), "the first click only asks")
+    eq(b.text:GetText(), "Click again to confirm")
+    Mock.advance(6)
+    eq(b.text:GetText(), "Mark as completed", "the question goes away on its own")
+    click(b)
+    truthy(activeRun())
+    local endedAt = Mock.clock
+    click(b)
+
+    falsy(activeRun(), "the second click ended the run")
+    local run = lastObservation("dungeon_run")
+    truthy(run.flags.marked_completed)
+    eq(run.state, "unknown", "not a completion event: the website and the records count the mark")
+    eq(run.timing.ended_at, endedAt)
+    eq(run.addon_version, ft.version)
+    eq(records().history[1].result, "completed")
+    truthy(records().history[1].marked)
+    falsy(b:IsShown(), "nothing left to mark")
+    truthy(Mock.chatContains("marked as completed"))
+
+    Mock.reload() -- still inside: not a new run
+    falsy(activeRun())
+  end)
+
+  it("marks a run the player already left, ending it when they left", function()
+    boot()
+    Mock.enterDungeon(SOMEWHERE)
+    boss(3001, "First Boss", true)
+    Mock.leaveInstance()
+    local leftAt = Mock.clock
+    Mock.advance(120)
+    Mock.slash("complete")
+    falsy(activeRun())
+    local run = lastObservation("dungeon_run")
+    truthy(run.flags.marked_completed)
+    eq(run.state, "left")
+    eq(run.timing.ended_at, leftAt)
+    eq(records().history[1].result, "completed")
+  end)
+
+  it("waits for the fight to end, and needs a run", function()
+    boot()
+    Mock.slash("complete")
+    truthy(Mock.chatContains("no dungeon run"))
+    Mock.enterDungeon(SOMEWHERE)
+    Mock.startCombat()
+    Mock.slash("complete")
+    truthy(activeRun(), "not during a fight")
+    truthy(Mock.chatContains("finish the fight first"))
+    Mock.advance(30)
+    Mock.endCombat(30, { Autumn = { damage_done = 5000 } })
+    Mock.advance(12)
+    Mock.slash("complete")
+    falsy(activeRun())
+    eq(#lastObservation("dungeon_run").meter.sessions, 1, "the fight's numbers are in the run")
+  end)
+end)
+
 describe("minimap button", function()
   it("follows the cursor around the minimap and remembers where it was left", function()
     local ft = boot()

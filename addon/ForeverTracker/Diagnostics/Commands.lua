@@ -8,6 +8,7 @@ local HELP = {
   "/ft - show or hide your dungeon records",
   "/ft minimap - show or hide the minimap button",
   "/ft status - what is being recorded right now",
+  "/ft complete - mark the dungeon run you are in (or just left) as completed",
   "/ft probe - test which game APIs work on this client (saved as an uploadable report)",
   "/ft probe persist - two-step test that saved data survives /reload or a restart",
   "/ft export [all] - show an export string to paste on the ForeverTracker website",
@@ -60,6 +61,8 @@ function Commands.handle(msg)
     end
   elseif cmd == "status" then
     status()
+  elseif cmd == "complete" then
+    FT.RecordsUI.markCompleted()
   elseif cmd == "probe" then
     if rest == "persist" then
       FT.Probe.persist(false)

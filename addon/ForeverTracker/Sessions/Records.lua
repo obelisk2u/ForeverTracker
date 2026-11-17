@@ -127,9 +127,11 @@ function Records.summarize(run)
       wipes = wipes + 1
     end
   end
-  -- No completion event (a group formed outside the dungeon finder) but the final boss died.
+  -- No completion event (a group formed outside the dungeon finder) but the final boss died, or
+  -- the player marked the run as completed.
   local result = run.state
-  if result ~= "completed" and result ~= "abandoned" and finalBoss then
+  local marked = type(run.flags) == "table" and run.flags.marked_completed == true
+  if result ~= "completed" and result ~= "abandoned" and (finalBoss or marked) then
     result = "completed"
   end
   local deaths = 0
@@ -160,6 +162,7 @@ function Records.summarize(run)
     duration = math.max(0, ended - started),
     result = result,
     final_boss = finalBoss,
+    marked = marked or nil,
     bosses = bosses,
     wipes = wipes,
     deaths = deaths,

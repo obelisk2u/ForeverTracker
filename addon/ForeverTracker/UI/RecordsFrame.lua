@@ -405,6 +405,8 @@ local function runsTab(content)
     tooltipLine("Result", r[1], r[2])
     if s.result == "completed" and s.final_boss then
       tooltipLine("The final boss was killed.", nil, C.faint)
+    elseif s.result == "completed" and s.marked then
+      tooltipLine("You marked this run as completed.", nil, C.faint)
     elseif s.result == "left" or s.result == "disconnected" then
       tooltipLine("No completion event was seen. That does not mean the group failed.", nil, C.faint)
     end
@@ -902,6 +904,49 @@ local function scoreboardTab(content)
   end
   page.chips = { run = chip("Whole run", 0, "run"), fight = chip("Last fight", 104, "fight") }
 
+  -- A backup for a run that does not end on its own: no completion event, and the addon does not
+  -- know this dungeon's final boss. The first click asks; a second within 5 seconds marks it.
+  local done = create("Button", nil, page, "BackdropTemplate")
+  paint(done, C.surface2, C.line)
+  done:SetSize(150, 22)
+  done:SetPoint("TOPRIGHT", 0, 0)
+  done.text = label(done, "GameFontHighlightSmall", C.muted, "CENTER")
+  done.text:SetPoint("CENTER")
+  local armed -- the pending first click, if any
+  function done.reset()
+    armed = nil
+    done.text:SetText("Mark as completed")
+    done.text:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
+  end
+  done:SetScript("OnClick", function()
+    if armed then
+      done.reset()
+      UI.markCompleted()
+      return
+    end
+    local token = {}
+    armed = token
+    done.text:SetText("Click again to confirm")
+    done.text:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+    FT.Events.after(5, "records", function()
+      if armed == token then
+        done.reset()
+      end
+    end)
+  end)
+  done:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+    tooltipLine("Mark as completed", nil, C.text)
+    tooltipLine("Ends this run now and counts it as completed. For when it doesn't end on its own after the last boss.", nil, C.faint)
+    GameTooltip:Show()
+  end)
+  done:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+  done.reset()
+  done:Hide()
+  page.complete = done
+
   page.summary = label(page, "GameFontHighlightSmall", C.muted, "LEFT")
   page.summary:SetPoint("TOPLEFT", 0, -32)
   page.summary:SetPoint("TOPRIGHT", 0, -32)
@@ -969,6 +1014,12 @@ local function scoreboardTab(content)
     page.chips.run.select(view == "run" and not liveFight)
     page.chips.fight.select(view == "fight" and not liveFight)
     page.table.markSort((board and board.sort) or UI.scoreSort or "damage_done")
+    if board and board.active then
+      page.complete:Show()
+    else
+      page.complete.reset()
+      page.complete:Hide()
+    end
     if not board then
       page.summary:SetText("")
       page.table.set({})
@@ -1199,6 +1250,20 @@ function UI.refresh()
   end
   selectTab(tab)
   return view
+end
+
+-- Mark the open run as completed: the scoreboard's button and /ft complete.
+function UI.markCompleted()
+  local ok, why = FT.RunTracker.markCompleted()
+  if ok then
+    FT.Util.print("run marked as completed.")
+  elseif why == "in_combat" then
+    FT.Util.print("finish the fight first, then mark the run as completed.")
+  else
+    FT.Util.print("there is no dungeon run to mark as completed.")
+  end
+  UI.refresh()
+  return ok
 end
 
 -- Only the scoreboard, after a fight or a roster change; cheap enough to call often.

@@ -16,6 +16,8 @@
 --   Final states (observation `state`):
 --     completed     only with a completion event (LFG_COMPLETION_REWARD, SCENARIO_COMPLETED,
 --                   CHALLENGE_MODE_COMPLETED). Leaving an instance is NEVER a completion.
+--                   (A run the player marks as completed ends "unknown", or "left" from outside,
+--                   with flags.marked_completed: the records and the website count it.)
 --     abandoned     an instance-abandon vote passed.
 --     left          the observer left the dungeon and did not come back within the grace period.
 --     disconnected  the observer's game session ended inside the dungeon (logout, disconnect or
@@ -106,6 +108,7 @@ function RT.start(info)
     namespace = FT.Identity.namespace(),
     realm_label = FT.Identity.realmLabel(),
     client_build = FT.db.client and FT.db.client.build or nil,
+    addon_version = FT.version, -- the version that started recording; kept if a newer one resumes
     instance = FT.Instance.toObservation(info),
     party_guid = FT.db.group and FT.db.group.party_guid or nil,
     timing = { started_at = t, last_updated_at = t, clock = "server", local_clock_offset = FT.Util.clockOffset() },
@@ -882,6 +885,34 @@ function RT.onCompletion(kind)
   run.completion.status = "verified"
   RT.mark("completed", { source = kind })
   touch(run)
+end
+
+-- The player says the run is complete (the records window or /ft complete): a backup for when no
+-- completion event comes and the addon does not know the dungeon's final boss. It ends the run now,
+-- or when the player left the dungeon if they are outside it. The website shows it as completed
+-- "as marked by the player", below a completion event or a final-boss kill.
+-- Returns true, or false and why not ("no_run", "in_combat").
+function RT.markCompleted()
+  local run, st = active(), state()
+  if not run or not st then
+    return false, "no_run"
+  end
+  local inside = st.phase == "active"
+  if inside and FT.Meter.inCombat() then
+    return false, "in_combat" -- the fight's numbers come after it ends
+  end
+  run.flags.marked_completed = true
+  RT.mark("completed", { source = "player" })
+  if inside then
+    RT.finalize("unknown", now())
+  else
+    RT.finalize("left", st.suspend and st.suspend.at or now())
+  end
+  if inside and not active() then
+    -- Staying inside afterwards (looting, /reload) is not a new run.
+    FT.db.finished_here = { map_id = run.instance.map_id, at = now() }
+  end
+  return true
 end
 
 function RT.onAbandonVote(votePassed)
