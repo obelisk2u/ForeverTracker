@@ -14,6 +14,8 @@ FT.Records = Records
 -- Version 2 counts a final-boss kill as a completion; older records are rebuilt from stored runs.
 -- Version 3 adds The Hall of Thanes to the final bosses.
 -- Version 4 leaves out of the group whoever only passed through.
+-- Since then the records note which final bosses they were made with (`finals`): an update that
+-- adds one rebuilds them from stored runs (Records.init), with no new version.
 Records.VERSION = 4
 Records.MAX_HISTORY = 500
 Records.MAX_PARTY = 8
@@ -23,8 +25,20 @@ Records.PASSED_THROUGH_SECONDS = 300
 -- A run with less combat than this does not set a DPS/HPS record (one quick pull is not a run).
 Records.MIN_RATE_COMBAT_SECONDS = 60
 
+-- The final bosses this version knows, as one string: "map:encounter,..." in sorted order.
+local function finalsKey()
+  local keys = {}
+  for map, bosses in pairs(FT.FINAL_ENCOUNTERS or {}) do
+    for id in pairs(bosses) do
+      keys[#keys + 1] = map .. ":" .. id
+    end
+  end
+  table.sort(keys)
+  return table.concat(keys, ",")
+end
+
 function Records.fresh()
-  return { version = Records.VERSION, characters = {}, dungeons = {}, history = {} }
+  return { version = Records.VERSION, finals = finalsKey(), characters = {}, dungeons = {}, history = {} }
 end
 
 -- The same key Identity uses for a player, so the current character's records can be found.
@@ -240,8 +254,9 @@ function Records.addRun(run)
   return s
 end
 
--- Rebuild every summary after stored runs changed (RunTracker.splitStored). Runs that already
--- left the upload queue survive only as summaries, so those are kept as they are.
+-- Rebuild every summary after stored runs or the final bosses changed (RunTracker.splitStored,
+-- Records.init). Runs that already left the upload queue survive only as summaries, so those are
+-- kept as they are.
 function Records.rebuild()
   local db = FT.db
   local old = type(db.records) == "table" and db.records.history or {}
@@ -280,6 +295,10 @@ function Records.init()
       end
     end
     rec.backfilled = true
+  end
+  if rec.finals ~= finalsKey() then
+    -- An update added a final boss: a stored run that killed it now counts as completed.
+    rec = Records.rebuild()
   end
   return rec
 end
