@@ -155,9 +155,10 @@ def ingest_batch(
     db.flush()
 
     ctx = ApplyContext(settings=settings, synthetic=envelope.synthetic)
-    results: list[ObservationResult] = []
-    for index, raw_obs in enumerate(envelope.observations):
-        results.append(_ingest_one(db, index, raw_obs, upload, contributor, ctx, now))
+    slots: list[ObservationResult | None] = [None] * len(envelope.observations)
+    for index in _known_first(db, contributor.id, envelope.observations):
+        slots[index] = _ingest_one(db, index, envelope.observations[index], upload, contributor, ctx, now)
+    results: list[ObservationResult] = [r for r in slots if r is not None]
 
     for run_id in sorted(ctx.dirty_runs):
         ctx.dirty_characters |= rebuild_run(db, run_id, settings)
@@ -199,6 +200,33 @@ def ingest_batch(
         counts=counts,
         observations=results,
     )
+
+
+def _known_first(db: Session, contributor_id: int, observations: list[Any]) -> list[int]:
+    """The order to apply a batch in: new revisions of records this contributor sent before, then
+    new records, each group in batch order.
+
+    A new revision can shrink or move its run: the addon splits a run it once stored as one
+    (the group reset the dungeon and went straight back in) into a corrected first part and a new
+    second record. The second must be matched against the corrected run, not the merged one it
+    would otherwise join.
+    """
+    keys = {o.get("observation_id") for o in observations if isinstance(o, dict) and isinstance(o.get("observation_id"), str)}
+    known: set[str] = set()
+    if keys:
+        known = set(
+            db.scalars(
+                select(RawObservation.observation_key).where(
+                    RawObservation.contributor_id == contributor_id, RawObservation.observation_key.in_(keys)
+                )
+            )
+        )
+
+    def is_new(i: int) -> bool:
+        o = observations[i]
+        return not (isinstance(o, dict) and o.get("observation_id") in known)
+
+    return sorted(range(len(observations)), key=is_new)
 
 
 def _ingest_one(db, index, raw_obs, upload, contributor, ctx: ApplyContext, now: int) -> ObservationResult:

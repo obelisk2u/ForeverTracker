@@ -24,5 +24,6 @@ FT.FINAL_ENCOUNTERS = {
   [389] = { [2735] = true }, -- Ragefire Chasm: Bazzalan
   [429] = { [346] = true, [361] = true, [368] = true }, -- Dire Maul: Alzzin the Wildshaper, Prince Tortheldrin, King Gordok
   [2784] = { [3080] = true }, -- Demon Fall Canyon: Azgaloth
+  [2959] = { [3303] = true }, -- City of Dalaran: Shade of the Archmage
   [3065] = { [3496] = true }, -- The Hall of Thanes: Durgen Dirgehammer
 }

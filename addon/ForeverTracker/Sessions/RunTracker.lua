@@ -187,6 +187,11 @@ end
 -- Addon 0.2.2 and earlier resumed the open run when the player went back into the same dungeon
 -- within the grace period, even after leaving the group outside: the next group's run was added
 -- to the previous one. RT.splitMerged separates such a run where the player went back in.
+--
+-- The same happens to any version when a group finishes a dungeon whose final boss is not in
+-- FT.FINAL_ENCOUNTERS, resets it and goes straight back in: the run never ended. A boss dies once
+-- per instance, so pulling one this run already killed means a new run; RT.splitOnRepeat splits
+-- the open run then, and RT.splitStored splits runs stored that way when the addon loads.
 
 -- When the player left the first run and when they went back in for the second, or nil.
 local function mergedAt(run)
@@ -271,15 +276,65 @@ local function metered(run)
   return run.meter and run.meter.status ~= "disabled" and run.meter.status ~= "unavailable"
 end
 
-function RT.splitMerged()
-  local run, st = active(), state()
-  if not run or not st then
+-- Going back into the dungeon, as the timeline records it.
+local REENTRY = { reentered = true, login = true }
+
+-- Boss `encounterId` is pulled at `at`. If this run already killed it, the dungeon was reset: the
+-- new run began the first time the player went back in after the run's last kill before `at`
+-- (later than any corpse run of the old run, which comes before one of its kills). Returns when
+-- the player left the old instance and when they went back in, or nil.
+local function newInstanceAt(run, encounterId, at)
+  local killed, lastKill = false, nil
+  for _, e in ipairs(run.encounters or {}) do
+    if e.success == true and e.started_at and e.started_at < at then
+      killed = killed or e.encounter_id == encounterId
+      local t = e.ended_at or e.started_at
+      if lastKill == nil or t > lastKill then
+        lastKill = t
+      end
+    end
+  end
+  if not killed then
     return nil
   end
-  local leftAt, backAt = mergedAt(run)
+  local backAt
+  for _, e in ipairs(run.timeline or {}) do
+    if REENTRY[e.kind] and e.at > lastKill and e.at <= at and (backAt == nil or e.at < backAt) then
+      backAt = e.at
+    end
+  end
   if not backAt then
     return nil
   end
+  local leftAt = lastKill
+  for _, e in ipairs(run.timeline or {}) do
+    if (e.kind == "left_instance" or e.kind == "logout") and e.at > leftAt and e.at <= backAt then
+      leftAt = e.at
+    end
+  end
+  return leftAt, backAt
+end
+
+-- Where a run already holds a second copy of the dungeon (a killed boss pulled again), or nil.
+local function repeatAt(run)
+  local killed = {}
+  for _, e in ipairs(run.encounters or {}) do
+    if killed[e.encounter_id] and e.started_at then
+      local leftAt, backAt = newInstanceAt(run, e.encounter_id, e.started_at)
+      if backAt then
+        return leftAt, backAt
+      end
+    end
+    if e.success == true then
+      killed[e.encounter_id] = true
+    end
+  end
+  return nil
+end
+
+-- The open run's split at backAt: the part before it is finished (ended at leftAt) and stored;
+-- the open run goes on from backAt with a new ID.
+local function splitActive(run, st, leftAt, backAt, flag)
   local function before(t)
     return t ~= nil and t < backAt
   end
@@ -302,7 +357,7 @@ function RT.splitMerged()
   first.completion = { status = #firstEvidence > 0 and "verified" or "none", evidence = firstEvidence }
   first.flags = copy(run.flags)
   first.flags.party_guid_changed = nil
-  first.flags.split_from_merged = true
+  first.flags[flag] = true
   first.timing = copy(run.timing)
   first.timing.ended_at = leftAt
   first.timing.last_updated_at = leftAt
@@ -311,7 +366,7 @@ function RT.splitMerged()
   first.revision = run.revision + 1
 
   local timeline = filter(run.timeline, function(e)
-    return not before(e.at) and not (e.kind == "reentered" and e.at == backAt)
+    return not before(e.at) and not (REENTRY[e.kind] and e.at == backAt)
   end)
   table.insert(timeline, 1, { at = backAt, kind = "entered", detail = { map_id = run.instance.map_id } })
   local encounters = filter(run.encounters, function(e)
@@ -353,7 +408,7 @@ function RT.splitMerged()
   run.roster = roster
   run.completion = { status = #evidence > 0 and "verified" or "none", evidence = evidence }
   run.flags.party_guid_changed = nil
-  run.flags.split_from_merged = true
+  run.flags[flag] = true
   run.party_guid = FT.db.group and FT.db.group.party_guid or nil
   local refs = {}
   for _, entry in ipairs(roster) do
@@ -374,6 +429,159 @@ function RT.splitMerged()
   refreshWindow()
   FT.Util.debug("split a merged run")
   return first, run
+end
+
+-- On load: the open run merged with the next group's (older versions), or already holding a
+-- reset dungeon's second copy.
+function RT.splitMerged()
+  local run, st = active(), state()
+  if not run or not st then
+    return nil
+  end
+  local leftAt, backAt = mergedAt(run)
+  if backAt then
+    return splitActive(run, st, leftAt, backAt, "split_from_merged")
+  end
+  leftAt, backAt = repeatAt(run)
+  if backAt then
+    return splitActive(run, st, leftAt, backAt, "split_new_instance")
+  end
+  return nil
+end
+
+-- ENCOUNTER_START: a boss this run already killed is pulled again, so this is a new run.
+function RT.splitOnRepeat(run, st, t, encounterId)
+  local id = Safe.num(encounterId)
+  if id == nil then
+    return nil
+  end
+  local leftAt, backAt = newInstanceAt(run, id, t)
+  if not backAt then
+    return nil
+  end
+  return splitActive(run, st, leftAt, backAt, "split_new_instance")
+end
+
+-- One side of a finished run's meter data. Per-fight numbers are not kept once a run ends, so
+-- the run-wide totals cannot be divided: each side keeps its sessions and its boss fights'
+-- numbers (in its encounters) but no totals.
+local function finishedMeterSide(meter, at, after)
+  if type(meter) ~= "table" then
+    return meter
+  end
+  local side = copy(meter)
+  local ids = {}
+  side.sessions = filter(meter.sessions, function(s)
+    local keep = ((s.captured_at or 0) >= at) == after
+    if keep then
+      ids[s.session_id] = true
+    end
+    return keep
+  end)
+  side.death_entries = filter(meter.death_entries, function(d)
+    return ids[d.session_id] == true
+  end)
+  local combat = 0
+  for _, s in ipairs(side.sessions) do
+    if s.status == "captured" then
+      combat = combat + (s.duration_sec or 0)
+    end
+  end
+  side.combat_seconds = combat
+  side.totals = {}
+  if meter.status ~= "disabled" and meter.status ~= "unavailable" then
+    side.status = "partial"
+    side.reason = "split_after_the_run"
+  end
+  return side
+end
+
+-- A finished run split at backAt: the first part keeps the ID with a new revision, so its upload
+-- replaces the merged record; the second gets a new ID.
+local function splitFinished(run, leftAt, backAt)
+  local function before(t)
+    return t ~= nil and t < backAt
+  end
+  local first, second = copy(run), copy(run)
+  first.timeline = filter(run.timeline, function(e)
+    return before(e.at)
+  end)
+  first.encounters = filter(run.encounters, function(e)
+    return before(e.started_at)
+  end)
+  first.deaths = filter(run.deaths, function(d)
+    return before(d.at)
+  end)
+  first.roster = rosterSide(run.roster, backAt, false)
+  local evidence = (run.completion and run.completion.evidence) or {}
+  local firstEvidence = filter(evidence, function(ev)
+    return before(ev.at)
+  end)
+  first.completion = { status = #firstEvidence > 0 and "verified" or "none", evidence = firstEvidence }
+  first.flags = copy(run.flags)
+  first.flags.split_new_instance = true
+  first.timing = copy(run.timing)
+  first.timing.ended_at = leftAt
+  first.timing.last_updated_at = leftAt
+  first.meter = finishedMeterSide(run.meter, backAt, false)
+  first.state = first.completion.status == "verified" and "completed" or "left"
+  first.revision = (run.revision or 1) + 1
+
+  second.observation_id = FT.Storage.nextId("r")
+  second.revision = 1
+  second.timeline = filter(run.timeline, function(e)
+    return not before(e.at) and not (REENTRY[e.kind] and e.at == backAt)
+  end)
+  table.insert(second.timeline, 1, { at = backAt, kind = "entered", detail = { map_id = run.instance.map_id } })
+  second.encounters = filter(run.encounters, function(e)
+    return not before(e.started_at)
+  end)
+  second.deaths = filter(run.deaths, function(d)
+    return not before(d.at)
+  end)
+  second.roster = rosterSide(run.roster, backAt, true)
+  local secondEvidence = filter(evidence, function(ev)
+    return not before(ev.at)
+  end)
+  second.completion = { status = #secondEvidence > 0 and "verified" or "none", evidence = secondEvidence }
+  second.flags = copy(run.flags)
+  second.flags.split_new_instance = true
+  second.timing = copy(run.timing)
+  second.timing.started_at = backAt
+  second.meter = finishedMeterSide(run.meter, backAt, true)
+  if second.completion.status == "verified" then
+    second.state = "completed"
+  elseif run.state == "completed" then
+    second.state = "left" -- the completion was the first run's
+  end
+  return first, second
+end
+
+-- On load: split every stored run that went on into a reset dungeon, as often as it did. The
+-- uploader sends both parts; the records window is rebuilt from them.
+function RT.splitStored()
+  local list = FT.db and FT.db.observations
+  if type(list) ~= "table" then
+    return 0
+  end
+  local count, i = 0, 1
+  while i <= #list do
+    local o = list[i]
+    if type(o) == "table" and o.type == "dungeon_run" and o.state ~= "in_progress" and o.instance then
+      local leftAt, backAt = repeatAt(o)
+      if backAt then
+        local first, second = splitFinished(o, leftAt, backAt)
+        list[i] = first
+        table.insert(list, i + 1, second) -- checked next, in case it went on into a third copy
+        count = count + 1
+      end
+    end
+    i = i + 1
+  end
+  if count > 0 then
+    FT.Events.guard("records", FT.Records.rebuild)
+  end
+  return count
 end
 
 -- The dungeon's final boss died in this run and the player is alive: nothing left to come back for.
@@ -623,6 +831,9 @@ function RT.onRosterUpdate()
   local joined, left = FT.Roster.scan(run, st, now())
   if joined > 0 or left > 0 then
     RT.mark("roster_changed", { joined = joined, left = left })
+    FT.Events.guard("records", function()
+      FT.RecordsUI.refreshScoreboard()
+    end)
   end
   FT.Deaths.poll(run, st, now())
   touch(run)
@@ -740,7 +951,10 @@ function RT.register()
   E.on("INSTANCE_ABANDON_VOTE_FINISHED", "runtracker", RT.onAbandonVote)
 
   if FT.Config.enabled("encounters") then
-    E.on("ENCOUNTER_START", "encounters", RT.withActive(FT.Encounters.start))
+    E.on("ENCOUNTER_START", "encounters", RT.withActive(function(run, st, t, ...)
+      RT.splitOnRepeat(run, st, t, ...)
+      FT.Encounters.start(run, st, t, ...)
+    end))
     E.on("ENCOUNTER_END", "encounters", RT.withActive(function(run, st, t, id, _, _, _, success)
       FT.Encounters.finish(run, st, t, id, success)
       RT.afterBossKill(run)
@@ -768,6 +982,13 @@ function RT.register()
     meterNow(run, st)
     FT.Inspect.queueGroup()
   end))
+  -- The records window's scoreboard follows each fight live.
+  E.on("PLAYER_REGEN_DISABLED", "records", RT.withActive(function()
+    FT.RecordsUI.combatStarted()
+  end))
+  E.on("PLAYER_REGEN_ENABLED", "records", function()
+    FT.RecordsUI.combatEnded()
+  end)
   E.on("DAMAGE_METER_COMBAT_SESSION_UPDATED", "meter", RT.withActive(meterNow))
   E.on("DAMAGE_METER_CURRENT_SESSION_UPDATED", "meter", RT.withActive(meterNow))
   E.on("DAMAGE_METER_RESET", "meter", RT.withActive(FT.Meter.reset))

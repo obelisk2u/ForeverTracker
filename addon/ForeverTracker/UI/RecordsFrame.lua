@@ -1,13 +1,17 @@
 -- The records window: personal dungeon records in the game, opened from the minimap button or /ft.
 --
--- Two tabs: Overview (totals, personal bests, a row per dungeon) and Runs (every run, newest
--- first, with the group in a tooltip). Colours follow forevertracker.org. Only plain frames,
--- textures and font strings are used, with a fallback wherever a template might be missing.
+-- Three tabs: Overview (totals, personal bests, a row per dungeon), Runs (every run, newest
+-- first, with the group in a tooltip) and Scoreboard (everyone in the current or last run with
+-- the damage meter's numbers, updated on its own after each fight). Colours follow
+-- forevertracker.org. Only plain frames, textures and font strings are used, with a fallback
+-- wherever a template might be missing.
 local _, FT = ...
 
 local UI = {}
 FT.RecordsUI = UI
 local Records = FT.Records
+local Safe = FT.Safe
+local frame -- the window, built the first time it opens
 
 local W, H, PAD = 680, 480, 16
 local CW = W - 2 * PAD
@@ -194,14 +198,33 @@ local function tooltipLine(left, right, color)
 end
 
 -- A table with a header and a fixed number of rows; the mouse wheel scrolls through the data.
--- columns: { title, x, width, justify, cell = function(item) return text, color end }
-local function makeTable(parent, y, rows, columns, onEnter)
-  local t = { rows = {}, offset = 0, data = {}, columns = columns }
-  for _, col in ipairs(columns) do
+-- columns: { title, x, width, justify, sort, cell = function(item) return text, color end }
+-- With onSort, a click on the header of a column that has `sort` calls onSort(col.sort).
+local function makeTable(parent, y, rows, columns, onEnter, onSort)
+  local t = { rows = {}, offset = 0, data = {}, columns = columns, headers = {}, sortButtons = {} }
+  for i, col in ipairs(columns) do
     local h = label(parent, "GameFontNormalSmall", C.faint, col.justify or "LEFT")
     h:SetPoint("TOPLEFT", col.x, y)
     h:SetWidth(col.width)
     h:SetText(col.title)
+    t.headers[i] = h
+    if onSort and col.sort then
+      local b = create("Button", nil, parent)
+      b:SetPoint("TOPLEFT", col.x, y + 3)
+      b:SetSize(col.width, HEADER_H - 2)
+      b:SetScript("OnClick", function()
+        onSort(col.sort)
+      end)
+      t.sortButtons[col.sort] = b
+    end
+  end
+
+  -- The header of the column the data is sorted by is gold.
+  function t.markSort(key)
+    for i, col in ipairs(columns) do
+      local c = (key and col.sort == key) and C.gold or C.faint
+      t.headers[i]:SetTextColor(c[1], c[2], c[3])
+    end
   end
   line(parent, 0, y - HEADER_H + 4, 0)
   for i = 1, rows do
@@ -248,9 +271,14 @@ local function makeTable(parent, y, rows, columns, onEnter)
       row.item = item or false
       if item then
         for c, col in ipairs(t.columns) do
+          -- A cell may hold a secret (the live scoreboard): it goes straight to SetText, never
+          -- tested or compared, since even `text == nil` throws on a secret.
           local text, color = col.cell(item)
+          if not Safe.isSecret(text) and text == nil then
+            text = ""
+          end
           local fs = row.cells[c]
-          fs:SetText(text or "")
+          fs:SetText(text)
           local tc = color or C.text
           fs:SetTextColor(tc[1], tc[2], tc[3])
         end
@@ -410,12 +438,593 @@ local function runsTab(content)
   return page
 end
 
+-- Scoreboard --------------------------------------------------------------------------------
+-- Everyone in the run with the damage meter's numbers, for the whole run so far or the last
+-- fight. Out of combat the numbers are the meter collector's (it calls UI.onFight after reading
+-- each fight). During a fight the board shows that fight live: every LIVE_SECONDS it asks the
+-- meter for the current session, whose numbers (and maybe names) are secret then. Secrets are
+-- only handed to SetText, through the client's AbbreviateNumbers, as Details! does: never
+-- compared, added or tested. Each number goes in its person's row by GUID or name when those
+-- are readable, else by "this is the player" and by class when only one member has it; the
+-- meter lists each type already ranked, so the rows sort by that rank.
+
+local ROLE = { TANK = "Tank", HEALER = "Healer", DAMAGER = "Damage" }
+
+-- The last fight of the run that just ended, kept in memory: once a run ends its per-fight
+-- numbers are gone from the saved data (the whole-run totals stay).
+local lastFight
+
+local function present(entry)
+  local p = entry.presence and entry.presence[#entry.presence]
+  return p ~= nil and p["end"] == nil
+end
+
+UI.LIVE_SECONDS = 0.5
+-- After combat the live numbers stay up until the meter collector has read the fight, or this long.
+UI.LIVE_HOLD_SECONDS = 15
+local LIVE_TYPES = {
+  { "damage_done", "DamageDone" },
+  { "healing_done", "HealingDone" },
+  { "interrupts", "Interrupts" },
+  { "dispels", "Dispels" },
+  { "damage_taken", "DamageTaken" },
+}
+-- { run_id, started_at, ended_at, values = { [ref] = { [metric] = { value, rate, rank } } }, unplaced }
+UI.live = nil
+local liveTicker
+
+-- The client's number format set to match UI.number (45.0K, 1.25M), as Details! sets its own;
+-- false when the client has no CreateAbbreviateConfig (its default format is used then).
+local liveFormat
+local function abbreviateOptions()
+  if liveFormat == nil then
+    liveFormat = false
+    local create = _G.CreateAbbreviateConfig
+    if create then
+      local ok, config = pcall(create, {
+        { breakpoint = 1e9, abbreviation = "B", significandDivisor = 1e7, fractionDivisor = 100, abbreviationIsGlobal = false },
+        { breakpoint = 1e6, abbreviation = "M", significandDivisor = 1e4, fractionDivisor = 100, abbreviationIsGlobal = false },
+        { breakpoint = 1e4, abbreviation = "K", significandDivisor = 100, fractionDivisor = 10, abbreviationIsGlobal = false },
+        { breakpoint = 0.000001, abbreviation = "", significandDivisor = 1, fractionDivisor = 1, abbreviationIsGlobal = false },
+      })
+      if ok and type(config) ~= "nil" then
+        liveFormat = { config = config }
+      end
+    end
+  end
+  return liveFormat or nil
+end
+
+-- A number for a live cell: a secret goes through the client's own formatting untouched.
+local function liveNumber(x, isCount)
+  if Safe.isSecret(x) then
+    local abbreviate = _G.AbbreviateNumbers
+    if abbreviate then
+      local options = abbreviateOptions()
+      local ok, s = false, nil
+      if options then
+        ok, s = pcall(abbreviate, x, options)
+      end
+      if not ok then
+        ok, s = pcall(abbreviate, x)
+      end
+      if ok then
+        return s
+      end
+    end
+    return "..."
+  end
+  if type(x) ~= "number" then
+    return "-"
+  end
+  return isCount and commas(x) or UI.number(x)
+end
+
+-- Which roster entry a live meter source is, without comparing anything secret.
+local function liveRef(run, st, src, observer, byClass)
+  local guid, name = src.sourceGUID, src.name
+  if not Safe.isSecret(guid) and type(guid) == "string" then
+    local ref = FT.Roster.refForGuid(st, guid)
+    if ref then
+      return ref
+    end
+  end
+  if not Safe.isSecret(name) and type(name) == "string" then
+    local ref = FT.Roster.refForName(run, name)
+    if ref then
+      return ref
+    end
+  end
+  local me = src.isLocalPlayer
+  if not Safe.isSecret(me) and me == true then
+    return observer
+  end
+  local class = src.classFilename
+  if not Safe.isSecret(class) and type(class) == "string" then
+    return byClass[class]
+  end
+  return nil
+end
+
+-- Read the current fight from the meter into UI.live.
+local function readLive(run, st, live)
+  local get = Safe.api("C_DamageMeter.GetCombatSessionFromType")
+  local types = Enum and Enum.DamageMeterType
+  local current = Enum and Enum.DamageMeterSessionType and Enum.DamageMeterSessionType.Current
+  if not (get and types) or current == nil then
+    live.unavailable = true
+    return
+  end
+  -- A class only one member in the group has tells who a nameless source is.
+  local classes, byClass = {}, {}
+  for _, entry in ipairs(run.roster or {}) do
+    if entry.class_file and present(entry) then
+      classes[entry.class_file] = (classes[entry.class_file] or 0) + 1
+      byClass[entry.class_file] = entry.ref
+    end
+  end
+  for class, n in pairs(classes) do
+    if n > 1 then
+      byClass[class] = nil
+    end
+  end
+  local observer = FT.Roster.observerRef(run)
+  local values, unplaced = {}, 0
+  for _, t in ipairs(LIVE_TYPES) do
+    local typeId = types[t[2]]
+    if typeId ~= nil then
+      local ok, session = pcall(get, current, typeId)
+      local sources = nil
+      if ok and type(session) == "table" and not Safe.isSecretTable(session) then
+        sources = session.combatSources
+      end
+      if type(sources) == "table" and not Safe.isSecretTable(sources) then
+        for i, src in ipairs(sources) do
+          if type(src) == "table" and not Safe.isSecretTable(src) then
+            local ref = liveRef(run, st, src, observer, byClass)
+            if ref then
+              values[ref] = values[ref] or {}
+              values[ref][t[1]] = { value = src.totalAmount, rate = src.amountPerSecond, rank = i }
+            else
+              unplaced = unplaced + 1
+            end
+          end
+        end
+      end
+    end
+  end
+  live.values, live.unplaced = values, unplaced
+end
+
+local function presentSeconds(entry, now)
+  local total = 0
+  for _, p in ipairs(entry.presence or {}) do
+    total = total + math.max(0, (p["end"] or now) - (p.start or now))
+  end
+  return total
+end
+
+-- The newest fight the meter collector has read for this run, or nil.
+local function lastFightOf(run, m)
+  if not (run and m and m.status) then
+    return nil
+  end
+  local last
+  for id, status in pairs(m.status) do
+    if status == "captured" and type(id) == "number" and (last == nil or id > last) then
+      last = id
+    end
+  end
+  if not last then
+    return nil
+  end
+  local seconds = m.durations and m.durations[last]
+  local ended = (m.ended_at and m.ended_at[last]) or (m.captured_at and m.captured_at[last])
+  local i = FT.Meter.attemptFor(run, m, last)
+  local e = i and run.encounters[i]
+  local name = "Trash"
+  if e then
+    name = (e.name or "Boss") .. ((e.success == true and " (kill)") or (e.success == false and " (wipe)") or "")
+  end
+  return {
+    run_id = run.observation_id,
+    values = (m.values and m.values[last]) or {},
+    seconds = seconds,
+    name = name,
+    -- Deaths in the fight, with the same slack the meter collector uses to place a fight.
+    from = (ended and seconds) and (ended - seconds - 2) or nil,
+    to = ended and (ended + 1) or nil,
+  }
+end
+
+-- Whole-run values per unit ref, from the meter collector's run totals.
+local function runValues(run)
+  local values = {}
+  for _, t in ipairs((run.meter and run.meter.totals) or {}) do
+    local v = {}
+    for metric, m in pairs(t.metrics or {}) do
+      if type(m) == "table" and type(m.value) == "number" then
+        v[metric] = m.value
+      end
+    end
+    if next(v) then
+      values[t.unit_ref] = v
+    end
+  end
+  return values
+end
+
+local function sortMetric(key)
+  return (key == "dps" and "damage_done") or (key == "hps" and "healing_done") or key
+end
+
+local function sortValue(r, key)
+  if key == "deaths" then
+    return r.deaths or -1
+  end
+  return r.values[sortMetric(key)] or -1
+end
+
+-- Live, the meter's rank in that type's list (1 = most); rows it has not listed go last.
+local function liveRank(r, key)
+  local v = r.liveValues and r.liveValues[sortMetric(key)]
+  return v and v.rank or math.huge
+end
+
+-- The current run (or the last one) as rows for the board, or nil before the first run.
+function UI.scoreboard()
+  local run = FT.Storage.activeRun()
+  local active = run ~= nil
+  if not run then
+    local obs = (FT.db and FT.db.observations) or {}
+    for i = #obs, 1, -1 do
+      if type(obs[i]) == "table" and obs[i].type == "dungeon_run" then
+        run = obs[i]
+        break
+      end
+    end
+  end
+  if not run then
+    return nil
+  end
+  local st = active and FT.db.active_state or nil
+  local board = { run = run, active = active, view = UI.scoreView or "run", sort = UI.scoreSort or "damage_done" }
+  local fight = active and lastFightOf(run, st and st.meter) or nil
+  if not active and lastFight and lastFight.run_id == run.observation_id then
+    fight = lastFight
+  end
+  board.fight = fight
+  board.meterStatus = run.meter and run.meter.status
+  local live = active and UI.live and UI.live.run_id == run.observation_id and UI.live or nil
+  board.liveFight = live
+  local values, window
+  if live then
+    -- Rows and deaths for the fight under way; the numbers come from live.values.
+    values, board.seconds = runValues(run), nil
+    window = { live.started_at, math.huge }
+  elseif board.view == "fight" then
+    values, board.seconds = fight and fight.values or {}, fight and fight.seconds
+    window = (fight and fight.from and fight.to) and { fight.from, fight.to } or false
+  else
+    values, board.seconds = runValues(run), run.meter and run.meter.combat_seconds
+  end
+  board.hasNumbers = next(values) ~= nil
+
+  -- Deaths come from the run's own death records, as in the run summaries.
+  local deaths = {}
+  if window ~= false then
+    for _, d in ipairs(run.deaths or {}) do
+      if not window or (d.at >= window[1] and d.at <= window[2]) then
+        deaths[d.unit_ref] = (deaths[d.unit_ref] or 0) + 1
+      end
+    end
+  end
+
+  -- Everyone in the group now, in it for a while, or who did something; not someone who only
+  -- passed through (in the group for a moment, then replaced).
+  local rows = {}
+  local now = FT.Util.now()
+  for _, entry in ipairs(run.roster or {}) do
+    local v = values[entry.ref]
+    local did = deaths[entry.ref] ~= nil
+    for _, n in pairs(v or {}) do
+      did = did or n > 0
+    end
+    local liveValues = live and live.values[entry.ref] or nil
+    local stayed = presentSeconds(entry, now) >= FT.Records.PASSED_THROUGH_SECONDS
+    if entry.name and (did or stayed or liveValues or entry.is_observer or (active and present(entry))) then
+      local dead = deaths[entry.ref]
+      if dead == nil and window ~= false and (board.hasNumbers or live) then
+        dead = 0
+      end
+      rows[#rows + 1] = {
+        name = entry.name,
+        surname = entry.surname,
+        class_file = entry.class_file,
+        role = entry.role,
+        values = v or {},
+        liveValues = live and (liveValues or {}) or nil,
+        deaths = (window ~= false) and dead or nil,
+        seconds = board.seconds,
+      }
+    end
+  end
+  local key = board.sort
+  table.sort(rows, function(a, b)
+    if key == "name" then
+      return fullName(a) < fullName(b)
+    end
+    if live and key ~= "deaths" then
+      local ra, rb = liveRank(a, key), liveRank(b, key)
+      if ra ~= rb then
+        return ra < rb
+      end
+      return fullName(a) < fullName(b)
+    end
+    local va, vb = sortValue(a, key), sortValue(b, key)
+    if va ~= vb then
+      return va > vb
+    end
+    return fullName(a) < fullName(b)
+  end)
+  board.rows = rows
+  return board
+end
+
+-- Called after the meter collector reads the fights that just ended (Meter.capturePass). The
+-- live numbers give way once nothing is left secret, or after LIVE_HOLD_SECONDS.
+function UI.onFight(run, st)
+  local fight = lastFightOf(run, st and st.meter)
+  if fight then
+    lastFight = fight
+  end
+  local live = UI.live
+  if live and live.ended_at then
+    local waiting = false
+    for _, status in pairs((st and st.meter and st.meter.status) or {}) do
+      waiting = waiting or status == "secret"
+    end
+    if not waiting or FT.Util.now() - live.ended_at >= UI.LIVE_HOLD_SECONDS then
+      UI.live = nil
+    end
+  end
+  UI.refreshScoreboard()
+end
+
+-- Re-read the fight under way, only while the scoreboard is on screen.
+function UI.refreshLive()
+  local live = UI.live
+  local run, st = FT.Storage.activeRun(), FT.db and FT.db.active_state
+  if not (live and run and st) or live.run_id ~= run.observation_id then
+    return
+  end
+  if not (frame and frame:IsShown() and frame.pages.scoreboard:IsShown()) then
+    return
+  end
+  readLive(run, st, live)
+  frame.pages.scoreboard.update(UI.scoreboard())
+end
+
+-- PLAYER_REGEN_DISABLED during a run: the board follows the fight live.
+function UI.combatStarted()
+  local run = FT.Storage.activeRun()
+  if not run then
+    return
+  end
+  UI.live = { run_id = run.observation_id, started_at = FT.Util.now(), values = {}, unplaced = 0 }
+  if liveTicker then
+    liveTicker:Cancel()
+  end
+  liveTicker = FT.Events.ticker(UI.LIVE_SECONDS, "records", UI.refreshLive)
+  UI.refreshLive()
+  UI.refreshScoreboard()
+end
+
+-- PLAYER_REGEN_ENABLED: one last read; the numbers stay up until the fight has been read.
+function UI.combatEnded()
+  if liveTicker then
+    liveTicker:Cancel()
+    liveTicker = nil
+  end
+  local live = UI.live
+  if live and not live.ended_at then
+    UI.refreshLive()
+    live.ended_at = FT.Util.now()
+  end
+end
+
+local function rate(amount, seconds)
+  if amount and seconds and seconds > 0 then
+    return amount / seconds
+  end
+  return nil
+end
+
+local function stat(n)
+  return n and UI.number(n) or "-"
+end
+
+local function count(n)
+  return n and commas(n) or "-"
+end
+
+-- A cell's text: kind is "total", "rate" (per second) or "count". Live, the fight's own value
+-- (maybe secret, see liveNumber); otherwise the board's.
+local function cellText(r, metric, kind)
+  if r.liveValues then
+    local v = r.liveValues[metric]
+    if not v then
+      return "-"
+    end
+    local x
+    if kind == "rate" then
+      x = v.rate
+    else
+      x = v.value
+    end
+    return liveNumber(x, kind == "count")
+  end
+  local n = r.values[metric]
+  if kind == "rate" then
+    return stat(rate(n, r.seconds))
+  elseif kind == "count" then
+    return count(n)
+  end
+  return stat(n)
+end
+
+local function scoreboardTab(content)
+  local page = create("Frame", nil, content)
+  page:SetAllPoints()
+
+  local function chip(text, x, view)
+    local b = create("Button", nil, page, "BackdropTemplate")
+    paint(b, C.surface2, C.line)
+    b:SetSize(96, 22)
+    b:SetPoint("TOPLEFT", x, 0)
+    b.text = label(b, "GameFontHighlightSmall", C.muted, "CENTER")
+    b.text:SetPoint("CENTER")
+    b.text:SetText(text)
+    b:SetScript("OnClick", function()
+      UI.scoreView = view
+      UI.live = nil -- picked mid-fight: that view instead of the live one, until the next fight
+      UI.refreshScoreboard()
+    end)
+    function b.select(active)
+      local c = active and C.gold or C.muted
+      b.text:SetTextColor(c[1], c[2], c[3])
+      if b.SetBackdropBorderColor then
+        local bc = active and C.gold or C.line
+        b:SetBackdropBorderColor(bc[1], bc[2], bc[3], 1)
+      end
+    end
+    return b
+  end
+  page.chips = { run = chip("Whole run", 0, "run"), fight = chip("Last fight", 104, "fight") }
+
+  page.summary = label(page, "GameFontHighlightSmall", C.muted, "LEFT")
+  page.summary:SetPoint("TOPLEFT", 0, -32)
+  page.summary:SetPoint("TOPRIGHT", 0, -32)
+
+  page.table = makeTable(page, -52, 12, {
+    { title = "Name", x = 6, width = 150, sort = "name", cell = function(r)
+      return classHex(r.class_file) .. fullName(r) .. "|r"
+    end },
+    { title = "Damage", x = 160, width = 62, justify = "RIGHT", sort = "damage_done", cell = function(r)
+      return cellText(r, "damage_done", "total")
+    end },
+    { title = "DPS", x = 226, width = 52, justify = "RIGHT", sort = "dps", cell = function(r)
+      return cellText(r, "damage_done", "rate"), C.muted
+    end },
+    { title = "Healing", x = 282, width = 62, justify = "RIGHT", sort = "healing_done", cell = function(r)
+      return cellText(r, "healing_done", "total")
+    end },
+    { title = "HPS", x = 348, width = 52, justify = "RIGHT", sort = "hps", cell = function(r)
+      return cellText(r, "healing_done", "rate"), C.muted
+    end },
+    { title = "Interrupts", x = 404, width = 62, justify = "RIGHT", sort = "interrupts", cell = function(r)
+      return cellText(r, "interrupts", "count")
+    end },
+    { title = "Dispels", x = 470, width = 48, justify = "RIGHT", sort = "dispels", cell = function(r)
+      return cellText(r, "dispels", "count")
+    end },
+    { title = "Dmg taken", x = 522, width = 66, justify = "RIGHT", sort = "damage_taken", cell = function(r)
+      return cellText(r, "damage_taken", "total")
+    end },
+    { title = "Deaths", x = 592, width = 48, justify = "RIGHT", sort = "deaths", cell = function(r)
+      return count(r.deaths), (r.deaths or 0) > 0 and C.bad or C.muted
+    end },
+  }, function(r)
+    tooltipLine(classHex(r.class_file) .. fullName(r) .. "|r", nil, C.text)
+    if ROLE[r.role] then
+      tooltipLine(ROLE[r.role], nil, C.faint)
+    end
+    if r.liveValues then
+      -- Live numbers may be secret; they never go into the shared tooltip.
+      tooltipLine("This fight's numbers are on the board. Absorbs and avoidable damage show once it ends.", nil, C.faint)
+      return
+    end
+    local v = r.values
+    local dps, hps = rate(v.damage_done, r.seconds), rate(v.healing_done, r.seconds)
+    tooltipLine("Damage", stat(v.damage_done) .. (dps and ("  (" .. UI.number(dps) .. " DPS)") or ""))
+    tooltipLine("Healing", stat(v.healing_done) .. (hps and ("  (" .. UI.number(hps) .. " HPS)") or ""))
+    tooltipLine("Absorbs", stat(v.absorbs))
+    tooltipLine("Interrupts", count(v.interrupts))
+    tooltipLine("Dispels", count(v.dispels))
+    tooltipLine("Damage taken", stat(v.damage_taken))
+    tooltipLine("Avoidable damage taken", stat(v.avoidable_damage_taken))
+    tooltipLine("Deaths", count(r.deaths))
+  end, function(key)
+    UI.scoreSort = key
+    UI.refreshScoreboard()
+  end)
+
+  page.note = label(page, "GameFontDisableSmall", C.faint, "LEFT")
+  page.note:SetPoint("TOPLEFT", 0, -334)
+  page.note:SetPoint("TOPRIGHT", 0, -334)
+
+  function page.update(board)
+    local view = (board and board.view) or UI.scoreView or "run"
+    local liveFight = board and board.liveFight
+    page.chips.run.select(view == "run" and not liveFight)
+    page.chips.fight.select(view == "fight" and not liveFight)
+    page.table.markSort((board and board.sort) or UI.scoreSort or "damage_done")
+    if not board then
+      page.summary:SetText("")
+      page.table.set({})
+      page.note:SetText("Enter a dungeon: everyone in your group shows up here, with their numbers live during each fight.")
+      return
+    end
+    local run = board.run
+    local parts = { dungeonLabel(run.instance and run.instance.name, run.instance and run.instance.difficulty_name) }
+    if liveFight then
+      parts[#parts + 1] = hex(C.good) .. "Live: this fight|r"
+    elseif board.active then
+      parts[#parts + 1] = hex(C.good) .. "In progress|r"
+    else
+      parts[#parts + 1] = "Ended " .. UI.day(run.timing and run.timing.ended_at)
+    end
+    if liveFight then
+      -- Nothing more: the fight's length is not known until it ends.
+    elseif view == "fight" then
+      if board.fight then
+        parts[#parts + 1] = "Last fight: " .. board.fight.name .. "  " .. UI.duration(board.fight.seconds)
+      end
+    elseif board.seconds and board.seconds > 0 then
+      parts[#parts + 1] = UI.duration(board.seconds) .. " in combat"
+    end
+    page.summary:SetText(table.concat(parts, "   " .. hex(C.faint) .. "/|r   "))
+    page.table.set(board.rows)
+
+    local note
+    if board.meterStatus == "unavailable" or board.meterStatus == "disabled" then
+      note = "The game's damage meter isn't available, so there are no numbers to show."
+    elseif liveFight and liveFight.unavailable then
+      note = "The game doesn't share this fight's numbers live; they appear a few seconds after it ends."
+    elseif liveFight and (liveFight.unplaced or 0) > 0 then
+      note = "Live. The game hides some names during combat; their numbers show up once the fight ends."
+    elseif liveFight then
+      note = "Live: this fight so far. Whole run and Last fight catch up a few seconds after it ends."
+    elseif view == "fight" and not board.fight then
+      note = board.active and "Nothing yet: the numbers appear when the first fight starts."
+        or "The last fight is kept until you reload; Whole run still has every fight."
+    elseif not board.hasNumbers then
+      note = "Nothing yet: the numbers appear when the first fight starts."
+    elseif board.active then
+      note = "Live during each fight. Click a column to sort; hover a name for every stat."
+    else
+      note = "Click a column to sort; hover a name for every stat."
+    end
+    page.note:SetText(note)
+  end
+  return page
+end
+
 -- The window --------------------------------------------------------------------------------
 
-local frame
-
+-- UI.tab is the tab the player picked; until they pick one, the scoreboard opens during a run
+-- and the overview otherwise.
 local function selectTab(name)
-  UI.tab = name
   for key, tab in pairs(frame.tabs) do
     local active = key == name
     local c = active and C.gold or C.muted
@@ -443,6 +1052,7 @@ local function makeTab(parent, key, text, x)
   tab.underline:SetPoint("BOTTOMRIGHT", -8, -2)
   tab.underline:SetHeight(2)
   tab:SetScript("OnClick", function()
+    UI.tab = key
     selectTab(key)
   end)
   return tab
@@ -503,14 +1113,18 @@ local function build()
   end)
   f.scope = scope
 
-  f.tabs = { overview = makeTab(f, "overview", "Overview", PAD - 8), runs = makeTab(f, "runs", "Runs", PAD + 80) }
+  f.tabs = {
+    overview = makeTab(f, "overview", "Overview", PAD - 8),
+    runs = makeTab(f, "runs", "Runs", PAD + 80),
+    scoreboard = makeTab(f, "scoreboard", "Scoreboard", PAD + 168),
+  }
   line(f, PAD, -79, -PAD)
 
   local content = create("Frame", nil, f)
   content:SetPoint("TOPLEFT", PAD, -90)
   content:SetPoint("BOTTOMRIGHT", -PAD, 34)
   f.content = content
-  f.pages = { overview = overviewTab(content), runs = runsTab(content) }
+  f.pages = { overview = overviewTab(content), runs = runsTab(content), scoreboard = scoreboardTab(content) }
 
   f.empty = create("Frame", nil, f)
   f.empty:SetAllPoints(content)
@@ -566,8 +1180,10 @@ function UI.refresh()
   frame.subtitle:SetText("Dungeon records  " .. hex(C.faint) .. "/|r  " .. who .. status)
   frame.scope.text:SetText(charKey and "This character" or "All characters")
 
+  -- The first run fills the scoreboard before there are any finished runs to show.
+  local board = UI.scoreboard()
   local hasRuns = view.totals.runs > 0
-  if hasRuns then
+  if hasRuns or board then
     frame.empty:Hide()
     frame.content:Show()
   else
@@ -576,8 +1192,20 @@ function UI.refresh()
   end
   frame.pages.overview.update(view)
   frame.pages.runs.update(view)
-  selectTab(UI.tab or "overview")
+  frame.pages.scoreboard.update(board)
+  local tab = UI.tab or ((run or not hasRuns) and "scoreboard" or "overview")
+  if not hasRuns and board then
+    tab = "scoreboard"
+  end
+  selectTab(tab)
   return view
+end
+
+-- Only the scoreboard, after a fight or a roster change; cheap enough to call often.
+function UI.refreshScoreboard()
+  if frame and frame:IsShown() then
+    frame.pages.scoreboard.update(UI.scoreboard())
+  end
 end
 
 function UI.show()

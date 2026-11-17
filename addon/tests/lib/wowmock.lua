@@ -23,8 +23,19 @@ SecretMT.__tostring = function()
   return "<secret>"
 end
 
+-- What each secret stands for, so a test can check what the addon put on screen.
+local secretValues = setmetatable({}, { __mode = "k" })
 function M.secret(v)
-  return setmetatable({}, SecretMT)
+  local s = setmetatable({}, SecretMT)
+  secretValues[s] = v
+  return s
+end
+
+function M.reveal(v)
+  if getmetatable(v) == SecretMT then
+    return secretValues[v]
+  end
+  return v
 end
 
 local SecretTableMT = { __index = secretError, __len = secretError }
@@ -261,6 +272,8 @@ end
 
 function M.startCombat()
   M.combat = true
+  M.meter.combatStart = M.gameTime
+  M.meter.live = nil
   M.fire("PLAYER_REGEN_DISABLED")
 end
 
@@ -277,12 +290,32 @@ function M.endCombat(duration, values, opts)
   return id
 end
 
+-- The meter's numbers for the fight under way (Current session), set by M.combatProgress.
+function M.combatProgress(values)
+  M.meter.live = values
+end
+
 local function buildSession(s, typeId)
   local metric = TYPE_TO_METRIC[typeId]
   local secret = M.combat or M.gameTime < M.meter.secretUntil
+  -- M.meter.namesVisible: in combat only the numbers are secret, not who they belong to.
+  local secretName = secret and not M.meter.namesVisible
   local sources = {}
   local total = 0
-  for name, vals in pairs(s.values) do
+  -- The client lists sources most first; pairs() order is not that.
+  local names = {}
+  for name in pairs(s.values) do
+    names[#names + 1] = name
+  end
+  table.sort(names, function(a, b)
+    local va, vb = (metric and s.values[a][metric]) or 0, (metric and s.values[b][metric]) or 0
+    if va ~= vb then
+      return va > vb
+    end
+    return a < b
+  end)
+  for _, name in ipairs(names) do
+    local vals = s.values[name]
     local u = M.unitByName(name)
     local guid = u and u.guid or ("Pet-0-" .. name)
     local amount = metric and vals[metric]
@@ -301,12 +334,13 @@ local function buildSession(s, typeId)
       end
     elseif amount and amount > 0 then
       total = total + amount
+      local perSecond = amount / math.max(1, s.duration)
       sources[#sources + 1] = {
-        sourceGUID = secret and M.secret(guid) or guid,
-        name = secret and M.secret(name) or name,
+        sourceGUID = secretName and M.secret(guid) or guid,
+        name = secretName and M.secret(name) or name,
         classFilename = u and u.class or "",
         totalAmount = secret and M.secret(amount) or amount,
-        amountPerSecond = secret and M.secret(amount / s.duration) or amount / s.duration,
+        amountPerSecond = secret and M.secret(perSecond) or perSecond,
         deathRecapID = 0,
         deathTimeSeconds = 0,
         isLocalPlayer = u and u.token == "player" or false,
@@ -357,6 +391,19 @@ function M.installGlobals()
   G.GetBuildInfo = function() return M.build[1], M.build[2], M.build[3], M.build[4] end
   G.GetLocale = function() return "enUS" end
   G.issecretvalue = function(v) return getmetatable(v) == SecretMT end
+  -- The client formats a secret number into a secret string an addon can show but not read.
+  G.AbbreviateNumbers = function(v)
+    local n = M.reveal(v)
+    local s
+    if n >= 1e6 then
+      s = string.format("%.2fM", n / 1e6)
+    elseif n >= 1e3 then
+      s = string.format("%.1fK", n / 1e3)
+    else
+      s = tostring(math.floor(n + 0.5))
+    end
+    return getmetatable(v) == SecretMT and M.secret(s) or s
+  end
   G.issecrettable = function(t) return getmetatable(t) == SecretTableMT end
   G.C_EventUtils = { IsEventValid = function(e) return M.validEvents[e] == true end }
   G.RegionalUniqueNamesEnabled = function() return M.regionalNames end
@@ -418,6 +465,20 @@ function M.installGlobals()
       for _, s in ipairs(M.meter.sessions) do
         if s.id == id and not s.expired then
           return buildSession(s, typeId)
+        end
+      end
+      return { combatSources = {}, totalAmount = 0, maxAmount = 0 }
+    end,
+    -- Current: the fight under way (M.combatProgress), else the last one.
+    GetCombatSessionFromType = function(sessionType, typeId)
+      if sessionType == 1 then
+        if M.combat then
+          local elapsed = M.gameTime - (M.meter.combatStart or M.gameTime)
+          return buildSession({ values = M.meter.live or {}, duration = elapsed }, typeId)
+        end
+        local last = M.meter.sessions[#M.meter.sessions]
+        if last and not last.expired then
+          return buildSession(last, typeId)
         end
       end
       return { combatSources = {}, totalAmount = 0, maxAmount = 0 }

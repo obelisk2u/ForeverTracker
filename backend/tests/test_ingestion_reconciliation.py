@@ -15,6 +15,7 @@ from app.models import (
     RunParticipant,
     UploadBatch,
 )
+from app.models.base import from_epoch
 from app.services.runs import run_detail
 from tests.factories import T0, Member, RunSpec, batch, gear_snapshot, party, run_observation
 from tests.helpers import character, count, ingest, metric, runs
@@ -361,6 +362,34 @@ def test_a_short_run_keeps_everyone(db, settings):
     (run,) = runs(db)
     assert count(db, RunParticipant) == 5
     assert run_detail(db, settings, run.public_id).passed_through == []
+
+
+def test_a_run_the_addon_splits_after_uploading_it_becomes_two_runs(db, settings):
+    # The group finished, reset the dungeon and went straight back in; an older addon stored both
+    # as one run, which was uploaded. The new addon splits it: the first part keeps its ID with a
+    # new revision, the second gets a new ID, which here sorts first in the batch.
+    merged = RunSpec(
+        "r-2000-merged", observer="u1", duration=4000, revision=3, state="left", verified=False,
+        encounters=[(3001, 300, True), (3002, 900, True), (3001, 3400, True)], combat_seconds=600,
+    )
+    ingest(db, settings, batch("install-aaaa1111", [run_observation(merged)]))
+    assert len(runs(db)) == 1
+
+    first = RunSpec(
+        "r-2000-merged", observer="u1", duration=3000, revision=4, state="left", verified=False,
+        encounters=[(3001, 300, True), (3002, 900, True)], combat_seconds=400,
+    )
+    second = RunSpec(
+        "r-1000-second", observer="u1", start=T0 + 3100, duration=900, state="left", verified=False,
+        encounters=[(3001, 300, True)], combat_seconds=200,
+    )
+    result = ingest(db, settings, batch("install-aaaa1111", [run_observation(second), run_observation(first)]))
+    assert [o.status for o in result.observations] == ["accepted", "accepted"]
+    assert [o.observation_id for o in result.observations] == ["r-1000-second", "r-2000-merged"], "reported in batch order"
+
+    a, b = sorted(runs(db), key=lambda r: r.started_at)
+    assert (a.started_at, a.ended_at) == (from_epoch(T0), from_epoch(T0 + 3000))
+    assert (b.started_at, b.ended_at) == (from_epoch(T0 + 3100), from_epoch(T0 + 4000))
 
 
 def test_tooltips_sent_by_addon_0_2_6_are_accepted_and_dropped(db, settings):

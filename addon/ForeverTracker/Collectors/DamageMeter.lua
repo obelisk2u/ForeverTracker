@@ -239,6 +239,10 @@ function Meter.capturePass(run, state)
     end
   end
   Meter.rebuild(run, state)
+  -- The scoreboard in the records window shows the new numbers at once.
+  FT.Events.guard("records", function()
+    FT.RecordsUI.onFight(run, state)
+  end)
   return retry
 end
 

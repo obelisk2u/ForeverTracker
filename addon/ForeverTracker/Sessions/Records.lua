@@ -240,6 +240,32 @@ function Records.addRun(run)
   return s
 end
 
+-- Rebuild every summary after stored runs changed (RunTracker.splitStored). Runs that already
+-- left the upload queue survive only as summaries, so those are kept as they are.
+function Records.rebuild()
+  local db = FT.db
+  local old = type(db.records) == "table" and db.records.history or {}
+  local stored = {}
+  for _, o in ipairs(db.observations or {}) do
+    if type(o) == "table" and o.type == "dungeon_run" and o.observation_id then
+      stored[o.observation_id] = true
+    end
+  end
+  db.records = Records.fresh()
+  for _, s in ipairs(old) do
+    if type(s) == "table" and not stored[s.id] then
+      Records.add(s)
+    end
+  end
+  for _, o in ipairs(db.observations or {}) do
+    if type(o) == "table" and o.type == "dungeon_run" then
+      Records.addRun(o)
+    end
+  end
+  db.records.backfilled = true
+  return db.records
+end
+
 function Records.init()
   local db = FT.db
   if type(db.records) ~= "table" or type(db.records.history) ~= "table" or db.records.version ~= Records.VERSION then

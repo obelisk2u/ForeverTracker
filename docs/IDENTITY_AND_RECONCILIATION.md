@@ -105,4 +105,8 @@ Resolution (`app/reconciliation/metrics.py`):
   is a duplicate; with different content it is rejected (`revision_content_conflict`).
 * A newer revision supersedes older ones and replaces their contribution. A late, older revision is stored as
   `superseded` and never applied.
+* Within a batch, new revisions of observations the contributor sent before are applied first, then new observations.
+  A new revision can shrink its run: the addon splits a run it stored as one when the group reset the dungeon and went
+  straight back in (a boss it had killed was pulled again), sending the first part as a new revision and the second as
+  a new observation, which must be matched against the corrected run rather than join the merged one.
 * Ingestion holds a transaction-scoped advisory lock, so concurrent uploads of one run cannot create two runs.

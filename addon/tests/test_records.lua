@@ -245,6 +245,7 @@ describe("personal records", function()
     local RT = ft.RunTracker
     local finalize = RT.finalize
     RT.finalize = function() end
+    RT.splitOnRepeat = function() end -- nor did they notice Faldrim being pulled again
     boss(3496, "Durgen Dirgehammer", true)
     Mock.advance(60)
     Mock.leaveInstance()
@@ -462,6 +463,120 @@ describe("personal records", function()
   end)
 end)
 
+describe("reset dungeons", function()
+  -- A dungeon whose final boss the addon does not know.
+  local SOMEWHERE = { name = "City of Somewhere", mapId = 990002 }
+
+  local function damage(run, name)
+    for _, entry in ipairs(run.roster) do
+      if entry.name == name then
+        for _, t in ipairs(run.meter.totals) do
+          if t.unit_ref == entry.ref then
+            return t.metrics.damage_done.value
+          end
+        end
+      end
+    end
+    return nil
+  end
+
+  it("starts a new run when a boss the run already killed is pulled again", function()
+    boot()
+    Mock.enterDungeon(SOMEWHERE)
+    boss(3001, "First Boss", true)
+    fight(30, { Autumn = { damage_done = 10000 } })
+    boss(3002, "Last Boss", true)
+    Mock.advance(60)
+    Mock.leaveInstance()
+    local leftAt = Mock.clock
+    Mock.advance(20) -- the group resets the dungeon and goes back in
+    Mock.enterDungeon(SOMEWHERE)
+    local backAt = Mock.clock
+    local id = activeRun().observation_id
+    eq(#observationsOf("dungeon_run"), 0, "nothing said the first run was over")
+    fight(20, { Autumn = { damage_done = 4000 } })
+
+    boss(3001, "First Boss", true)
+    local runs = observationsOf("dungeon_run")
+    eq(#runs, 1, "pulling First Boss again ended the first run")
+    local first, second = runs[1], activeRun()
+    eq(first.observation_id, id)
+    eq(first.timing.ended_at, leftAt)
+    eq(#first.encounters, 2)
+    eq(damage(first, "Autumn"), 10000)
+    truthy(first.flags.split_new_instance)
+    truthy(second.observation_id ~= id, "the second run is a new one")
+    eq(second.timing.started_at, backAt)
+    eq(#second.encounters, 1)
+    eq(damage(second, "Autumn"), 4000, "the fight after going back in is the new run's")
+    eq(#records().history, 1)
+  end)
+
+  it("ends a City of Dalaran run at Shade of the Archmage", function()
+    boot()
+    Mock.enterDungeon({ name = "City of Dalaran", mapId = 2959 })
+    boss(3311, "Atrexis the Grave Knight", true)
+    boss(3303, "Shade of the Archmage", true)
+    Mock.advance(25)
+    falsy(activeRun(), "the run ended at the final boss")
+    eq(records().history[1].result, "completed")
+  end)
+
+  it("splits a run an earlier version stored as one, once, when the addon loads", function()
+    local ft = boot()
+    ft.RunTracker.splitOnRepeat = function() end -- what earlier versions did
+    Mock.enterDungeon(SOMEWHERE)
+    boss(3001, "First Boss", true)
+    fight(30, { Autumn = { damage_done = 10000 } })
+    -- A death and a corpse run, still in the first copy of the dungeon.
+    Mock.setDead("Autumn", true)
+    Mock.advance(2)
+    Mock.leaveInstance()
+    Mock.advance(40)
+    Mock.setDead("Autumn", false)
+    Mock.enterDungeon(SOMEWHERE)
+    boss(3002, "Last Boss", true)
+    Mock.advance(30)
+    Mock.leaveInstance()
+    local leftAt = Mock.clock
+    Mock.advance(20)
+    Mock.enterDungeon(SOMEWHERE)
+    local backAt = Mock.clock
+    fight(20, { Autumn = { damage_done = 4000 } })
+    boss(3001, "First Boss", true)
+    Mock.leaveInstance()
+    Mock.advance(901)
+    local merged = observationsOf("dungeon_run")
+    eq(#merged, 1)
+    eq(#merged[1].encounters, 3, "stored as one run")
+    local id, revision = merged[1].observation_id, merged[1].revision
+
+    Mock.reload()
+    local runs = observationsOf("dungeon_run")
+    eq(#runs, 2)
+    local first, second = runs[1], runs[2]
+    eq(first.observation_id, id, "the first run keeps its identity")
+    eq(first.revision, revision + 1, "so its upload replaces the one record")
+    eq(first.timing.ended_at, leftAt)
+    eq(#first.encounters, 2, "the corpse run stayed in the first run")
+    truthy(second.observation_id ~= id)
+    eq(second.revision, 1)
+    eq(second.timing.started_at, backAt)
+    eq(second.timeline[1].kind, "entered")
+    eq(#second.encounters, 1)
+    eq(second.state, "left")
+    -- Per-fight numbers are gone once a run ends: no made-up run totals.
+    eq(#first.meter.totals, 0)
+    eq(#second.meter.totals, 0)
+    eq(second.meter.status, "partial")
+    eq(#records().history, 2, "the records window shows two runs")
+
+    Mock.reload()
+    eq(#observationsOf("dungeon_run"), 2, "split only once")
+    eq(#records().history, 2)
+  end)
+end)
+
 describe("records window", function()
   it("opens from the minimap button and shows the runs", function()
     local ft = boot()
@@ -542,6 +657,249 @@ describe("records window", function()
     eq(UI.duration(3725), "1:02:05")
     eq(UI.totalTime(3 * 3600 + 25 * 60), "3h 25m")
     eq(UI.totalTime(45 * 60), "45m")
+  end)
+end)
+
+describe("scoreboard", function()
+  local function page(ft)
+    return ft.RecordsUI.frame().pages.scoreboard
+  end
+
+  local function row(p, name)
+    for _, r in ipairs(p.table.rows) do
+      if r.item and r.item.name == name then
+        return r
+      end
+    end
+    return nil
+  end
+
+  -- The texts in a row's cells: name, damage, DPS, healing, HPS, interrupts, dispels, damage taken, deaths.
+  local function cells(r)
+    local out = {}
+    for i, fs in ipairs(r.cells) do
+      out[i] = fs:GetText()
+    end
+    return out
+  end
+
+  local function click(button)
+    button._scripts.OnClick(button)
+  end
+
+  it("is the tab during a run and fills in after each fight on its own", function()
+    local ft = boot()
+    Mock.slash("records")
+    Mock.enterDungeon({ name = "Hall of Thanes" })
+    local p = page(ft)
+    truthy(p:IsShown(), "a run opens the window on the scoreboard")
+    eq(#p.table.data, 5, "everyone in the group before the first fight")
+    eq(cells(row(p, "Autumn"))[2], "-")
+    truthy(contains(Mock.texts(p), "Nothing yet"))
+
+    fight(50, { Autumn = { damage_done = 40000, interrupts = 3 }, Phineas = { healing_done = 22000 } })
+    local autumn = cells(row(p, "Autumn"))
+    truthy(string.find(autumn[1], "Autumn Redleaf", 1, true))
+    eq(autumn[2], "40.0K")
+    eq(autumn[3], "800", "40,000 damage over 50 seconds of combat")
+    eq(autumn[6], "3")
+    eq(cells(row(p, "Phineas"))[4], "22.0K")
+    eq(p.table.data[1].name, "Autumn", "most damage first")
+    truthy(contains(Mock.texts(p), "In progress"))
+
+    fight(30, { Autumn = { damage_done = 20000 } })
+    eq(cells(row(p, "Autumn"))[2], "60.0K", "the whole run so far")
+    eq(cells(row(p, "Autumn"))[3], "750")
+    click(p.chips.fight)
+    eq(cells(row(p, "Autumn"))[2], "20.0K", "the last fight alone")
+    eq(cells(row(p, "Autumn"))[3], "667")
+    click(p.chips.run)
+    eq(cells(row(p, "Autumn"))[2], "60.0K")
+
+    local r = row(p, "Autumn")
+    r._scripts.OnEnter(r)
+    truthy(contains(Mock.tooltip, "Avoidable damage taken"), "every stat is in the row's tooltip")
+  end)
+
+  it("sorts by the column clicked", function()
+    local ft = boot()
+    Mock.slash("records")
+    Mock.enterDungeon({})
+    fight(40, {
+      Autumn = { damage_done = 30000 },
+      Phineas = { healing_done = 50000 },
+      Mah = { damage_done = 10000, damage_taken = 90000 },
+    })
+    local p = page(ft)
+    eq(p.table.data[1].name, "Autumn")
+    click(p.table.sortButtons.healing_done)
+    eq(p.table.data[1].name, "Phineas")
+    click(p.table.sortButtons.damage_taken)
+    eq(p.table.data[1].name, "Mah")
+  end)
+
+  it("names the boss of the last fight and counts only its deaths", function()
+    local ft = boot()
+    Mock.slash("records")
+    Mock.enterDungeon({})
+    Mock.setDead("Mah", true)
+    Mock.advance(2)
+    Mock.setDead("Mah", false)
+    Mock.advance(30)
+    Mock.fire("ENCOUNTER_START", 3001, "Thane Gorrak", 1, 5)
+    Mock.startCombat()
+    Mock.advance(20)
+    Mock.setDead("Phineas", true)
+    Mock.advance(25)
+    Mock.fire("ENCOUNTER_END", 3001, "Thane Gorrak", 1, 5, 1, {})
+    Mock.endCombat(45, { Autumn = { damage_done = 45000 } })
+    Mock.advance(12)
+
+    local p = page(ft)
+    click(p.chips.fight)
+    truthy(contains(Mock.texts(p), "Last fight: Thane Gorrak (kill)"))
+    eq(row(p, "Phineas").item.deaths, 1)
+    eq(row(p, "Mah").item.deaths, 0, "Mah died before this fight")
+    click(p.chips.run)
+    eq(row(p, "Mah").item.deaths, 1)
+  end)
+
+  it("keeps showing the run after it ends", function()
+    local ft = boot()
+    Mock.slash("records")
+    Mock.enterDungeon({ name = "Hall of Thanes" })
+    fight(40, { Autumn = { damage_done = 32000 } })
+    Mock.fire("LFG_COMPLETION_REWARD")
+    Mock.leaveInstance()
+    local frame = ft.RecordsUI.frame()
+    falsy(page(ft):IsShown(), "after the run the window goes back to the overview")
+    click(frame.tabs.scoreboard)
+    local p = page(ft)
+    truthy(p:IsShown())
+    eq(cells(row(p, "Autumn"))[2], "32.0K")
+    truthy(contains(Mock.texts(p), "Ended"))
+    click(p.chips.fight)
+    eq(cells(row(p, "Autumn"))[2], "32.0K", "the last fight is kept until a reload")
+
+    ft = Mock.reload()
+    ft.RecordsUI.show()
+    click(ft.RecordsUI.frame().tabs.scoreboard)
+    p = page(ft)
+    eq(cells(row(p, "Autumn"))[2], "32.0K", "the whole run is saved")
+    click(p.chips.fight)
+    truthy(contains(Mock.texts(p), "kept until you reload"), "the last fight was not")
+  end)
+
+  -- What a live cell shows: the secret the client formatted, revealed for the test.
+  local function shown(r, column)
+    local text = r.cells[column]._text
+    truthy(issecretvalue(text), "a live number reaches the screen still secret")
+    return Mock.reveal(text)
+  end
+
+  it("follows the fight live, in each person's row, ranked by the meter", function()
+    local ft = boot()
+    Mock.slash("records")
+    Mock.enterDungeon({})
+    Mock.meter.namesVisible = true -- names readable in combat, only the numbers secret
+    Mock.startCombat()
+    Mock.combatProgress({
+      Autumn = { damage_done = 12000, interrupts = 1 },
+      Phineas = { healing_done = 8000 },
+      Mah = { damage_done = 30000, damage_taken = 50000 },
+    })
+    Mock.advance(10)
+    local p = page(ft)
+    truthy(contains(Mock.texts(p), "Live: this fight"))
+    local mah = row(p, "Mah")
+    eq(shown(mah, 2), "30.0K", "Mah's damage so far")
+    eq(shown(mah, 3), "3.0K", "and the meter's own DPS")
+    eq(shown(mah, 8), "50.0K")
+    eq(shown(row(p, "Phineas"), 4), "8.0K")
+    eq(shown(row(p, "Autumn"), 6), "1")
+    eq(p.table.data[1].name, "Mah", "in the meter's order, without comparing secrets")
+    eq(cells(row(p, "Asha"))[2], "-", "nothing yet from Asha")
+
+    Mock.combatProgress({ Autumn = { damage_done = 45000 }, Mah = { damage_done = 31000 } })
+    Mock.advance(1)
+    eq(p.table.data[1].name, "Autumn", "re-ranked as the fight goes")
+    eq(shown(row(p, "Autumn"), 2), "45.0K")
+    click(p.table.sortButtons.name)
+    eq(p.table.data[1].name, "Asha", "any column still sorts")
+    click(p.table.sortButtons.damage_done)
+
+    local r = row(p, "Autumn")
+    r._scripts.OnEnter(r)
+    truthy(contains(Mock.tooltip, "numbers are on the board"), "no secret goes into the tooltip")
+
+    -- The fight ends: the live numbers stay until the meter has been read, then the run's.
+    Mock.endCombat(11, { Autumn = { damage_done = 45000 }, Mah = { damage_done = 31000 } }, { secretFor = 3 })
+    Mock.advance(1)
+    truthy(contains(Mock.texts(p), "Live: this fight"), "still live while the numbers are secret")
+    Mock.advance(12)
+    falsy(contains(Mock.texts(p), "Live: this fight"))
+    eq(cells(row(p, "Autumn"))[2], "45.0K", "the whole run, read after the fight")
+    eq(ft.capabilities.errors.records, nil, "no secret was ever compared or added")
+  end)
+
+  it("puts a nameless number in the right row by the player's own flag or a unique class", function()
+    local party = DefaultParty()
+    party[5].class = "MAGE" -- Thalen is a mage like Autumn
+    local ft = boot(party)
+    Mock.slash("records")
+    Mock.enterDungeon({})
+    Mock.startCombat()
+    Mock.combatProgress({
+      Autumn = { damage_done = 12000 },
+      Mah = { damage_done = 30000 },
+      Thalen = { damage_done = 20000 },
+    })
+    Mock.advance(2)
+    local p = page(ft)
+    eq(shown(row(p, "Autumn"), 2), "12.0K", "the player's own row")
+    eq(shown(row(p, "Mah"), 2), "30.0K", "the only warrior")
+    eq(cells(row(p, "Thalen"))[2], "-", "a second mage cannot be told apart")
+    truthy(contains(Mock.texts(p), "hides some names"))
+    Mock.endCombat(2, { Autumn = { damage_done = 12000 }, Mah = { damage_done = 30000 }, Thalen = { damage_done = 20000 } })
+    Mock.advance(12)
+    eq(cells(row(p, "Thalen"))[2], "20.0K", "it shows up once the fight is read")
+    eq(ft.capabilities.errors.records, nil)
+  end)
+
+  it("shows a picked view instead of the live one until the next fight", function()
+    local ft = boot()
+    Mock.slash("records")
+    Mock.enterDungeon({})
+    fight(20, { Autumn = { damage_done = 10000 } })
+    Mock.startCombat()
+    Mock.combatProgress({ Autumn = { damage_done = 5000 } })
+    Mock.advance(2)
+    local p = page(ft)
+    click(p.chips.run)
+    eq(cells(row(p, "Autumn"))[2], "10.0K", "the run so far, mid-fight")
+    Mock.advance(2)
+    eq(cells(row(p, "Autumn"))[2], "10.0K", "and it stays")
+    Mock.endCombat(4, { Autumn = { damage_done = 5000 } })
+    Mock.advance(12)
+    Mock.startCombat()
+    Mock.advance(1)
+    truthy(contains(Mock.texts(p), "Live: this fight"), "the next fight is live again")
+  end)
+
+  it("leaves out someone who only passed through", function()
+    local ft = boot()
+    Mock.slash("records")
+    Mock.enterDungeon({})
+    Mock.advance(20)
+    Mock.removeMember("Thalen") -- left as the run began
+    Mock.advance(20)
+    fight(40, { Autumn = { damage_done = 30000 } })
+    local names = {}
+    for _, r in ipairs(page(ft).table.data) do
+      names[r.name] = true
+    end
+    truthy(names.Mah)
+    falsy(names.Thalen)
   end)
 end)
 
