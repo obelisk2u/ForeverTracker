@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from pydantic import ValidationError
 from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
@@ -23,6 +24,7 @@ from app.models import (
 from app.models.base import utcnow
 from app.schemas.api import (
     CharacterListResponse,
+    CharacterStatsOut,
     CharacterProfile,
     Companion,
     Freshness,
@@ -129,7 +131,13 @@ def _load_character(db: Session, settings: Settings, public_id: str) -> tuple[Ch
 def profile(db: Session, settings: Settings, public_id: str) -> CharacterProfile:
     character, namespace = _load_character(db, settings, public_id)
     stats_row = db.get(CharacterStats, character.id)
-    stats = stats_row.stats if stats_row else compute_stats(load_run_facts(db, character.id), settings)
+    stats = stats_row.stats if stats_row else None
+    try:
+        stats = CharacterStatsOut.model_validate(stats) if stats is not None else None
+    except ValidationError:
+        stats = None  # stored by an older definition: recompute rather than fail the page
+    if stats is None:
+        stats = CharacterStatsOut.model_validate(compute_stats(load_run_facts(db, character.id), settings))
     snapshot = db.scalar(
         select(EquipmentSnapshot)
         .where(EquipmentSnapshot.character_id == character.id, EquipmentSnapshot.status != "unavailable")

@@ -21,12 +21,7 @@ export function CharacterProfileView({
   filterQuery?: string;
 }) {
   const c = profile.character;
-  const byDungeon = (profile.stats.by_dungeon ?? []) as Array<{
-    dungeon: { slug: string; name: string };
-    runs: number;
-    completions_confirmed: number;
-    deaths_per_run_mean: { value: number | null; sample_size: number };
-  }>;
+  const byDungeon = profile.stats.by_dungeon;
   return (
     <div className="flex flex-col gap-8">
       <header className="card p-6 relative overflow-hidden">
@@ -94,7 +89,7 @@ export function CharacterProfileView({
                 className="card p-4 hover:border-gold-dim focus-ring"
               >
                 <div className="text-text font-medium">{d.dungeon.name}</div>
-                <div className="text-sm text-muted mt-1">
+                <div className="text-sm text-muted mt-1" title="Confirmed: ended with an in-game completion event">
                   {d.runs} run{d.runs === 1 ? "" : "s"} · {d.completions_confirmed} confirmed
                 </div>
                 <div className="text-xs text-faint mt-1">

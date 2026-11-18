@@ -112,14 +112,10 @@ export default async function HomePage() {
         <section>
           <SectionTitle>Dungeons</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {overview.dungeons.map((d: Record<string, unknown>) => (
-              <Link
-                key={String(d.slug)}
-                href={`/runs?dungeon=${encodeURIComponent(String(d.slug))}`}
-                className="card p-4 hover:border-gold-dim focus-ring"
-              >
-                <div className="text-text">{String(d.name)}</div>
-                <div className="text-xs text-faint">{Number(d.runs).toLocaleString("en-US")} observed runs</div>
+            {overview.dungeons.map((d) => (
+              <Link key={d.slug} href={`/runs?dungeon=${encodeURIComponent(d.slug)}`} className="card p-4 hover:border-gold-dim focus-ring">
+                <div className="text-text">{d.name}</div>
+                <div className="text-xs text-faint">{d.runs.toLocaleString("en-US")} observed runs</div>
               </Link>
             ))}
           </div>

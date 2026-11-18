@@ -297,3 +297,21 @@ def test_admin_invalidation_recomputes(client):
     # A banned contributor cannot upload again.
     again = post_batch(client, batch("install-aaaa1111" if target == 1 else "install-bbbb2222", [run_observation(RunSpec("new-1", observer="u1", start=T0 + 90000))]))
     assert again.status_code == 403
+
+
+def test_profile_statistics_follow_the_model_and_a_stale_stored_row_is_recomputed(client, db):
+    from sqlalchemy import update
+
+    from app.analytics.character_stats import compute_stats
+    from app.models import CharacterStats
+
+    two_observer_run(client)
+    asha = next(r for r in client.get("/api/v1/search", params={"q": "asha"}).json()["results"])
+    stats = client.get(f"/api/v1/characters/us-pve/{asha['id']}").json()["stats"]
+    assert set(stats) == set(compute_stats([], get_settings()))  # the same keys as before the explicit model
+    assert stats["by_dungeon"][0]["deaths_per_run_mean"]["definition"] == "deaths_per_run_mean.v1"
+
+    db.execute(update(CharacterStats).values(stats={"definitions_version": 0, "legacy": True}))
+    db.commit()
+    again = client.get(f"/api/v1/characters/us-pve/{asha['id']}")
+    assert again.status_code == 200 and again.json()["stats"] == stats

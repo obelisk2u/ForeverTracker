@@ -19,6 +19,16 @@ export function Badge({ tone = "neutral", children, title }: { tone?: Tone; chil
   );
 }
 
+// A completion is "confirmed" (and counted in statistics) only with an in-game completion event; the other
+// completions say what they rest on (docs/ANALYTICS_DEFINITIONS.md).
+const COMPLETION_QUALIFIER: Record<string, string> = { probable: "final boss", reported: "marked" };
+
+export function outcomeLabel(outcome: string, confidence: string): string {
+  const label = (OUTCOME[outcome] ?? OUTCOME.unknown).label;
+  const qualifier = outcome === "completed" ? COMPLETION_QUALIFIER[confidence] : undefined;
+  return qualifier ? `${label} · ${qualifier}` : label;
+}
+
 export function OutcomeBadge({ outcome, confidence }: { outcome: string; confidence: string }) {
   const info = OUTCOME[outcome] ?? OUTCOME.unknown;
   const title =
@@ -33,7 +43,7 @@ export function OutcomeBadge({ outcome, confidence }: { outcome: string; confide
         : undefined;
   return (
     <Badge tone={info.tone} title={title}>
-      {info.label}
+      {outcomeLabel(outcome, confidence)}
     </Badge>
   );
 }

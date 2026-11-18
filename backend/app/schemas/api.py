@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class NamespaceOut(BaseModel):
@@ -61,12 +61,57 @@ class CharacterListResponse(BaseModel):
 
 
 class StatOut(BaseModel):
+    """One statistic: its value (null when there is no eligible run), the runs it rests on, and why others were left out."""
+
     definition: str
     value: float | None
     sample_size: int
     excluded: int = 0
     exclusion_reasons: dict[str, int] = {}
     note: str | None = None
+
+
+class DungeonNameOut(BaseModel):
+    slug: str
+    name: str
+
+
+class DungeonStatsOut(BaseModel):
+    dungeon: DungeonNameOut
+    runs: int
+    completions_confirmed: int
+    deaths_per_run_mean: StatOut
+    dps_median: StatOut
+    last_run_at: datetime
+
+
+class DataQualityOut(BaseModel):
+    runs_with_complete_death_coverage: int
+    runs_with_complete_meter_coverage: int
+    runs_reconciled_from_multiple_observers: int
+    runs_in_progress_or_unknown: int
+
+
+class CharacterStatsOut(BaseModel):
+    """A character's statistics (docs/ANALYTICS_DEFINITIONS.md), as stored in character_stats.stats."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    definitions_version: int
+    runs_observed: StatOut
+    completions_confirmed: StatOut
+    deaths_per_run_mean: StatOut
+    deaths_per_run_median: StatOut
+    death_free_run_pct: StatOut
+    deaths_observed_total: StatOut
+    dps_median: StatOut
+    hps_median: StatOut
+    interrupts_per_run_mean: StatOut
+    completed_run_duration_mean: StatOut
+    boss_kills_observed: StatOut
+    by_dungeon: list[DungeonStatsOut]
+    runs_by_role: dict[str, int]
+    data_quality: DataQualityOut
 
 
 class MetricOut(BaseModel):
@@ -130,7 +175,7 @@ class CharacterProfile(BaseModel):
     canonical_path: str
     realm_label: str | None
     claim_status: str
-    stats: dict[str, Any]
+    stats: CharacterStatsOut
     latest_gear: GearSnapshotOut | None
     name_history: list[NameHistoryOut]
     freshness: Freshness
@@ -191,11 +236,24 @@ class RunSeriesPoint(BaseModel):
     interrupts: MetricOut | None
 
 
+class TrendValueOut(BaseModel):
+    value: float | None
+    sample_size: int
+
+
+class WeeklyTrendOut(BaseModel):
+    period_start: datetime
+    runs: int
+    deaths_per_run: TrendValueOut
+    dps_median: TrendValueOut
+    interrupts_per_run: TrendValueOut
+
+
 class ProgressionResponse(BaseModel):
     level: list[ProgressionPoint]
     item_level: list[ProgressionPoint]
     runs: list[RunSeriesPoint]
-    weekly: list[dict[str, Any]]
+    weekly: list[WeeklyTrendOut]
     note: str
 
 
@@ -314,6 +372,10 @@ class RunListResponse(BaseModel):
     results: list[ActivityItem]
 
 
+class DungeonCountOut(DungeonRef):
+    runs: int
+
+
 class OverviewStats(BaseModel):
     characters: int
     runs: int
@@ -322,7 +384,7 @@ class OverviewStats(BaseModel):
     confirmed_completions: int
     observed_deaths: int
     contributors: int
-    dungeons: list[dict[str, Any]]
+    dungeons: list[DungeonCountOut]
     last_observation_at: datetime | None
 
 

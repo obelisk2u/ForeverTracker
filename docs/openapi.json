@@ -132,9 +132,7 @@
             "title": "Realm Label"
           },
           "stats": {
-            "additionalProperties": true,
-            "title": "Stats",
-            "type": "object"
+            "$ref": "#/components/schemas/CharacterStatsOut"
           }
         },
         "required": [
@@ -149,6 +147,85 @@
           "notices"
         ],
         "title": "CharacterProfile",
+        "type": "object"
+      },
+      "CharacterStatsOut": {
+        "additionalProperties": false,
+        "description": "A character's statistics (docs/ANALYTICS_DEFINITIONS.md), as stored in character_stats.stats.",
+        "properties": {
+          "boss_kills_observed": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "by_dungeon": {
+            "items": {
+              "$ref": "#/components/schemas/DungeonStatsOut"
+            },
+            "title": "By Dungeon",
+            "type": "array"
+          },
+          "completed_run_duration_mean": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "completions_confirmed": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "data_quality": {
+            "$ref": "#/components/schemas/DataQualityOut"
+          },
+          "death_free_run_pct": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "deaths_observed_total": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "deaths_per_run_mean": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "deaths_per_run_median": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "definitions_version": {
+            "title": "Definitions Version",
+            "type": "integer"
+          },
+          "dps_median": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "hps_median": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "interrupts_per_run_mean": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "runs_by_role": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Runs By Role",
+            "type": "object"
+          },
+          "runs_observed": {
+            "$ref": "#/components/schemas/StatOut"
+          }
+        },
+        "required": [
+          "definitions_version",
+          "runs_observed",
+          "completions_confirmed",
+          "deaths_per_run_mean",
+          "deaths_per_run_median",
+          "death_free_run_pct",
+          "deaths_observed_total",
+          "dps_median",
+          "hps_median",
+          "interrupts_per_run_mean",
+          "completed_run_duration_mean",
+          "boss_kills_observed",
+          "by_dungeon",
+          "runs_by_role",
+          "data_quality"
+        ],
+        "title": "CharacterStatsOut",
         "type": "object"
       },
       "CharacterSummary": {
@@ -283,6 +360,34 @@
         "title": "Companion",
         "type": "object"
       },
+      "DataQualityOut": {
+        "properties": {
+          "runs_in_progress_or_unknown": {
+            "title": "Runs In Progress Or Unknown",
+            "type": "integer"
+          },
+          "runs_reconciled_from_multiple_observers": {
+            "title": "Runs Reconciled From Multiple Observers",
+            "type": "integer"
+          },
+          "runs_with_complete_death_coverage": {
+            "title": "Runs With Complete Death Coverage",
+            "type": "integer"
+          },
+          "runs_with_complete_meter_coverage": {
+            "title": "Runs With Complete Meter Coverage",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs_with_complete_death_coverage",
+          "runs_with_complete_meter_coverage",
+          "runs_reconciled_from_multiple_observers",
+          "runs_in_progress_or_unknown"
+        ],
+        "title": "DataQualityOut",
+        "type": "object"
+      },
       "DeathOut": {
         "properties": {
           "character_id": {
@@ -334,6 +439,52 @@
         "title": "DeathOut",
         "type": "object"
       },
+      "DungeonCountOut": {
+        "properties": {
+          "map_id": {
+            "title": "Map Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "map_id",
+          "runs"
+        ],
+        "title": "DungeonCountOut",
+        "type": "object"
+      },
+      "DungeonNameOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ],
+        "title": "DungeonNameOut",
+        "type": "object"
+      },
       "DungeonRef": {
         "properties": {
           "map_id": {
@@ -355,6 +506,42 @@
           "map_id"
         ],
         "title": "DungeonRef",
+        "type": "object"
+      },
+      "DungeonStatsOut": {
+        "properties": {
+          "completions_confirmed": {
+            "title": "Completions Confirmed",
+            "type": "integer"
+          },
+          "deaths_per_run_mean": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "dps_median": {
+            "$ref": "#/components/schemas/StatOut"
+          },
+          "dungeon": {
+            "$ref": "#/components/schemas/DungeonNameOut"
+          },
+          "last_run_at": {
+            "format": "date-time",
+            "title": "Last Run At",
+            "type": "string"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dungeon",
+          "runs",
+          "completions_confirmed",
+          "deaths_per_run_mean",
+          "dps_median",
+          "last_run_at"
+        ],
+        "title": "DungeonStatsOut",
         "type": "object"
       },
       "EncounterOut": {
@@ -902,8 +1089,7 @@
           },
           "dungeons": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/DungeonCountOut"
             },
             "title": "Dungeons",
             "type": "array"
@@ -1238,8 +1424,7 @@
           },
           "weekly": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/WeeklyTrendOut"
             },
             "title": "Weekly",
             "type": "array"
@@ -1911,6 +2096,86 @@
         "title": "SourceOut",
         "type": "object"
       },
+      "StatOut": {
+        "description": "One statistic: its value (null when there is no eligible run), the runs it rests on, and why others were left out.",
+        "properties": {
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "excluded": {
+            "default": 0,
+            "title": "Excluded",
+            "type": "integer"
+          },
+          "exclusion_reasons": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Exclusion Reasons",
+            "type": "object"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "sample_size": {
+            "title": "Sample Size",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "definition",
+          "value",
+          "sample_size"
+        ],
+        "title": "StatOut",
+        "type": "object"
+      },
+      "TrendValueOut": {
+        "properties": {
+          "sample_size": {
+            "title": "Sample Size",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "sample_size"
+        ],
+        "title": "TrendValueOut",
+        "type": "object"
+      },
       "UploadObservationOut": {
         "properties": {
           "index": {
@@ -2095,6 +2360,37 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WeeklyTrendOut": {
+        "properties": {
+          "deaths_per_run": {
+            "$ref": "#/components/schemas/TrendValueOut"
+          },
+          "dps_median": {
+            "$ref": "#/components/schemas/TrendValueOut"
+          },
+          "interrupts_per_run": {
+            "$ref": "#/components/schemas/TrendValueOut"
+          },
+          "period_start": {
+            "format": "date-time",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period_start",
+          "runs",
+          "deaths_per_run",
+          "dps_median",
+          "interrupts_per_run"
+        ],
+        "title": "WeeklyTrendOut",
         "type": "object"
       },
       "WipeOut": {

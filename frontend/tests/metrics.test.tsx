@@ -5,7 +5,9 @@ import { Freshness } from "@/components/Freshness";
 import { MetricValue } from "@/components/MetricValue";
 import { StatGrid } from "@/components/StatGrid";
 import { formatDuration, formatNumber, relativeTime } from "@/lib/format";
-import type { MetricOut } from "@/lib/types";
+import type { CharacterProfile, MetricOut } from "@/lib/types";
+
+import profile from "./fixtures/e2e/profile.json";
 
 const base: MetricOut = {
   metric: "deaths",
@@ -90,9 +92,12 @@ describe("Freshness", () => {
 
 describe("StatGrid", () => {
   it("shows sample sizes and exclusions, and blanks for insufficient samples", () => {
+    // A real profile's statistics (backend/tests/test_e2e_pipeline.py), with three replaced.
+    const real = (profile as unknown as CharacterProfile).stats;
     render(
       <StatGrid
         stats={{
+          ...real,
           runs_observed: { definition: "runs_observed.v1", value: 4, sample_size: 4, excluded: 0, exclusion_reasons: {}, note: null },
           deaths_per_run_mean: {
             definition: "deaths_per_run_mean.v1",
@@ -110,5 +115,15 @@ describe("StatGrid", () => {
     expect(screen.getByText("Based on 3 runs")).toBeInTheDocument();
     expect(screen.getByText("Excluded: 1 incomplete coverage")).toBeInTheDocument();
     expect(screen.getAllByText("Not enough eligible runs").length).toBeGreaterThan(0);
+  });
+});
+
+describe("completion labels follow the analytics rules", () => {
+  it("calls only a completion-event run plainly Completed and qualifies the others", async () => {
+    const { outcomeLabel } = await import("@/components/Badges");
+    expect(outcomeLabel("completed", "verified")).toBe("Completed");
+    expect(outcomeLabel("completed", "probable")).toBe("Completed · final boss");
+    expect(outcomeLabel("completed", "reported")).toBe("Completed · marked");
+    expect(outcomeLabel("left", "none")).toBe("Left early");
   });
 });

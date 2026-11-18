@@ -418,10 +418,33 @@ export interface components {
             notices: string[];
             /** Realm Label */
             realm_label: string | null;
-            /** Stats */
-            stats: {
-                [key: string]: unknown;
+            stats: components["schemas"]["CharacterStatsOut"];
+        };
+        /**
+         * CharacterStatsOut
+         * @description A character's statistics (docs/ANALYTICS_DEFINITIONS.md), as stored in character_stats.stats.
+         */
+        CharacterStatsOut: {
+            boss_kills_observed: components["schemas"]["StatOut"];
+            /** By Dungeon */
+            by_dungeon: components["schemas"]["DungeonStatsOut"][];
+            completed_run_duration_mean: components["schemas"]["StatOut"];
+            completions_confirmed: components["schemas"]["StatOut"];
+            data_quality: components["schemas"]["DataQualityOut"];
+            death_free_run_pct: components["schemas"]["StatOut"];
+            deaths_observed_total: components["schemas"]["StatOut"];
+            deaths_per_run_mean: components["schemas"]["StatOut"];
+            deaths_per_run_median: components["schemas"]["StatOut"];
+            /** Definitions Version */
+            definitions_version: number;
+            dps_median: components["schemas"]["StatOut"];
+            hps_median: components["schemas"]["StatOut"];
+            interrupts_per_run_mean: components["schemas"]["StatOut"];
+            /** Runs By Role */
+            runs_by_role: {
+                [key: string]: number;
             };
+            runs_observed: components["schemas"]["StatOut"];
         };
         /** CharacterSummary */
         CharacterSummary: {
@@ -474,6 +497,17 @@ export interface components {
             /** Runs Together */
             runs_together: number;
         };
+        /** DataQualityOut */
+        DataQualityOut: {
+            /** Runs In Progress Or Unknown */
+            runs_in_progress_or_unknown: number;
+            /** Runs Reconciled From Multiple Observers */
+            runs_reconciled_from_multiple_observers: number;
+            /** Runs With Complete Death Coverage */
+            runs_with_complete_death_coverage: number;
+            /** Runs With Complete Meter Coverage */
+            runs_with_complete_meter_coverage: number;
+        };
         /** DeathOut */
         DeathOut: {
             /** Character Id */
@@ -490,6 +524,24 @@ export interface components {
             /** Sources */
             sources: string[];
         };
+        /** DungeonCountOut */
+        DungeonCountOut: {
+            /** Map Id */
+            map_id: number;
+            /** Name */
+            name: string;
+            /** Runs */
+            runs: number;
+            /** Slug */
+            slug: string;
+        };
+        /** DungeonNameOut */
+        DungeonNameOut: {
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
         /** DungeonRef */
         DungeonRef: {
             /** Map Id */
@@ -498,6 +550,21 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** DungeonStatsOut */
+        DungeonStatsOut: {
+            /** Completions Confirmed */
+            completions_confirmed: number;
+            deaths_per_run_mean: components["schemas"]["StatOut"];
+            dps_median: components["schemas"]["StatOut"];
+            dungeon: components["schemas"]["DungeonNameOut"];
+            /**
+             * Last Run At
+             * Format: date-time
+             */
+            last_run_at: string;
+            /** Runs */
+            runs: number;
         };
         /** EncounterOut */
         EncounterOut: {
@@ -694,9 +761,7 @@ export interface components {
             /** Contributors */
             contributors: number;
             /** Dungeons */
-            dungeons: {
-                [key: string]: unknown;
-            }[];
+            dungeons: components["schemas"]["DungeonCountOut"][];
             /** Last Observation At */
             last_observation_at: string | null;
             /** Observed Deaths */
@@ -791,9 +856,7 @@ export interface components {
             /** Runs */
             runs: components["schemas"]["RunSeriesPoint"][];
             /** Weekly */
-            weekly: {
-                [key: string]: unknown;
-            }[];
+            weekly: components["schemas"]["WeeklyTrendOut"][];
         };
         /** ReportIn */
         ReportIn: {
@@ -1010,6 +1073,39 @@ export interface components {
              */
             uploaded_at: string;
         };
+        /**
+         * StatOut
+         * @description One statistic: its value (null when there is no eligible run), the runs it rests on, and why others were left out.
+         */
+        StatOut: {
+            /** Definition */
+            definition: string;
+            /**
+             * Excluded
+             * @default 0
+             */
+            excluded: number;
+            /**
+             * Exclusion Reasons
+             * @default {}
+             */
+            exclusion_reasons: {
+                [key: string]: number;
+            };
+            /** Note */
+            note?: string | null;
+            /** Sample Size */
+            sample_size: number;
+            /** Value */
+            value: number | null;
+        };
+        /** TrendValueOut */
+        TrendValueOut: {
+            /** Sample Size */
+            sample_size: number;
+            /** Value */
+            value: number | null;
+        };
         /** UploadObservationOut */
         UploadObservationOut: {
             /** Index */
@@ -1067,6 +1163,19 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** WeeklyTrendOut */
+        WeeklyTrendOut: {
+            deaths_per_run: components["schemas"]["TrendValueOut"];
+            dps_median: components["schemas"]["TrendValueOut"];
+            interrupts_per_run: components["schemas"]["TrendValueOut"];
+            /**
+             * Period Start
+             * Format: date-time
+             */
+            period_start: string;
+            /** Runs */
+            runs: number;
         };
         /** WipeOut */
         WipeOut: {

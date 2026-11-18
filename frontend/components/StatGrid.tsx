@@ -1,5 +1,5 @@
 import { formatDuration, formatRate, percent } from "@/lib/format";
-import type { StatValue } from "@/lib/types";
+import type { CharacterStats, StatValue } from "@/lib/types";
 
 const REASONS: Record<string, string> = {
   incomplete_coverage: "incomplete coverage",
@@ -47,8 +47,7 @@ function StatCard({
   );
 }
 
-export function StatGrid({ stats }: { stats: Record<string, unknown> }) {
-  const s = stats as Record<string, StatValue>;
+export function StatGrid({ stats: s }: { stats: CharacterStats }) {
   const count = (v: number) => String(Math.round(v));
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -57,7 +56,7 @@ export function StatGrid({ stats }: { stats: Record<string, unknown> }) {
         label="Confirmed completions"
         stat={s.completions_confirmed}
         format={count}
-        help="Runs with an in-game completion event while this character was still in the group."
+        help="Runs that ended with an in-game completion event (groups from the dungeon finder) while this character was still in the group. Runs shown as “Completed · final boss” or “Completed · marked” are not counted here."
       />
       <StatCard
         label="Deaths per run"
@@ -73,7 +72,7 @@ export function StatGrid({ stats }: { stats: Record<string, unknown> }) {
         label="Avg. completion time"
         stat={s.completed_run_duration_mean}
         format={(v) => formatDuration(v)}
-        help="Mean duration of confirmed completions the character was present for."
+        help="Mean duration of confirmed completions (an in-game completion event) the character was present for."
       />
     </div>
   );

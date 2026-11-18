@@ -28,14 +28,10 @@ export type UploaderRelease = S["UploaderRelease"];
 export type GearSnapshot = S["GearSnapshotOut"];
 export type DungeonRef = S["DungeonRef"];
 
-export interface StatValue {
-  definition: string;
-  value: number | null;
-  sample_size: number;
-  excluded: number;
-  exclusion_reasons: Record<string, number>;
-  note: string | null;
-}
+export type StatValue = S["StatOut"];
+export type CharacterStats = S["CharacterStatsOut"];
+export type DungeonStats = S["DungeonStatsOut"];
+export type DungeonCount = S["DungeonCountOut"];
 
 export function isHidden(c: CharacterSummary | HiddenCharacter): c is HiddenCharacter {
   return (c as HiddenCharacter).hidden === true;
