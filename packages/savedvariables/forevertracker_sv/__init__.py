@@ -6,11 +6,17 @@ writes (assignments of literals and table constructors) and never executes anyth
 """
 
 from forevertracker_sv.errors import SavedVariablesError
-from forevertracker_sv.export import ExportSummary, extract_batches, summarize_export
+from forevertracker_sv.export import Extraction, ExportSummary, RejectedRecord, extract, extract_batches, summarize_export
 from forevertracker_sv.parser import ParseLimits, parse_savedvariables
+from forevertracker_sv.shapes import ShapeError, normalize
 
 __all__ = [
+    "Extraction",
     "ExportSummary",
+    "RejectedRecord",
+    "ShapeError",
+    "extract",
+    "normalize",
     "ParseLimits",
     "SavedVariablesError",
     "extract_batches",

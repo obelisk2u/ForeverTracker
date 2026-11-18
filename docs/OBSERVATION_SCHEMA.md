@@ -128,3 +128,28 @@ carries:
 `active_state` (internal bookkeeping, never uploaded), `diagnostics` and `dropped`. The extractor
 (`packages/savedvariables/forevertracker_sv/export.py`) keeps the newest revision of each observation and splits
 them into batches of at most 200.
+
+**A file written by a newer addon** (`schema_version` higher than this addon's, missing or not a number) is left
+exactly as loaded: that session records nothing, keeps a store that is never saved, and says so in chat and in
+`/ft status`. The client then writes the untouched table back at logout. The uploader and the API refuse such a
+file (`unsupported schema_version`); the uploader keeps its archived copy.
+
+## Lua table shapes
+
+A Lua table can be a list, a map, or both. Before anything is hashed, uploaded or validated, the extractor (shared by
+the uploader and the API's SavedVariables and `/ft export` endpoints) normalizes every table with
+`forevertracker_sv.shapes.normalize`:
+
+| Table | Becomes |
+|---|---|
+| Keys exactly 1..n (a list) | a JSON array |
+| Only named keys | a JSON object |
+| Only positive whole-number keys with gaps (a list with `nil` holes) | a JSON array in key order |
+| Empty (`{}`) | `[]`; fields that expect an object accept it as `{}` |
+| Positions and names mixed, or keys that are neither (`true`, `1.5`, `0`, `-1`) | **refused**, with the path, e.g. `ForeverTrackerDB.observations[3].flags: mixes list positions (1) with named fields ('a')` |
+
+A refused table rejects only its own record: the rest of the file uploads, the API response lists it under
+`summary.rejected_records`, and `disclose` names it. If the record list itself, `client` or `ForeverTrackerDB` is
+ambiguous, the whole file is refused. The source file is never changed. The `/ft export` string is JSON, whose keys
+are always strings, so there the addon's `"1"`, `"2"`... keys count as list positions. A batch posted to
+`/api/v1/ingest/batches` is taken as written: lists must be JSON arrays.

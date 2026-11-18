@@ -8,7 +8,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from forevertracker_sv import SavedVariablesError, extract_batches, parse_savedvariables, summarize_export
+from forevertracker_sv import SavedVariablesError, extract, parse_savedvariables, summarize_export
 from forevertracker_sv.parser import ParseLimits
 from sqlalchemy.orm import Session
 
@@ -102,17 +102,20 @@ async def upload_export_string(request: Request, db: Session = Depends(get_db), 
         raise HTTPException(status_code=422, detail={"error": "invalid_export", "detail": "not valid JSON"}) from None
     if not isinstance(exported, dict):
         raise HTTPException(status_code=422, detail={"error": "invalid_export", "detail": "expected a JSON object"})
-    return _ingest_export(db, settings, {"ForeverTrackerDB": exported}, data, "export_string")
+    # JSON keys are strings: the addon's encoder writes Lua list positions as "1", "2"...
+    return _ingest_export(db, settings, {"ForeverTrackerDB": exported}, data, "export_string", string_indices=True)
 
 
-def _ingest_export(db: Session, settings: Settings, parsed: dict, data: bytes, source: str) -> dict:
+def _ingest_export(db: Session, settings: Settings, parsed: dict, data: bytes, source: str, *, string_indices: bool = False) -> dict:
     try:
-        summary = summarize_export(parsed)
-        batches = extract_batches(parsed, max_per_batch=min(200, settings.max_observations_per_batch))
+        summary = summarize_export(parsed, string_indices=string_indices)
+        extraction = extract(
+            parsed, max_per_batch=min(200, settings.max_observations_per_batch), string_indices=string_indices
+        )
     except SavedVariablesError as err:
         raise HTTPException(status_code=422, detail={"error": "invalid_savedvariables", "detail": str(err)}) from None
     sha = hashlib.sha256(data).hexdigest()
-    results = [_run(db, settings, b, source, sha, len(data)).as_dict() for b in batches]
+    results = [_run(db, settings, b, source, sha, len(data)).as_dict() for b in extraction.batches]
     return {
         "batches": results,
         "summary": {
@@ -121,6 +124,8 @@ def _ingest_export(db: Session, settings: Settings, parsed: dict, data: bytes, s
             "characters_observed": len(summary.characters_observed),
             "observation_counts": summary.observation_counts,
             "skipped_records": summary.skipped_records,
+            # Records left out because a table in them is both a list and a map (see forevertracker_sv.shapes).
+            "rejected_records": [r.as_dict() for r in extraction.rejected],
             "synthetic": summary.synthetic,
         },
     }

@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from forevertracker_sv.errors import SavedVariablesError
+from forevertracker_sv.shapes import ShapeError, _position, normalize
 
 SV_GLOBAL = "ForeverTrackerDB"
 SV_FORMAT = "forevertracker.savedvariables"
@@ -36,22 +37,45 @@ def observations_digest(installation_id: str, observations: list[dict[str, Any]]
     return h.hexdigest()
 
 
-def _as_list(value: Any) -> list[Any]:
+def _as_list(value: Any, path: str, string_indices: bool) -> list[Any]:
+    """A list of records. A Lua list with holes becomes a list; a table that is not a list is refused."""
     if value is None:
         return []
-    if isinstance(value, list):
-        return value
     if isinstance(value, dict):
-        # A sparse Lua array (e.g. after a manual edit) arrives as a dict of int keys.
-        int_keys = sorted(k for k in value if isinstance(k, int))
-        return [value[k] for k in int_keys]
-    raise SavedVariablesError(f"expected a list, found {type(value).__name__}")
+        positions = {_position(k, string_indices): v for k, v in value.items()}
+        if None in positions:
+            raise ShapeError(path, "is not a list of records")
+        value = [positions[i] for i in sorted(positions)]
+    if not isinstance(value, list):
+        raise SavedVariablesError(f"{path}: expected a list, found {type(value).__name__}")
+    return value
 
 
-def _load_db(parsed: dict[str, Any]) -> dict[str, Any]:
+@dataclass
+class RejectedRecord:
+    """A record left out of every batch, and why. The file it came from is never changed."""
+
+    index: int | None
+    observation_id: str | None
+    reason: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"index": self.index, "observation_id": self.observation_id, "reason": self.reason}
+
+
+@dataclass
+class Extraction:
+    batches: list[dict[str, Any]]
+    rejected: list[RejectedRecord]
+    skipped: int
+
+
+def _load_db(parsed: dict[str, Any], string_indices: bool = False) -> dict[str, Any]:
     db = parsed.get(SV_GLOBAL)
     if not isinstance(db, dict):
         raise SavedVariablesError(f"{SV_GLOBAL} was not found; is this the ForeverTracker.lua SavedVariables file?")
+    if any(not isinstance(k, str) for k in db):
+        raise ShapeError(SV_GLOBAL, "mixes list positions with named fields")
     if db.get("format") != SV_FORMAT:
         raise SavedVariablesError(f"{SV_GLOBAL}.format is not {SV_FORMAT!r}")
     version = db.get("schema_version")
@@ -63,16 +87,40 @@ def _load_db(parsed: dict[str, Any]) -> dict[str, Any]:
     return db
 
 
-def _collect_observations(db: dict[str, Any], include_active_run: bool) -> tuple[list[dict[str, Any]], int]:
-    raw = _as_list(db.get("observations"))
+def _client(db: dict[str, Any], string_indices: bool) -> dict[str, Any]:
+    client = db.get("client")
+    if not isinstance(client, dict):
+        return {}
+    value = normalize(client, f"{SV_GLOBAL}.client", string_indices=string_indices)
+    return value if isinstance(value, dict) else {}
+
+
+def _collect_observations(
+    db: dict[str, Any], include_active_run: bool, string_indices: bool = False
+) -> tuple[list[dict[str, Any]], int, list[RejectedRecord]]:
+    """The newest revision of every record, normalized. Records with an ambiguous table are rejected."""
+    raw: list[tuple[int | None, Any]] = list(
+        enumerate(_as_list(db.get("observations"), f"{SV_GLOBAL}.observations", string_indices), 1)
+    )
     active = db.get("active_run")
     if include_active_run and isinstance(active, dict):
-        raw = [*raw, active]
+        raw.append((None, active))
     latest: dict[str, dict[str, Any]] = {}
     skipped = 0
-    for obs in raw:
+    rejected: list[RejectedRecord] = []
+    for index, obs in raw:
         if not isinstance(obs, dict):
             skipped += 1
+            continue
+        path = f"{SV_GLOBAL}.observations[{index}]" if index is not None else f"{SV_GLOBAL}.active_run"
+        raw_id = obs.get("observation_id")
+        try:
+            obs = normalize(obs, path, string_indices=string_indices)
+        except ShapeError as err:
+            rejected.append(RejectedRecord(index, raw_id if isinstance(raw_id, str) else None, str(err)))
+            continue
+        if not isinstance(obs, dict):
+            rejected.append(RejectedRecord(index, None, f"{path}: is a list, not a record"))
             continue
         oid = obs.get("observation_id")
         rev = obs.get("revision")
@@ -83,25 +131,27 @@ def _collect_observations(db: dict[str, Any], include_active_run: bool) -> tuple
         if current is None or rev > current["revision"]:
             latest[oid] = obs
     ordered = sorted(latest.values(), key=lambda o: (str(o.get("type")), o["observation_id"]))
-    return ordered, skipped
+    return ordered, skipped, rejected
 
 
-def extract_batches(
+def extract(
     parsed: dict[str, Any],
     *,
     max_per_batch: int = 200,
     include_active_run: bool = True,
     created_at: int | None = None,
-) -> list[dict[str, Any]]:
-    """Return canonical batches for every observation in the export.
+    string_indices: bool = False,
+) -> Extraction:
+    """Canonical batches for every usable observation, plus the records left out and why.
 
     Batch IDs are derived from content, so extracting the same file twice yields the same
-    batch IDs, and the server treats a re-upload as a duplicate.
+    batch IDs, and the server treats a re-upload as a duplicate. ``string_indices`` is for the
+    ``/ft export`` JSON string (see :mod:`forevertracker_sv.shapes`).
     """
-    db = _load_db(parsed)
-    observations, _ = _collect_observations(db, include_active_run)
+    db = _load_db(parsed, string_indices)
+    observations, skipped, rejected = _collect_observations(db, include_active_run, string_indices)
     installation_id: str = db["installation_id"]
-    client = db.get("client") if isinstance(db.get("client"), dict) else {}
+    client = _client(db, string_indices)
     addon = {
         "name": "ForeverTracker",
         "version": str(db.get("addon_version", "unknown"))[:32],
@@ -124,7 +174,25 @@ def extract_batches(
                 "observations": chunk,
             }
         )
-    return batches
+    return Extraction(batches=batches, rejected=rejected, skipped=skipped)
+
+
+def extract_batches(
+    parsed: dict[str, Any],
+    *,
+    max_per_batch: int = 200,
+    include_active_run: bool = True,
+    created_at: int | None = None,
+    string_indices: bool = False,
+) -> list[dict[str, Any]]:
+    """The batches of :func:`extract` (records it rejects are left out)."""
+    return extract(
+        parsed,
+        max_per_batch=max_per_batch,
+        include_active_run=include_active_run,
+        created_at=created_at,
+        string_indices=string_indices,
+    ).batches
 
 
 @dataclass
@@ -141,6 +209,7 @@ class ExportSummary:
     earliest: int | None = None
     latest: int | None = None
     skipped_records: int = 0
+    rejected_records: list[RejectedRecord] = field(default_factory=list)
     synthetic: bool = False
 
     def disclosure_lines(self) -> list[str]:
@@ -157,12 +226,14 @@ class ExportSummary:
         ]
         if self.synthetic:
             lines.append("This file is marked SYNTHETIC (development data).")
+        for record in self.rejected_records:
+            lines.append(f"Not sent (unreadable record {record.observation_id or record.index}): {record.reason}")
         return lines
 
 
-def summarize_export(parsed: dict[str, Any]) -> ExportSummary:
-    db = _load_db(parsed)
-    observations, skipped = _collect_observations(db, include_active_run=True)
+def summarize_export(parsed: dict[str, Any], *, string_indices: bool = False) -> ExportSummary:
+    db = _load_db(parsed, string_indices)
+    observations, skipped, rejected = _collect_observations(db, include_active_run=True, string_indices=string_indices)
     counts = Counter(str(o.get("type")) for o in observations)
     names: set[str] = set()
     observers: set[str] = set()
@@ -175,7 +246,8 @@ def summarize_export(parsed: dict[str, Any]) -> ExportSummary:
         if obs.get("type") == "dungeon_run":
             if obs.get("state") == "in_progress":
                 in_progress += 1
-            for member in _as_list(obs.get("roster")):
+            roster = obs.get("roster")
+            for member in roster if isinstance(roster, list) else []:
                 if isinstance(member, dict) and member.get("name"):
                     names.add(_display_name(member))
             timing = obs.get("timing") if isinstance(obs.get("timing"), dict) else {}
@@ -199,6 +271,7 @@ def summarize_export(parsed: dict[str, Any]) -> ExportSummary:
         earliest=min(times) if times else None,
         latest=max(times) if times else None,
         skipped_records=skipped,
+        rejected_records=rejected,
         synthetic=bool(db.get("synthetic", False)),
     )
 

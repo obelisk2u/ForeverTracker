@@ -126,6 +126,58 @@ def test_permanent_rejections_are_not_retried_forever(wow, tmp_path):
     assert again.batches_uploaded == 0 and again.errors == [] and server.received == []  # not sent again
 
 
+def test_one_unreadable_version_does_not_block_later_ones(wow, tmp_path, monkeypatch):
+    from forevertracker_uploader import sync
+
+    root, sv = wow
+    home = tmp_path / "home"
+    cfg, state = Config(wow_paths=[str(root)]), State()
+    sync_once(home, cfg, state, FakeServer(statuses=[503] * 5).uploader())  # r-1 archived, still pending
+    write_sv(sv, [run("r-2")], installation="ft-brokenbroken00")  # the next session's file trips a bug
+
+    real_extract = sync.extract
+
+    def flaky_extract(parsed, **kw):
+        if parsed["ForeverTrackerDB"]["installation_id"] == "ft-brokenbroken00":
+            raise TypeError("'<' not supported between instances of 'str' and 'int'")
+        return real_extract(parsed, **kw)
+
+    monkeypatch.setattr(sync, "extract", flaky_extract)
+    server = FakeServer()
+    report = sync_once(home, cfg, state, server.uploader())  # the bad version is first in this pass
+    assert [o["observation_id"] for b in server.received for o in b["observations"]] == ["r-1"]
+    bad = next(info for info in state.versions.values() if info.get("error"))
+    assert bad["processed"] and "TypeError" in bad["error"] and bad["error_version"] == sync.__version__
+    assert any("could not be read (TypeError" in e for e in report.errors)
+    archived = {p.read_bytes() for p in (home / "archive").glob("*.lua")}
+    assert sv.read_bytes() in archived and len(archived) == 2  # both versions kept as they were
+
+    again = sync_once(home, cfg, state, server.uploader())
+    assert again.errors == [] and len(server.received) == 1  # not retried by the same uploader
+
+    monkeypatch.setattr(sync, "extract", real_extract)
+    monkeypatch.setattr(sync, "__version__", "99.0.0")  # a newer uploader tries it again
+    sync_once(home, cfg, state, server.uploader())
+    assert sorted(o["observation_id"] for b in server.received for o in b["observations"]) == ["r-1", "r-2"]
+    assert not any(info.get("error") for info in state.versions.values())
+
+
+def test_a_record_with_a_mixed_table_is_reported_and_the_rest_uploads(wow, tmp_path):
+    root, sv = wow
+    home = tmp_path / "home"
+    bad = {**run("r-bad"), "flags": {1: "x", "a": True}}  # a Lua table that is both a list and a map
+    write_sv(sv, [bad, run("r-good")])
+    before = sv.read_bytes()
+    cfg, state, server = Config(wow_paths=[str(root)]), State(), FakeServer()
+    report = sync_once(home, cfg, state, server.uploader())
+    assert [o["observation_id"] for b in server.received for o in b["observations"]] == ["r-good"]
+    assert any("record r-bad not sent" in e and "flags: mixes list positions" in e for e in report.errors)
+    (info,) = state.versions.values()
+    assert info["processed"] and "error" not in info
+    assert sv.read_bytes() == before and (home / "archive" / f"{files.sha256(before)}.lua").read_bytes() == before
+    assert any("Not sent" in line for line in disclose(cfg))
+
+
 def test_temporary_failures_are_retried_with_backoff():
     server = FakeServer(statuses=[503, 429])
     delays = []

@@ -155,6 +155,38 @@ def test_savedvariables_upload(client):
     assert bad.status_code == 422
 
 
+def test_a_mixed_lua_table_is_a_controlled_rejection_not_a_server_error(client):
+    from tests.lua_sv import to_savedvariables
+
+    def sv(observations, **extra):
+        db = {
+            "format": "forevertracker.savedvariables", "schema_version": 1, "installation_id": "install-svsv0002",
+            "addon_version": "0.2.10", "synthetic": True, "observations": observations, **extra,
+        }
+        return {"file": ("ForeverTracker.lua", to_savedvariables({"ForeverTrackerDB": db}).encode(), "text/plain")}
+
+    good = run_observation(RunSpec("r-good", observer="u1"))
+    bad = {**run_observation(RunSpec("r-bad", observer="u1", start=T0 + 9000)), "flags": {1: "x", "resumed_after_reload": True}}
+    res = client.post("/api/v1/ingest/savedvariables", files=sv([bad, good]))
+    assert res.status_code == 200, res.text  # used to be a 500 (TypeError while hashing the batch)
+    body = res.json()
+    assert [o["observation_id"] for b in body["batches"] for o in b["observations"]] == ["r-good"]
+    (rejected,) = body["summary"]["rejected_records"]
+    assert rejected["observation_id"] == "r-bad" and "flags: mixes list positions" in rejected["reason"]
+
+    # The same record pasted as an /ft export string: JSON writes the list position as "1".
+    exported = {
+        "format": "forevertracker.savedvariables", "schema_version": 1, "installation_id": "install-svsv0003",
+        "synthetic": True, "observations": [{**bad, "flags": {"1": "x", "resumed_after_reload": True}}],
+    }
+    res = client.post("/api/v1/ingest/export", content=json.dumps(exported), headers={"Content-Type": "application/json"})
+    assert res.status_code == 200 and [r["observation_id"] for r in res.json()["summary"]["rejected_records"]] == ["r-bad"]
+
+    # A record list that is itself ambiguous rejects the file, with the reason.
+    res = client.post("/api/v1/ingest/savedvariables", files=sv({1: good, "extra": True}))
+    assert res.status_code == 422 and "is not a list of records" in res.json()["detail"]["detail"]
+
+
 def test_malformed_and_oversized_uploads(client, monkeypatch):
     assert client.post("/api/v1/ingest/batches", content=b"{not json").status_code == 422
     assert post_batch(client, {"format": "forevertracker.batch"}).status_code == 422

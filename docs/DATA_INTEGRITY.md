@@ -16,7 +16,7 @@ data to poison another character's profile.
 |---|---|---|
 | Transport | HTTPS (Caddy); request body cap 9 MB at the proxy, 2 MB per JSON batch and 8 MB per SavedVariables file at the API | `deploy/Caddyfile`, `app/api/deps.py` |
 | Rate limits | Per installation (120/h) and per client address (300/h), sliding window. Addresses are hashed with a per-process salt and never stored. | `app/integrity/ratelimit.py` |
-| Parsing | SavedVariables are parsed by a data-only grammar (no Lua execution), with limits on size, depth, string length, value count and number range | `packages/savedvariables` |
+| Parsing | SavedVariables are parsed by a data-only grammar (no Lua execution), with limits on size, depth, string length, value count and number range. Tables that are both a list and a map are refused per record ([`OBSERVATION_SCHEMA.md`](OBSERVATION_SCHEMA.md#lua-table-shapes)) | `packages/savedvariables` |
 | Schema | Strict Pydantic models; unknown fields rejected; bounded strings, lists and numbers | `app/schemas/observations.py` |
 | Plausibility | Reject: internally inconsistent records (end before start, unknown unit references, duplicate GUIDs). Quarantine: timestamps before the Forever beta or in the future, runs over 6 h, more concurrent members than the instance allows, levels above the cap, DPS/HPS above 60,000, implausible counts, meter combat time longer than the run, completion without evidence | `app/integrity/sanity.py` |
 | Identity | GUID/class contradictions are quarantined; names alone never merge characters | `app/identity/resolver.py` |
