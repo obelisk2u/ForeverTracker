@@ -252,7 +252,7 @@ local function rosterSide(roster, at, after)
   return out
 end
 
-local METER_KEYS = { "status", "values", "deaths", "durations", "captured_at", "ended_at" }
+local METER_KEYS = { "status", "values", "deaths", "durations", "captured_at", "ended_at", "unmatched_by" }
 
 -- The meter bookkeeping for the sessions on one side of `at`. Each side treats the other side's
 -- sessions as baseline, so they are never captured into it.

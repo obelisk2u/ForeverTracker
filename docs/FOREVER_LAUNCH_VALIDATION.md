@@ -4,9 +4,12 @@
 switch verified collectors on through feature flags. The backend and website do not need rewriting for any outcome;
 each test below names the flag or setting its result controls.
 
-Everything in the addon was built against Blizzard's generated Forever API documentation (build 1.60.1.70009), a
-captured API surface (build 69893) and a mock client. **None of it has run in a live Forever client.** Until these
-tests pass, treat every collector marked *needs validation* as unverified.
+The addon was built against Blizzard's generated Forever API documentation (build 1.60.1.70009), a captured API
+surface (build 69893) and a mock client. Since 2026-11-09 the maintainer has used it on live builds 70862-70938
+(commit messages; `verified_in_game` dates in `backend/app/reconciliation/final_encounters.json`; the runs on
+forevertracker.org), which settled some questions below (final bosses of four dungeons, meter sessions starting as
+the group pulls, no completion event outside the dungeon finder). **The results table below is still empty:** until
+each test is run and recorded, treat every collector marked *needs validation* as unverified.
 
 Background for each test is in [`RESEARCH_FOREVER_API.md`](RESEARCH_FOREVER_API.md).
 
@@ -93,7 +96,7 @@ Run each scenario and note the final `state` of the record after logging out:
 | G. Leave after two bosses and do not return | `left` (after 15 min) | `none` |
 | H. Instance abandon vote passes | `abandoned` | `none` |
 
-Also run `/dump GetInstanceInfo()` inside each dungeon and record the 8th value (map ID) per dungeon. **Add every map ID and the final boss's encounter ID to the curated dungeon catalog** (`dungeons.final_encounter_id`, set with an Alembic data migration) so "final boss killed" can count as *probable* completion.
+Also run `/dump GetInstanceInfo()` inside each dungeon and record the 8th value (map ID) per dungeon. **Add every map ID and the final boss's encounter ID** to `backend/app/reconciliation/final_encounters.json` and `addon/ForeverTracker/Data/Dungeons.lua` (a test keeps the two in sync), with the date in `verified_in_game`, so "final boss killed" counts as *probable* completion. Four of the 22 listed dungeons are verified so far.
 
 | Result | Action |
 |---|---|
@@ -124,9 +127,14 @@ Also run `/dump GetInstanceInfo()` inside each dungeon and record the 8th value 
 2. Expect `status = "observed"`, `sessions` with `status = "captured"`, and per-member `totals` with numeric `value`s. **No** `<secret>`-like strings or missing values where the meter showed numbers.
 3. Upload the file on the website (or `forevertracker-uploader sync`). Expect the run page to show the same totals as Blizzard's meter **Current/Combat** view summed over the run's fights (allow rounding).
 
+4. In the file, check `meter.unmatched_sources` (addon 0.2.11+). It counts player sources the addon could not give to
+   a roster member; it should be 0. Note whether `sourceGUID` was readable for party members after combat, and what
+   name the meter shows when it is not (`First`, `First Surname` or `First-Surname`).
+
 | Result | Action |
 |---|---|
-| Matches the meter | Mark meter values as validated in READINESS. |
+| Matches the meter, `unmatched_sources` 0 | Mark meter values and attribution as validated in READINESS. |
+| `unmatched_sources` above 0 | Capture the meter's sources after a fight (`/dump C_DamageMeter.GetCombatSessionFromID(id, 0)`) and fix the matching in `Roster.refForName`; until then those runs' totals are not complete. |
 | Totals double-count (e.g. pets listed separately and also merged) | Adjust `Meter.captureSession` to skip pet sources; re-test. |
 
 ## 7. Individual deaths can be counted
@@ -203,7 +211,7 @@ Action: as test 6.
 | Meter retry timing | `Config.LIMITS.meter_retry_delays` | How long the addon waits for secrets to clear. |
 | Meter death semantics | Backend env `METER_DEATH_INTERPRETATION` (`entry_per_death` / `total_amount`), then `python -m app.cli rebuild` | How meter death counts are read. Stored raw data is reinterpreted, nothing is re-uploaded. |
 | Matching strictness | Backend env `MATCH_MIN_SHARED_CHARACTERS`, `MATCH_PARTY_GUID_VETO` | How many overlapping characters two records need to merge; whether different party GUIDs block a match. Preview their effect on stored runs with `python -m app.cli rematch`. |
-| Dungeon catalog | `dungeons.final_encounter_id`, `catalog_status = 'curated'` | Enables *probable* completion from final-boss kills. |
+| Dungeon catalog | `backend/app/reconciliation/final_encounters.json` and `addon/ForeverTracker/Data/Dungeons.lua` | Enables *probable* completion from final-boss kills. |
 
 After changing an addon default, bump `## Version` in `ForeverTracker.toc` and `FT.version`, and release the addon.
 After changing a backend interpretation setting, run `python -m app.cli rebuild`: aggregates are recalculated from raw observations.

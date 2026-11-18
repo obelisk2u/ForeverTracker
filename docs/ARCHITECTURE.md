@@ -91,10 +91,13 @@ same canonical run.
 
 ## Reconciliation in one paragraph
 
-An incoming run observation is matched against canonical runs in the same namespace and dungeon whose time window
-overlaps. A match needs no veto (different party GUID, different difficulty, the same boss killed at incompatible
-times) and at least two characters present in both records at overlapping times, or a shared party GUID plus one such
-character. Ambiguous cases become separate runs marked `unresolved`, with the candidates stored. Consolidation
+Matching is recomputed from the evidence whenever a run observation is applied (`app/reconciliation/cluster.py`):
+every accepted observation it could belong with (same namespace and dungeon, overlapping time, a shared character or
+party GUID, transitively) is clustered again from the raw records, so the result does not depend on the order
+uploads, revisions and retries arrive in. A match needs no veto (different party GUID, different difficulty, the same
+boss killed at incompatible times) and at least two characters present in both at overlapping times, or a shared
+party GUID plus one such character. Ambiguous cases become separate runs marked `unresolved`, with the candidates
+stored. Runs keep their public IDs; a run left empty redirects to the run that took its observations. Consolidation
 rebuilds the run from all linked observations: union of presence, clustered boss pulls, deduplicated deaths
 (3-second window), metric candidates and resolution. Details: [`IDENTITY_AND_RECONCILIATION.md`](IDENTITY_AND_RECONCILIATION.md).
 

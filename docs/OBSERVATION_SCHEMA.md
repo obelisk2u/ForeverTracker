@@ -2,7 +2,18 @@
 
 The source of truth is `backend/app/schemas/observations.py`. The generated JSON Schema is
 `schema/observation-batch.v1.schema.json` (`python -m app.cli export-schema`). Unknown fields are rejected; every
-change to the contract increments `schema_version`.
+change to the contract increments `schema_version` (adding an optional field, as 0.2.10 and 0.2.11 did, does not).
+
+How the layers are kept in agreement:
+
+* CI regenerates the JSON Schema and the OpenAPI document and fails if either differs from the committed file, and
+  regenerates the frontend's TypeScript types from the OpenAPI document the same way.
+* `backend/tests/test_contract.py` (no database needed) runs the real addon in the Lua 5.1 harness, parses and
+  extracts its SavedVariables, and checks every batch against both the Pydantic models and the generated JSON
+  Schema, for the current addon (`fixtures/savedvariables/ForeverTracker.current.lua`, regenerated with
+  `python tools/make_fixtures.py`, which `--check` compares), addon 0.1.0's fixture, and edge cases (missing, null
+  and empty values, limits, enums, unknown versions); the two must give the same verdict. Lua's limits
+  (`Config.LIMITS`) and the values the addon writes are checked against the schema's limits and enums.
 
 ## Batch envelope
 
@@ -14,7 +25,7 @@ change to the contract increments `schema_version`.
   "installation_id": "ft-0a1b2c...",   // random, created by the addon; the server stores only an HMAC of it
   "created_at": 1792540800,
   "synthetic": false,                  // true only for simulator data; refused in production
-  "addon": {"name": "ForeverTracker", "version": "0.1.0", "schema_version": 1},
+  "addon": {"name": "ForeverTracker", "version": "0.2.11", "schema_version": 1},
   "client": {"game_version": "1.60.1", "build": "70532", "interface": 16001, "locale": "enUS", "project_id": 1},
   "observations": [ ... ]              // 1..500; each validated independently
 }
@@ -60,6 +71,7 @@ never guessed at; such roster entries stay unidentified.
   "meter": {
     "status": "observed",                          // observed | partial | secret | unavailable | disabled
     "combat_seconds": 250.0,                       // sum of captured session durations
+    "unmatched_sources": 0,                        // 0.2.11+: player sources matched to no one (see below)
     "sessions": [{"session_id": 3, "duration_sec": 90.0, "status": "captured", "captured_at": 1792000400}],
     "totals": [{"unit_ref": "u2", "guid": "Player-4620-0000A2", "metrics": {
       "damage_done": {"value": 89000, "status": "observed", "sessions": 3},
@@ -80,9 +92,21 @@ All timestamps are **server epoch seconds** (`GetServerTime()`), so different ob
 `local_clock_offset` records the gap between the local and server clocks.
 
 Meter metric keys: `damage_done`, `healing_done`, `absorbs`, `interrupts`, `dispels`, `damage_taken`,
-`avoidable_damage_taken`, `deaths`. Per-value status is `observed`, `partial` (some sessions unreadable), `secret` or
-`unavailable`. **A value of `null` means unknown; it is never replaced by 0.** A member absent from every captured
-session's sources has an observed 0 for that metric, because the meter covered them and they contributed nothing.
+`avoidable_damage_taken`, `deaths`. Per-value status is `observed`, `partial` (some sessions unreadable, or some
+player's numbers not attributed), `secret` or `unavailable`. **A value of `null` means unknown; it is never replaced
+by 0.**
+
+The addon gives a meter source to a roster member by GUID, else by an exact full name (`First Surname` or
+`First-Surname`), else by a first name that only one member has; it never guesses between two members who share a
+first name. Player sources it cannot attribute are counted in `meter.unmatched_sources` (from 0.2.11; pets and
+other non-player sources are left out). A member absent from every captured session's sources gets 0: the server
+treats that as an observed 0 only when `unmatched_sources` is 0. With unattributed sources, or from an older addon
+that does not report the count, a member with no damage, healing or damage taken while others have numbers is
+**unknown** (published as unavailable), and with unattributed sources no total is complete.
+
+Each boss attempt in `encounters[]` carries `meter` (from 0.2.0): the summed totals of the sessions overlapping it,
+`combat_seconds`, `sessions`, and `status` (`partial` when the observer died during it, or a player's numbers in it
+could not be attributed). Each `meter.sessions[]` entry names the `encounter_id` it was matched to.
 
 ## `character_snapshot`
 

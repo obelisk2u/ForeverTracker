@@ -7,9 +7,9 @@ deaths, totals from Blizzard's built-in damage meter, and equipment. Uploads fro
 history per run and per character. Anyone can look up a character they grouped with, even if that character never
 installed the addon.
 
-> **Status: pre-launch.** Everything except the live game integration is implemented and tested with simulated data.
-> The addon has not yet run in a live Forever client; see [`docs/READINESS.md`](docs/READINESS.md) and
-> [`docs/FOREVER_LAUNCH_VALIDATION.md`](docs/FOREVER_LAUNCH_VALIDATION.md).
+> **Status: early live use.** The addon has recorded real runs on live Forever builds since 2026-11-09, and the site
+> shows them, but the launch-day validation has not been run and recorded systematically; see
+> [`docs/READINESS.md`](docs/READINESS.md) and [`docs/FOREVER_LAUNCH_VALIDATION.md`](docs/FOREVER_LAUNCH_VALIDATION.md).
 
 ## Quick start (development)
 
@@ -27,11 +27,12 @@ To try the upload path, send the sample SavedVariables file to the API:
 ## Tests
 
 ```sh
-python -m venv .venv && . .venv/Scripts/activate   # (bin/activate on Linux/macOS)
+python -m venv .venv && . .venv/Scripts/activate   # (bin/activate on Linux/macOS); Python 3.12
 pip install -e packages/savedvariables -e "backend[dev]" -e tools/simulator -e "uploader[dev]" lupa
 docker compose up -d db                             # tests use the forevertracker_test database on :5433
-pytest packages/savedvariables/tests addon/tests uploader/tests backend/tests
-cd frontend && npm ci && npm test && npm run build
+pytest packages/savedvariables/tests addon/tests uploader/tests backend/tests   # TRUNCATES every table in TEST_DATABASE_URL's database
+python tools/make_fixtures.py --check               # the current-addon fixture matches what the addon writes
+cd frontend && npm ci && npm test && npm run build  # Node 22
 ```
 
 The addon tests run the real addon Lua in a Lua 5.1 VM (`lupa`) against a mock of the Forever client.

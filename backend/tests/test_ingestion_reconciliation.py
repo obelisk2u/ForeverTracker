@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.models import (
     Character,
     CharacterIdentityEvidence,
+    CharacterStats,
     DungeonRun,
     EquipmentSnapshot,
     IdentityClaim,
@@ -446,13 +447,18 @@ def test_a_run_with_every_fight_read_at_the_pull_has_no_totals(db, settings):
     assert metric(db, run.id, tank.id, "deaths").value == 1, "deaths still come from the death events"
 
 
-def test_a_run_with_some_fights_read_at_the_pull_keeps_its_totals(db, settings):
+def test_a_run_with_some_fights_read_at_the_pull_keeps_its_totals_but_not_as_complete(db, settings):
     obs = run_observation(RunSpec("r-1", observer="u1"))
     obs["meter"]["sessions"] = _sessions(lost=5, read=1)
     ingest(db, settings, batch("install-aaaa1111", [obs]))
     (run,) = runs(db)
-    damage = metric(db, run.id, character(db, "Mah Beardlong").id, "damage_done")
-    assert (damage.value, damage.status, damage.coverage) == (301_000.0, "observed", "complete_session")
+    tank = character(db, "Mah Beardlong")
+    damage = metric(db, run.id, tank.id, "damage_done")
+    # The total is still shown, but fights are missing from it: it is not complete, so profile statistics
+    # (which use complete coverage only) leave it out.
+    assert (damage.value, damage.status, damage.coverage) == (301_000.0, "incomplete", "partial_session")
+    stats = db.get(CharacterStats, tank.id).stats
+    assert stats["dps_median"]["value"] is None and stats["dps_median"]["exclusion_reasons"] == {"incomplete_coverage": 1}
 
 
 def test_short_fights_recorded_by_addon_0_2_10_are_trusted(db, settings):
@@ -486,3 +492,39 @@ def test_game_evidence_outranks_the_players_mark(db, settings):
     ingest(db, settings, batch("install-aaaa1111", [obs]))
     (run,) = runs(db)
     assert (run.outcome, run.completion_confidence) == ("completed", "probable")
+
+
+def _only_the_mage_has_numbers() -> dict[str, dict[str, float]]:
+    # As the addon writes it: every member gets every metric, 0 when the meter never names them.
+    zero = {"damage_done": 0.0, "healing_done": 0.0, "damage_taken": 0.0, "interrupts": 0.0}
+    return {m.ref: ({**zero, "damage_done": 9000.0} if m.ref == "u1" else dict(zero)) for m in party()}
+
+
+def test_meter_zeros_count_only_when_every_player_was_attributed(db, settings):
+    # Addon 0.2.11 reports how many player sources matched no one: 0 means a member the meter never
+    # names did nothing.
+    attributed = run_observation(RunSpec("r-1", observer="u1", meter=_only_the_mage_has_numbers()))
+    attributed["meter"]["unmatched_sources"] = 0
+    ingest(db, settings, batch("install-aaaa1111", [attributed]))
+    run = runs(db)[-1]
+    asha = metric(db, run.id, character(db, "Asha Brightvale").id, "damage_done")
+    assert (asha.value, asha.status) == (0.0, "observed")
+
+    # One player source matched no one: totals are not complete, and an all-zero member is unknown, not 0.
+    unmatched = run_observation(RunSpec("r-2", observer="u1", start=T0 + 7200, meter=_only_the_mage_has_numbers()))
+    unmatched["meter"]["unmatched_sources"] = 1
+    ingest(db, settings, batch("install-aaaa1111", [unmatched]))
+    run = runs(db)[-1]
+    mage = metric(db, run.id, character(db, "Autumn Redleaf").id, "damage_done")
+    asha = metric(db, run.id, character(db, "Asha Brightvale").id, "damage_done")
+    assert (mage.value, mage.status, mage.coverage) == (9000.0, "incomplete", "partial_session")
+    assert (asha.value, asha.status) == (None, "unavailable")
+
+    # An older addon does not say: a member with nothing at all while others have numbers is unknown.
+    old = run_observation(RunSpec("r-3", observer="u1", start=T0 + 14400, meter=_only_the_mage_has_numbers()))
+    ingest(db, settings, batch("install-aaaa1111", [old]))
+    run = runs(db)[-1]
+    asha = metric(db, run.id, character(db, "Asha Brightvale").id, "damage_done")
+    mage = metric(db, run.id, character(db, "Autumn Redleaf").id, "damage_done")
+    assert (asha.value, asha.status) == (None, "unavailable")
+    assert (mage.value, mage.status) == (9000.0, "observed")

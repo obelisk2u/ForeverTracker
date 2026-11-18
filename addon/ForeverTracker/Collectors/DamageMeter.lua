@@ -126,6 +126,15 @@ function Meter.reset(run, state)
   end
 end
 
+-- A meter source the group should account for: a player (pets, guardians and NPC allies are not
+-- party members and are left out, as before).
+local function isPlayerSource(guid, classFile)
+  if guid then
+    return string.find(guid, "^Player%-") ~= nil
+  end
+  return classFile ~= nil
+end
+
 local function resolveRef(run, state, guid, name)
   if guid then
     local ref = FT.Roster.refForGuid(state, guid)
@@ -160,7 +169,8 @@ function Meter.captureSession(run, state, session)
           src = Safe.table(src)
           if src then
             local guid = Safe.str(src.sourceGUID, 96)
-            local name, nameReason = Safe.str(src.name, 48)
+            local name, nameReason = Safe.str(src.name, 100)
+            local classFile = Safe.str(src.classFilename, 24)
             local total, totalReason = Safe.num(src.totalAmount)
             if totalReason == "secret" or nameReason == "secret" then
               anySecret = true
@@ -182,8 +192,8 @@ function Meter.captureSession(run, state, session)
                     }
                   end
                 end
-              elseif not ref then
-                unmatched = unmatched + 1
+              elseif not ref and isPlayerSource(guid, classFile) then
+                unmatched = unmatched + 1 -- a player whose numbers cannot be given to anyone in the roster
               end
             end
           end
@@ -205,7 +215,8 @@ function Meter.captureSession(run, state, session)
   m.deaths[session.id] = deaths
   m.durations[session.id] = session.duration
   m.captured_at[session.id] = FT.Util.now()
-  m.unmatched = (m.unmatched or 0) + unmatched
+  m.unmatched_by = m.unmatched_by or {}
+  m.unmatched_by[session.id] = unmatched -- per session, so reading a session again does not count twice
   return "captured"
 end
 
@@ -309,9 +320,10 @@ local function rebuildAttempts(run, m, ids)
     local i = m.status[id] == "captured" and Meter.attemptFor(run, m, id)
     if i then
       sessionAttempt[id] = i
-      local a = attempts[i] or { sessions = 0, combat = 0, values = {} }
+      local a = attempts[i] or { sessions = 0, combat = 0, values = {}, unmatched = 0 }
       attempts[i] = a
       a.sessions = a.sessions + 1
+      a.unmatched = a.unmatched + ((m.unmatched_by and m.unmatched_by[id]) or 0)
       a.combat = a.combat + (m.durations[id] or 0)
       for ref, v in pairs(m.values[id] or {}) do
         local sums = a.values[ref] or {}
@@ -344,7 +356,8 @@ local function rebuildAttempts(run, m, ids)
         totals[#totals + 1] = { unit_ref = entry.ref, metrics = metrics }
       end
       e.meter = {
-        status = died and "partial" or "observed",
+        -- partial: the observer died during the fight, or a player's numbers could not be attributed
+        status = (died or a.unmatched > 0) and "partial" or "observed",
         observer_died = died or nil,
         combat_seconds = a.combat,
         sessions = a.sessions,
@@ -368,13 +381,14 @@ function Meter.rebuild(run, state)
   end
   table.sort(ids)
   local sessionAttempt = rebuildAttempts(run, m, ids)
-  local combat = 0
+  local combat, unmatched = 0, 0
   for _, id in ipairs(ids) do
     local status = m.status[id]
     seen = seen + 1
     if status == "captured" then
       captured = captured + 1
       combat = combat + (m.durations[id] or 0)
+      unmatched = unmatched + ((m.unmatched_by and m.unmatched_by[id]) or 0)
     elseif status == "secret" then
       secret = secret + 1
     end
@@ -390,6 +404,9 @@ function Meter.rebuild(run, state)
   end
   meter.sessions = sessions
   meter.combat_seconds = combat
+  -- Player sources the meter listed that matched no one in the roster. Zero means every player's numbers
+  -- were attributed, so a member the meter never names really did nothing (an observed 0).
+  meter.unmatched_sources = unmatched
   if seen == 0 then
     meter.status = "observed"
   elseif captured == seen and not m.was_reset then
@@ -421,7 +438,8 @@ function Meter.rebuild(run, state)
             sum = sum + v[metric]
           end
         end
-        metrics[metric] = { value = sum, status = (captured == seen) and "observed" or "partial", sessions = captured }
+        local complete = captured == seen and unmatched == 0
+        metrics[metric] = { value = sum, status = complete and "observed" or "partial", sessions = captured }
       end
     end
     totals[#totals + 1] = {

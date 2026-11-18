@@ -105,10 +105,13 @@ idempotent.
 Candidates per (participant, metric):
 
 * each observer's native-meter totals: coverage `complete_session` only if every session the observer saw was
-  captured and the observer was present for at least 95% of the run;
+  captured in full, every player's numbers were attributed (`unmatched_sources` is 0), and the observer was present
+  for at least 95% of the run. Otherwise the values are kept but `incomplete`, so profile statistics leave them out;
   * runs recorded before addon 0.2.10 (no `addon_version`): a session "captured" at 1 s or less was read as the group
-    pulled and never again. When every session the observer captured was read that way, their totals are
-    `unavailable` (shown as —) rather than near-zero numbers;
+    pulled and never again. Such a run is not complete; when every session the observer captured was read that way,
+    its totals are `unavailable` (shown as —) rather than near-zero numbers;
+  * a member with no damage, healing or damage taken while others have numbers is `unavailable`, not 0, unless the
+    addon reported every player source attributed (see [`OBSERVATION_SCHEMA.md`](OBSERVATION_SCHEMA.md));
 * for deaths, also the deduplicated death events: complete if observers with death tracking covered at least 95% of
   the participant's presence.
 

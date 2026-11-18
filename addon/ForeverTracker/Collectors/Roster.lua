@@ -172,14 +172,24 @@ function Roster.refForGuid(state, guid)
   return guid and state.refs and state.refs["g:" .. guid] or nil
 end
 
+-- The roster entry a name (as the damage meter shows it) belongs to, or nil. A full name ("First Surname"
+-- or "First-Surname") must match exactly; a bare first name only when one member has it. Two members can
+-- share a first name, and guessing would give one of them the other's numbers.
 function Roster.refForName(run, name)
   if not name then
     return nil
   end
+  local byFirst, firstCount = nil, 0
   for _, entry in ipairs(run.roster) do
-    if entry.name == name then
+    if entry.name and entry.surname and (name == entry.name .. " " .. entry.surname or name == entry.name .. "-" .. entry.surname) then
       return entry.ref
     end
+    if entry.name == name then
+      byFirst, firstCount = entry.ref, firstCount + 1
+    end
+  end
+  if firstCount == 1 then
+    return byFirst
   end
   return nil
 end

@@ -335,14 +335,20 @@ local function buildSession(s, typeId)
   for _, name in ipairs(names) do
     local vals = s.values[name]
     local u = M.unitByName(name)
-    local guid = u and u.guid or ("Pet-0-" .. name)
+    -- opts.strangers[name] = a player GUID: a player in the meter who is not in the group.
+    local stranger = s.opts and s.opts.strangers and s.opts.strangers[name]
+    local realGuid = (u and u.guid) or stranger or ("Pet-0-" .. name)
+    -- M.meter.hideGuids: the meter gives no readable GUID; M.meter.fullNames: it shows "First Surname".
+    local guid = not M.meter.hideGuids and realGuid or nil
+    local class = (u and u.class) or (stranger and "MAGE") or ""
+    local shown = (M.meter.fullNames and u and u.surname) and (name .. " " .. u.surname) or name
     local amount = metric and vals[metric]
     if metric == "deaths" then
       for _ = 1, (vals.deaths or 0) do
         sources[#sources + 1] = {
-          sourceGUID = secret and M.secret(guid) or guid,
-          name = secret and M.secret(name) or name,
-          classFilename = u and u.class or "",
+          sourceGUID = (secret and guid) and M.secret(guid) or guid,
+          name = secret and M.secret(shown) or shown,
+          classFilename = class,
           totalAmount = secret and M.secret(1) or 1,
           amountPerSecond = 0,
           deathRecapID = 7000 + #sources,
@@ -354,9 +360,9 @@ local function buildSession(s, typeId)
       total = total + amount
       local perSecond = amount / math.max(1, s.duration)
       sources[#sources + 1] = {
-        sourceGUID = secretName and M.secret(guid) or guid,
-        name = secretName and M.secret(name) or name,
-        classFilename = u and u.class or "",
+        sourceGUID = (secretName and guid) and M.secret(guid) or guid,
+        name = secretName and M.secret(shown) or shown,
+        classFilename = class,
         totalAmount = secret and M.secret(amount) or amount,
         amountPerSecond = secret and M.secret(perSecond) or perSecond,
         deathRecapID = 0,

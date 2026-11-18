@@ -22,6 +22,19 @@ def _empty_list_as_dict(value: Any) -> Any:
     return {} if value == [] else value
 
 
+def _or_empty_array(schema: dict[str, Any]) -> None:
+    """JSON Schema for a map that may arrive as ``[]``: an empty Lua table has no shape, and the
+    SavedVariables parser (and so the uploader) writes it as an empty array, which the model reads as {}."""
+    keep = {k: schema.pop(k) for k in ("title", "description", "default") if k in schema}
+    original = dict(schema)
+    schema.clear()
+    schema.update(keep)
+    schema["anyOf"] = [original, {"type": "array", "maxItems": 0}]
+
+
+EmptyTableIsMap = Field(json_schema_extra=_or_empty_array)
+
+
 def _dict_as_list(value: Any) -> Any:
     if isinstance(value, dict) and all(isinstance(k, int) for k in value):
         return [value[k] for k in sorted(value)]
@@ -131,6 +144,7 @@ class TimelineEvent(Strict):
         dict[Annotated[str, Field(max_length=32, pattern=r"^[a-z0-9_]+$")], DetailValue],
         BeforeValidator(_empty_list_as_dict),
         Field(max_length=12),
+        EmptyTableIsMap,
     ] = Field(default_factory=dict)
 
 
@@ -159,7 +173,7 @@ class MeterUnitTotals(Strict):
     guid: Guid | None = None
     name: NameStr | None = None
     class_file: ClassFile | None = None
-    metrics: Annotated[dict[MeterMetric, MeterValue], BeforeValidator(_empty_list_as_dict)] = Field(
+    metrics: Annotated[dict[MeterMetric, MeterValue], BeforeValidator(_empty_list_as_dict), EmptyTableIsMap] = Field(
         default_factory=dict
     )
 
@@ -183,14 +197,16 @@ class MeterDeathEntry(Strict):
 
 class EncounterMeterTotals(Strict):
     unit_ref: UnitRef
-    metrics: Annotated[dict[MeterMetric, Amount], BeforeValidator(_empty_list_as_dict)] = Field(default_factory=dict)
+    metrics: Annotated[dict[MeterMetric, Amount], BeforeValidator(_empty_list_as_dict), EmptyTableIsMap] = Field(
+        default_factory=dict
+    )
 
 
 class EncounterMeter(Strict):
     """The damage meter for one boss attempt: the sessions whose time span overlaps it.
 
     "partial" means the observer died during the attempt, so their session (and these totals)
-    stop there.
+    stop there, or (from addon 0.2.11) a player's numbers in it could not be attributed.
     """
 
     status: Literal["observed", "partial"]
@@ -215,6 +231,9 @@ class MeterData(Strict):
     status: Literal["observed", "partial", "secret", "unavailable", "disabled"]
     reason: ShortText | None = None
     combat_seconds: float | None = Field(default=None, ge=0, le=86_400)
+    # From addon 0.2.11: player sources in the captured sessions that matched no roster entry. 0 means every
+    # player's numbers were attributed, so a member the meter never names did nothing; absent means unknown.
+    unmatched_sources: int | None = Field(default=None, ge=0, le=100_000)
     sessions: _list(400, MeterSession) = Field(default_factory=list)
     totals: _list(40, MeterUnitTotals) = Field(default_factory=list)
     death_entries: _list(500, MeterDeathEntry) = Field(default_factory=list)
@@ -250,13 +269,14 @@ class DungeonRunObservation(_ObservationBase):
     encounters: _list(100, Encounter) = Field(default_factory=list)
     deaths: _list(500, Death) = Field(default_factory=list)
     meter: MeterData | None = None
-    collection: Annotated[dict[CollectorName, CollectorStatus], BeforeValidator(_empty_list_as_dict)] = Field(
+    collection: Annotated[dict[CollectorName, CollectorStatus], BeforeValidator(_empty_list_as_dict), EmptyTableIsMap] = Field(
         default_factory=dict
     )
     flags: Annotated[
         dict[Annotated[str, Field(max_length=32, pattern=r"^[a-z0-9_]+$")], bool],
         BeforeValidator(_empty_list_as_dict),
         Field(max_length=16),
+        EmptyTableIsMap,
     ] = Field(default_factory=dict)
 
 
@@ -350,7 +370,7 @@ class ObservationBatchEnvelope(Strict):
     created_at: Epoch | None = None
     synthetic: bool = False
     addon: AddonInfo = Field(default_factory=AddonInfo)
-    client: Annotated[ClientInfo, BeforeValidator(_empty_list_as_dict)] = Field(default_factory=ClientInfo)
+    client: Annotated[ClientInfo, BeforeValidator(_empty_list_as_dict), EmptyTableIsMap] = Field(default_factory=ClientInfo)
     observations: Annotated[list[dict[str, Any]], BeforeValidator(_dict_as_list), Field(min_length=1)]
 
 

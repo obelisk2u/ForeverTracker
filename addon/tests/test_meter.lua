@@ -35,6 +35,48 @@ describe("native damage meter", function()
     eq(run.collection.meter, "active")
   end)
 
+  it("attributes by full name when the meter shows no GUID, and says every player was attributed", function()
+    boot()
+    Mock.meter.hideGuids, Mock.meter.fullNames = true, true
+    Mock.enterDungeon({})
+    fight(30, { Autumn = { damage_done = 9000 }, Mah = { damage_done = 4000 }, Wolf = { damage_done = 500 } }) -- Wolf: a pet
+    local run = activeRun()
+    eq(totals(run, "Autumn").damage_done.value, 9000)
+    eq(totals(run, "Mah").damage_done.value, 4000)
+    eq(run.meter.unmatched_sources, 0, "a pet is not a party member and not a loss")
+    eq(totals(run, "Asha").damage_done.status, "observed", "attribution complete: a member the meter never names did nothing")
+  end)
+
+  it("never gives one member another's numbers when two share a first name", function()
+    local party = DefaultParty()
+    party[5].name, party[5].surname = "Asha", "Dunmore" -- Asha Brightvale and Asha Dunmore
+    boot(party)
+    Mock.meter.hideGuids = true -- first names only, no GUID
+    Mock.enterDungeon({})
+    fight(30, { Autumn = { damage_done = 9000 }, Asha = { damage_done = 7000 } })
+    local run = activeRun()
+    eq(run.meter.unmatched_sources, 1)
+    eq(totals(run, "Autumn").damage_done.value, 9000)
+    eq(totals(run, "Autumn").damage_done.status, "partial", "someone's numbers are unattributed, so no total is complete")
+    for _, t in ipairs(run.meter.totals) do
+      if t.name == "Asha" then
+        eq(t.metrics.damage_done.value, 0, "neither Asha is credited with the other's damage")
+      end
+    end
+  end)
+
+  it("counts a player the roster does not know, and re-reading a fight does not count it twice", function()
+    boot()
+    Mock.enterDungeon({})
+    local id = fight(30, { Autumn = { damage_done = 9000 }, Stranger = { damage_done = 3000 } }, { strangers = { Stranger = "Player-4620-00FFFF" } })
+    Mock.meter.sessions[id].duration = 40 -- the session grew: it is read again
+    Mock.fire("DAMAGE_METER_COMBAT_SESSION_UPDATED", 0, id)
+    Mock.advance(12)
+    local run = activeRun()
+    eq(run.meter.unmatched_sources, 1)
+    eq(totals(run, "Mah").damage_done.status, "partial")
+  end)
+
   it("reads a fight again when it was first read as the group pulled", function()
     boot()
     Mock.enterDungeon({ name = "Deadmines", mapId = 36 })

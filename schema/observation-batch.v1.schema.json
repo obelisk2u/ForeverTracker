@@ -418,30 +418,38 @@
           "title": "Client Build"
         },
         "collection": {
-          "additionalProperties": {
-            "enum": [
-              "active",
-              "partial",
-              "unavailable",
-              "disabled",
-              "error"
-            ],
-            "type": "string"
-          },
-          "propertyNames": {
-            "enum": [
-              "identity",
-              "roster",
-              "encounters",
-              "deaths_unit_state",
-              "deaths_unit_died",
-              "meter",
-              "inspect",
-              "talents"
-            ]
-          },
-          "title": "Collection",
-          "type": "object"
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "enum": [
+                  "active",
+                  "partial",
+                  "unavailable",
+                  "disabled",
+                  "error"
+                ],
+                "type": "string"
+              },
+              "propertyNames": {
+                "enum": [
+                  "identity",
+                  "roster",
+                  "encounters",
+                  "deaths_unit_state",
+                  "deaths_unit_died",
+                  "meter",
+                  "inspect",
+                  "talents"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "maxItems": 0,
+              "type": "array"
+            }
+          ],
+          "title": "Collection"
         },
         "completion": {
           "$ref": "#/$defs/Completion"
@@ -463,17 +471,25 @@
           "type": "array"
         },
         "flags": {
-          "maxLength": 16,
-          "patternProperties": {
-            "^[a-z0-9_]+$": {
-              "type": "boolean"
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "patternProperties": {
+                "^[a-z0-9_]+$": {
+                  "type": "boolean"
+                }
+              },
+              "propertyNames": {
+                "maxLength": 32
+              },
+              "type": "object"
+            },
+            {
+              "maxItems": 0,
+              "type": "array"
             }
-          },
-          "propertyNames": {
-            "maxLength": 32
-          },
-          "title": "Flags",
-          "type": "object"
+          ],
+          "title": "Flags"
         },
         "instance": {
           "$ref": "#/$defs/InstanceInfo"
@@ -692,7 +708,7 @@
     },
     "EncounterMeter": {
       "additionalProperties": false,
-      "description": "The damage meter for one boss attempt: the sessions whose time span overlaps it.\n\n\"partial\" means the observer died during the attempt, so their session (and these totals)\nstop there.",
+      "description": "The damage meter for one boss attempt: the sessions whose time span overlaps it.\n\n\"partial\" means the observer died during the attempt, so their session (and these totals)\nstop there, or (from addon 0.2.11) a player's numbers in it could not be attributed.",
       "properties": {
         "combat_seconds": {
           "anyOf": [
@@ -747,25 +763,33 @@
       "additionalProperties": false,
       "properties": {
         "metrics": {
-          "additionalProperties": {
-            "maximum": 10000000000000.0,
-            "minimum": 0,
-            "type": "number"
-          },
-          "propertyNames": {
-            "enum": [
-              "damage_done",
-              "healing_done",
-              "absorbs",
-              "interrupts",
-              "dispels",
-              "damage_taken",
-              "avoidable_damage_taken",
-              "deaths"
-            ]
-          },
-          "title": "Metrics",
-          "type": "object"
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "maximum": 10000000000000.0,
+                "minimum": 0,
+                "type": "number"
+              },
+              "propertyNames": {
+                "enum": [
+                  "damage_done",
+                  "healing_done",
+                  "absorbs",
+                  "interrupts",
+                  "dispels",
+                  "damage_taken",
+                  "avoidable_damage_taken",
+                  "deaths"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "maxItems": 0,
+              "type": "array"
+            }
+          ],
+          "title": "Metrics"
         },
         "unit_ref": {
           "maxLength": 16,
@@ -1110,6 +1134,20 @@
           "maxItems": 40,
           "title": "Totals",
           "type": "array"
+        },
+        "unmatched_sources": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unmatched Sources"
         }
       },
       "required": [
@@ -1309,23 +1347,31 @@
           "title": "Guid"
         },
         "metrics": {
-          "additionalProperties": {
-            "$ref": "#/$defs/MeterValue"
-          },
-          "propertyNames": {
-            "enum": [
-              "damage_done",
-              "healing_done",
-              "absorbs",
-              "interrupts",
-              "dispels",
-              "damage_taken",
-              "avoidable_damage_taken",
-              "deaths"
-            ]
-          },
-          "title": "Metrics",
-          "type": "object"
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/MeterValue"
+              },
+              "propertyNames": {
+                "enum": [
+                  "damage_done",
+                  "healing_done",
+                  "absorbs",
+                  "interrupts",
+                  "dispels",
+                  "damage_taken",
+                  "avoidable_damage_taken",
+                  "deaths"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "maxItems": 0,
+              "type": "array"
+            }
+          ],
+          "title": "Metrics"
         },
         "name": {
           "anyOf": [
@@ -1975,33 +2021,41 @@
           "type": "integer"
         },
         "detail": {
-          "maxLength": 12,
-          "patternProperties": {
-            "^[a-z0-9_]+$": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "null"
+          "anyOf": [
+            {
+              "maxLength": 12,
+              "patternProperties": {
+                "^[a-z0-9_]+$": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
-              ]
+              },
+              "propertyNames": {
+                "maxLength": 32
+              },
+              "type": "object"
+            },
+            {
+              "maxItems": 0,
+              "type": "array"
             }
-          },
-          "propertyNames": {
-            "maxLength": 32
-          },
-          "title": "Detail",
-          "type": "object"
+          ],
+          "title": "Detail"
         },
         "kind": {
           "enum": [
@@ -2050,7 +2104,15 @@
       "type": "string"
     },
     "client": {
-      "$ref": "#/$defs/ClientInfo"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ClientInfo"
+        },
+        {
+          "maxItems": 0,
+          "type": "array"
+        }
+      ]
     },
     "created_at": {
       "anyOf": [

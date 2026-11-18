@@ -114,6 +114,31 @@ def lost_sessions(obs: DungeonRunObservation) -> int:
     )
 
 
+AMOUNT_METRICS = ("damage_done", "healing_done", "damage_taken")
+
+
+def _unattributed(obs: DungeonRunObservation, guid_to_ref: dict[str, str]) -> set[str]:
+    """Members whose meter numbers cannot be trusted to be zero.
+
+    A member the meter never names gets 0 for everything. That is a real 0 only when the addon reports that
+    every player source was attributed (``unmatched_sources == 0``, addon 0.2.11+). Otherwise (an unknown
+    count, or some player numbers left unattributed) a member with nothing at all, while others have
+    numbers, may be someone the meter listed under a name or GUID the addon could not match.
+    """
+    meter = obs.meter
+    if meter is None or meter.unmatched_sources == 0:
+        return set()
+
+    def amount(totals, metric):
+        mv = totals.metrics.get(metric)
+        return mv.value if mv is not None and mv.value is not None else 0.0
+
+    rows = [(t.unit_ref or guid_to_ref.get(t.guid or ""), t) for t in meter.totals]
+    if not any(amount(t, "damage_done") > 0 for _, t in rows):
+        return set()  # no one has numbers: nothing to tell apart
+    return {ref for ref, t in rows if ref and all(amount(t, m) == 0 for m in AMOUNT_METRICS)}
+
+
 def meter_candidates(
     obs: DungeonRunObservation,
     *,
@@ -134,11 +159,20 @@ def meter_candidates(
     lost = lost_sessions(obs)
     nothing_read = lost > 0 and lost == captured
     session_ratio = captured / seen if seen else 0.0
+    # Complete only when every fight was read in full (no pull-read fight; addons before 0.2.10) and every
+    # player's numbers were attributed: otherwise the totals are kept but are not complete.
+    unattributed_sources = meter.unmatched_sources or 0
     complete = (
-        meter.status == "observed" and seen > 0 and captured == seen and observer_coverage_ratio >= COMPLETE_COVERAGE_RATIO
+        meter.status == "observed"
+        and seen > 0
+        and captured == seen
+        and lost == 0
+        and unattributed_sources == 0
+        and observer_coverage_ratio >= COMPLETE_COVERAGE_RATIO
     )
     coverage = "complete_session" if complete else "partial_session"
     guid_to_ref = {m.guid: m.ref for m in obs.roster if m.guid}
+    unattributed = _unattributed(obs, guid_to_ref)
 
     death_counts: dict[str, int] = {}
     for entry in meter.death_entries:
@@ -153,7 +187,7 @@ def meter_candidates(
         if character_id is None:
             continue
         for metric, mv in totals.metrics.items():
-            if nothing_read:
+            if nothing_read or ref in unattributed:
                 status, value = "unavailable", None
             elif mv.status == "observed":
                 status = "observed" if complete else "incomplete"
@@ -165,6 +199,10 @@ def meter_candidates(
             details = {"sessions": mv.sessions, "sessions_seen": seen, "sessions_captured": captured, "raw_status": mv.status}
             if lost:
                 details["sessions_lost"] = lost
+            if unattributed_sources:
+                details["unattributed_sources"] = unattributed_sources
+            if ref in unattributed:
+                details["reason"] = "not_attributed"
             if metric == "deaths" and status != "unavailable":
                 details["total_amount"] = mv.value
                 details["death_entries"] = death_counts.get(ref, 0)

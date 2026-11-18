@@ -1,7 +1,10 @@
 # World of Warcraft: Forever — Addon API Research
 
 Status: **pre-launch research**, compiled 2026-10-26 while the Forever beta is offline.
-Nothing in this document was executed against a running Forever client by the ForeverTracker team.
+Nothing in this document was executed against a running Forever client by the ForeverTracker team at the time.
+Later live use (from 2026-11-09, builds 70862-70938) is summarized in
+[`FOREVER_LAUNCH_VALIDATION.md`](FOREVER_LAUNCH_VALIDATION.md); one value seen there differs from section 3:
+the addon recorded `project_id` 18 on build 70888, not 1.
 Every capability is classified by the strength of its evidence (section 2), and every
 "requires live validation" item has a matching test in
 [`FOREVER_LAUNCH_VALIDATION.md`](FOREVER_LAUNCH_VALIDATION.md).

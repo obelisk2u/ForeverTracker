@@ -9,7 +9,12 @@ Each stored aggregate records `definitions_version`. Changing a definition means
 * **Unit of analysis**: a character's participation in a canonical (reconciled) run. Duplicate observations of one
   run never count twice.
 * **Eligible per-run metric**: status `observed`, coverage `complete_session`, participant presence at least 90% of
-  the run, run not in progress.
+  the run, run not in progress. Meter coverage is complete only when every fight was read in full and every
+  player's numbers were attributed ([`IDENTITY_AND_RECONCILIATION.md`](IDENTITY_AND_RECONCILIATION.md#metric-conflicts)).
+* **Participants**: someone in the group for under 5 minutes and at no boss pull only passed through; the run is
+  not theirs and does not count for them.
+* **Roles** are the group roles the client assigned. In groups formed without the dungeon finder they are often
+  `NONE`, which counts as not-healer: such a healer's runs feed `dps_median`, not `hps_median`.
 * **Missing data** is excluded, never treated as zero. Every statistic reports its `sample_size`, the number
   `excluded` and the reasons (`incomplete_coverage`, `metric_unavailable`, `partial_presence`, `run_in_progress`).
 * **Minimum sample**: `STATS_MIN_SAMPLE` (default 1) for profiles; below it the value is `null` with
@@ -21,7 +26,7 @@ Each stored aggregate records `definitions_version`. Changing a definition means
 | Key | Definition | Eligible observations | Denominator |
 |---|---|---|---|
 | `runs_observed` | Count of canonical runs the character took part in | All visible runs | — |
-| `completions_confirmed` | Runs with `outcome = completed`, `completion_confidence = verified`, and the character still present within 2 minutes of the run's end | All runs | — |
+| `completions_confirmed` | Runs with `outcome = completed`, `completion_confidence = verified` (an in-game completion event, i.e. dungeon finder groups), and the character still present within 2 minutes of the run's end. The website labels only these runs plainly "Completed"; runs completed by killing the final boss (`probable`) or marked by the player (`reported`) read "Completed · final boss" / "Completed · marked" and are not counted | All runs | — |
 | `deaths_per_run_mean` | Mean of the resolved `deaths` metric | Eligible per-run deaths | Eligible runs |
 | `deaths_per_run_median` | Median of the same | Same | Same |
 | `death_free_run_pct` | Share of eligible runs with 0 deaths | Same | Eligible runs |
