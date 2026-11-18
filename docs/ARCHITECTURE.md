@@ -101,7 +101,9 @@ rebuilds the run from all linked observations: union of presence, clustered boss
 ## Concurrency and scaling
 
 * Ingestion runs under one transaction-scoped PostgreSQL advisory lock, so batches apply serially. This makes
-  matching race-free. Measured inside the development compose network: about 12 batches/s (about 24 observations/s)
+  matching race-free. The upload endpoints only read the body on the event loop; parsing and database work run on
+  worker threads behind a per-process gate (`INGEST_CONCURRENCY`, `INGEST_MAX_WAITING`, then 503), so a slow or
+  waiting ingestion never stalls public reads. Measured inside the development compose network: about 12 batches/s (about 24 observations/s)
   while seeding a full synthetic dataset, including matching, full run rebuilds and aggregate recomputation. That is
   ample for launch, since each user uploads a few batches per play session.
 * **Scaling path**, in order: (1) more API replicas for reads (stateless; move the in-memory rate limiter to Redis);

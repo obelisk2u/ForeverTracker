@@ -90,3 +90,51 @@ def test_reports_line_numbers():
     with pytest.raises(SavedVariablesError) as err:
         parse_savedvariables("A = 1\nB = {\n  1,\n  bad\n}")
     assert err.value.line == 4
+
+
+# --- Bounded work (tokens are counted as they are read, never all held) -------------------------
+
+from pathlib import Path  # noqa: E402
+
+from forevertracker_sv.parser import _tokens  # noqa: E402
+from forevertracker_sv.writer import to_savedvariables  # noqa: E402
+
+FIXTURE = Path(__file__).resolve().parents[3] / "fixtures" / "savedvariables" / "ForeverTracker.sample.lua"
+
+
+def test_token_limit_stops_a_dense_file_early():
+    flood = "X = {" + "1," * 10_000 + "}"
+    with pytest.raises(SavedVariablesError, match=r"too many tokens \(limit 500\)"):
+        parse_savedvariables(flood, ParseLimits(max_tokens=500))
+    # The default is a third of max_bytes: '1,' packs one token into 1 byte, so it is refused.
+    with pytest.raises(SavedVariablesError, match="too many tokens"):
+        parse_savedvariables(flood, ParseLimits(max_bytes=len(flood) + 10))
+
+
+def test_tokens_are_produced_lazily():
+    stream = _tokens("X = {" + "1," * 1000 + "}", ParseLimits(max_tokens=5))
+    assert [next(stream).text for _ in range(5)] == ["X", "=", "{", "1", ","]
+    with pytest.raises(SavedVariablesError, match="too many tokens"):
+        next(stream)
+
+
+def test_block_comments_are_skipped_and_an_unterminated_one_is_an_error():
+    assert parse_savedvariables("--[==[ a ]] still comment ]==]\nX = 1 --[[ b ]] Y = 2") == {"X": 1, "Y": 2}
+    with pytest.raises(SavedVariablesError, match=r"unexpected input .*\(line 3\)"):
+        parse_savedvariables("--[[ one\ntwo ]]\n X = @")  # line numbers survive a skipped comment
+    # Unterminated: an error at once (it used to be read as a line comment, rescanning to the end for
+    # every opener, which took quadratic time).
+    with pytest.raises(SavedVariablesError, match=r"unterminated block comment \(line 2\)"):
+        parse_savedvariables("X = 1\n" + "--[[\n" * 50_000)
+
+
+def test_addon_files_parse_well_inside_the_default_token_budget():
+    # The committed fixture was written by the real addon code; repeat its records up to ~2 MB.
+    db = parse_savedvariables(FIXTURE.read_bytes())["ForeverTrackerDB"]
+    records = db["observations"]
+    db["observations"] = [{**o, "observation_id": f"{o['observation_id']}-{i}"} for i in range(160) for o in records]
+    text = to_savedvariables({"ForeverTrackerDB": db})
+    limits = ParseLimits(max_bytes=len(text.encode()))  # token budget = bytes / 3
+    tokens = sum(1 for _ in _tokens(text, ParseLimits()))
+    assert len(text.encode()) / tokens > 3.3
+    assert len(parse_savedvariables(text, limits)["ForeverTrackerDB"]["observations"]) == 160 * len(records)

@@ -7,8 +7,13 @@ Accepted grammar (the subset the WoW client writes):
     table      := '{' [ field { (',' | ';') field } [',' | ';'] ] '}'
     field      := '[' value ']' '=' value | NAME '=' value | value
 
-Comments (`-- ...` and `--[[ ... ]]`) are skipped. Anything else (function calls, operators,
-concatenation, variables on the right-hand side) is rejected. Nothing is ever executed.
+Comments (`-- ...` and `--[[ ... ]]`) are skipped; an unterminated block comment is an error. Anything
+else (function calls, operators, concatenation, variables on the right-hand side) is rejected. Nothing is
+ever executed.
+
+Work is bounded while reading, not after: tokens are produced one at a time (never all held in memory),
+and the token and value counts, string sizes and nesting depth are checked as they are reached, so a
+hostile file costs at most ``ParseLimits`` worth of time and memory.
 
 Lua tables become Python values:
   * a table whose keys are exactly 1..n becomes a ``list`` (an empty table becomes ``[]``),
@@ -20,6 +25,8 @@ from __future__ import annotations
 
 import math
 import re
+from collections import deque
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,12 +40,19 @@ class ParseLimits:
     max_string_bytes: int = 64 * 1024
     max_values: int = 5_000_000
     max_abs_integer: int = 2**63
+    # Files the addon writes average 3.6-4.3 bytes per token (measured), so a file of max_bytes needs
+    # well under max_bytes / 3 tokens. Input packed denser than that is not something the client wrote.
+    max_tokens: int | None = None
+
+    @property
+    def token_limit(self) -> int:
+        return self.max_tokens if self.max_tokens is not None else max(1, self.max_bytes // 3)
 
 
 _TOKEN_RE = re.compile(
     r"""
     (?P<ws>[ \t\r\n\f\v]+)
-  | (?P<block_comment>--\[(?P<eq>=*)\[.*?\](?P=eq)\])
+  | (?P<block_open>--\[(?P<eq>=*)\[)
   | (?P<line_comment>--[^\n]*)
   | (?P<string>"(?:[^"\\\n]|\\(?:\r\n|.|\n))*"|'(?:[^'\\\n]|\\(?:\r\n|.|\n))*')
   | (?P<number>-?(?:0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?))
@@ -72,11 +86,13 @@ class _Token:
         return f"Token({self.kind}, {self.text!r}, line {self.line})"
 
 
-def _tokenize(text: str) -> list[_Token]:
-    tokens: list[_Token] = []
+def _tokens(text: str, limits: ParseLimits) -> Iterator[_Token]:
+    """Yield the tokens of ``text`` one at a time, enforcing the token limit as they are produced."""
     pos = 0
     line = 1
     end = len(text)
+    produced = 0
+    budget = limits.token_limit
     match = _TOKEN_RE.match
     while pos < end:
         m = match(text, pos)
@@ -84,15 +100,49 @@ def _tokenize(text: str) -> list[_Token]:
             snippet = text[pos : pos + 20].split("\n", 1)[0]
             raise SavedVariablesError(f"unexpected input {snippet!r}", line=line)
         kind = m.lastgroup
+        if kind in ("block_open", "eq"):
+            # Found by searching, not by regex backtracking: an unterminated comment costs one scan.
+            close = "]" + (m.group("eq") or "") + "]"
+            stop = text.find(close, m.end())
+            if stop < 0:
+                raise SavedVariablesError("unterminated block comment", line=line)
+            line += text.count("\n", pos, stop)
+            pos = stop + len(close)
+            continue
         chunk = m.group(0)
-        if kind == "eq":  # only produced inside block_comment
-            kind = "block_comment"
-        if kind not in ("ws", "block_comment", "line_comment"):
-            tokens.append(_Token(kind, chunk, line))
+        if kind not in ("ws", "line_comment"):
+            produced += 1
+            if produced > budget:
+                raise SavedVariablesError(f"too many tokens (limit {budget})", line=line)
+            yield _Token(kind, chunk, line)
         line += chunk.count("\n")
         pos = m.end()
-    tokens.append(_Token("eof", "", line))
-    return tokens
+    yield _Token("eof", "", line)
+
+
+class _TokenStream:
+    """Two tokens of lookahead over the lazy tokenizer; nothing more is kept."""
+
+    __slots__ = ("_iter", "_buf")
+
+    def __init__(self, tokens: Iterator[_Token]):
+        self._iter = tokens
+        self._buf: deque[_Token] = deque()
+
+    def _fill(self, n: int) -> None:
+        while len(self._buf) < n:
+            tok = next(self._iter, None)
+            if tok is None:  # past eof: keep returning it
+                tok = self._buf[-1] if self._buf else _Token("eof", "", 0)
+            self._buf.append(tok)
+
+    def peek(self, ahead: int = 0) -> _Token:
+        self._fill(ahead + 1)
+        return self._buf[ahead]
+
+    def take(self) -> _Token:
+        self._fill(1)
+        return self._buf.popleft()
 
 
 def _unescape(raw: str, line: int, limits: ParseLimits) -> str:
@@ -162,19 +212,16 @@ def _number(text: str, line: int, limits: ParseLimits) -> int | float:
 
 
 class _Parser:
-    def __init__(self, tokens: list[_Token], limits: ParseLimits):
-        self.tokens = tokens
-        self.pos = 0
+    def __init__(self, tokens: _TokenStream, limits: ParseLimits):
+        self.stream = tokens
         self.limits = limits
         self.values = 0
 
     def peek(self) -> _Token:
-        return self.tokens[self.pos]
+        return self.stream.peek()
 
     def take(self) -> _Token:
-        tok = self.tokens[self.pos]
-        self.pos += 1
-        return tok
+        return self.stream.take()
 
     def expect(self, kind: str, text: str | None = None) -> _Token:
         tok = self.take()
@@ -248,8 +295,8 @@ class _Parser:
             elif (
                 tok.kind == "name"
                 and tok.text not in _KEYWORDS
-                and self.tokens[self.pos + 1].kind == "punct"
-                and self.tokens[self.pos + 1].text == "="
+                and self.stream.peek(1).kind == "punct"
+                and self.stream.peek(1).text == "="
             ):
                 self.take()
                 self.take()
@@ -296,5 +343,4 @@ def parse_savedvariables(data: bytes | str, limits: ParseLimits | None = None) -
         if len(data.encode("utf-8")) > limits.max_bytes:
             raise SavedVariablesError("file exceeds size limit")
         text = data.lstrip("﻿")
-    tokens = _tokenize(text)
-    return _Parser(tokens, limits).parse_file()
+    return _Parser(_TokenStream(_tokens(text, limits)), limits).parse_file()

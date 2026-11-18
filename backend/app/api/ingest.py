@@ -1,19 +1,29 @@
-"""Ingestion endpoints. Every payload is untrusted."""
+"""Ingestion endpoints. Every payload is untrusted.
+
+The handlers only read the request body on the event loop. Parsing, validation and all database work
+(which waits on the ingestion advisory lock) run on a worker thread, with their own session, behind a
+per-process gate: at most ``INGEST_CONCURRENCY`` at once and ``INGEST_MAX_WAITING`` queued; past that the
+API answers 503 with Retry-After, which the uploader retries. Public reads keep being served meanwhile.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
 import uuid
+from typing import Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from forevertracker_sv import SavedVariablesError, extract, parse_savedvariables, summarize_export
 from forevertracker_sv.parser import ParseLimits
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import client_key, get_db, get_settings, read_limited_body
 from app.config import Settings
+from app.db import get_sessionmaker
 from app.ingestion.service import IngestError, IngestResult, ingest_batch
 from app.integrity.ratelimit import upload_limiter
 from app.models import UploadBatch
@@ -28,6 +38,44 @@ def _limit(key: str, limit: int) -> None:
     ok, retry = upload_limiter.allow(upload_limiter.hashed(key), limit)
     if not ok:
         raise HTTPException(status_code=429, detail="too many uploads; try again later", headers={"Retry-After": str(retry)})
+
+
+class IngestGate:
+    """At most ``limit`` ingestions at once in this process, and at most ``max_waiting`` queued behind them."""
+
+    def __init__(self, limit: int, max_waiting: int):
+        self.loop = asyncio.get_running_loop()
+        self.semaphore = asyncio.Semaphore(max(1, limit))
+        self.max_waiting = max(0, max_waiting)
+        self.waiting = 0
+        self.running = 0
+
+
+def _gate(request: Request, settings: Settings) -> IngestGate:
+    gate: IngestGate | None = getattr(request.app.state, "ingest_gate", None)
+    if gate is None or gate.loop is not asyncio.get_running_loop():
+        gate = IngestGate(settings.ingest_concurrency, settings.ingest_max_waiting)
+        request.app.state.ingest_gate = gate
+    return gate
+
+
+async def offload(request: Request, settings: Settings, fn: Callable[..., Any], *args: Any) -> Any:
+    """Run ``fn(*args)`` on a worker thread once the gate lets it through."""
+    gate = _gate(request, settings)
+    if gate.semaphore.locked() and gate.waiting >= gate.max_waiting:
+        raise HTTPException(status_code=503, detail="ingestion is busy; try again shortly", headers={"Retry-After": "5"})
+    gate.waiting += 1
+    try:
+        await gate.semaphore.acquire()
+    finally:
+        gate.waiting -= 1
+    gate.running += 1
+    try:
+        # Not abandoned if the client goes away: the worker finishes (and commits or rolls back) first.
+        return await run_in_threadpool(fn, *args)
+    finally:
+        gate.running -= 1
+        gate.semaphore.release()
 
 
 def _run(db: Session, settings: Settings, payload: dict, source: str, sha: str, size: int) -> IngestResult:
@@ -51,23 +99,57 @@ def _run(db: Session, settings: Settings, payload: dict, source: str, sha: str, 
     return result
 
 
-@router.post("/batches", response_model=UploadResult)
-async def upload_batch(request: Request, db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
-    """Upload one canonical observation batch (JSON). Used by the desktop uploader."""
-    _limit(f"ip:{client_key(request)}", settings.rate_limit_uploads_per_hour_per_ip)
-    body = await read_limited_body(request, settings.max_upload_bytes)
+def _ingest_json_batch(settings: Settings, body: bytes, source: str) -> dict:
+    """Worker thread: one JSON batch."""
     try:
         payload = json.loads(body)
     except (json.JSONDecodeError, UnicodeDecodeError):
         raise HTTPException(status_code=422, detail="body is not valid JSON") from None
     if not isinstance(payload, dict):
         raise HTTPException(status_code=422, detail="body must be a JSON object")
+    db = get_sessionmaker()()
+    try:
+        return _run(db, settings, payload, source, hashlib.sha256(body).hexdigest(), len(body)).as_dict()
+    finally:
+        db.close()
+
+
+def savedvariables_limits(settings: Settings) -> ParseLimits:
+    return ParseLimits(max_bytes=settings.max_savedvariables_bytes, max_tokens=settings.max_savedvariables_tokens)
+
+
+def _ingest_savedvariables(settings: Settings, data: bytes) -> dict:
+    """Worker thread: parse a SavedVariables file (bounded by ParseLimits) and ingest its batches."""
+    try:
+        parsed = parse_savedvariables(data, savedvariables_limits(settings))
+    except SavedVariablesError as err:
+        raise HTTPException(status_code=422, detail={"error": "invalid_savedvariables", "detail": str(err)}) from None
+    return _ingest_export(settings, parsed, data, "savedvariables_upload")
+
+
+def _ingest_export_string(settings: Settings, data: bytes) -> dict:
+    """Worker thread: the JSON string shown by /ft export."""
+    try:
+        exported = json.loads(data)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise HTTPException(status_code=422, detail={"error": "invalid_export", "detail": "not valid JSON"}) from None
+    if not isinstance(exported, dict):
+        raise HTTPException(status_code=422, detail={"error": "invalid_export", "detail": "expected a JSON object"})
+    # JSON keys are strings: the addon's encoder writes Lua list positions as "1", "2"...
+    return _ingest_export(settings, {"ForeverTrackerDB": exported}, data, "export_string", string_indices=True)
+
+
+@router.post("/batches", response_model=UploadResult)
+async def upload_batch(request: Request, settings: Settings = Depends(get_settings)):
+    """Upload one canonical observation batch (JSON). Used by the desktop uploader."""
+    _limit(f"ip:{client_key(request)}", settings.rate_limit_uploads_per_hour_per_ip)
+    body = await read_limited_body(request, settings.max_upload_bytes)
     source = "uploader" if request.headers.get("x-forevertracker-client", "").startswith("uploader/") else "api"
-    return _run(db, settings, payload, source, hashlib.sha256(body).hexdigest(), len(body)).as_dict()
+    return await offload(request, settings, _ingest_json_batch, settings, body, source)
 
 
 @router.post("/savedvariables", response_model=SavedVariablesUploadResult)
-async def upload_savedvariables(request: Request, db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+async def upload_savedvariables(request: Request, settings: Settings = Depends(get_settings)):
     """Upload the ``ForeverTracker.lua`` SavedVariables file (raw body or multipart field ``file``).
 
     The file is parsed with a data-only parser; nothing in it is executed.
@@ -84,29 +166,18 @@ async def upload_savedvariables(request: Request, db: Session = Depends(get_db),
             raise HTTPException(status_code=413, detail=f"file exceeds {settings.max_savedvariables_bytes} bytes")
     else:
         data = await read_limited_body(request, settings.max_savedvariables_bytes)
-    try:
-        parsed = parse_savedvariables(data, ParseLimits(max_bytes=settings.max_savedvariables_bytes))
-    except SavedVariablesError as err:
-        raise HTTPException(status_code=422, detail={"error": "invalid_savedvariables", "detail": str(err)}) from None
-    return _ingest_export(db, settings, parsed, data, "savedvariables_upload")
+    return await offload(request, settings, _ingest_savedvariables, settings, data)
 
 
 @router.post("/export", response_model=SavedVariablesUploadResult)
-async def upload_export_string(request: Request, db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+async def upload_export_string(request: Request, settings: Settings = Depends(get_settings)):
     """Upload the JSON string shown by the in-game ``/ft export`` command."""
     _limit(f"ip:{client_key(request)}", settings.rate_limit_uploads_per_hour_per_ip)
     data = await read_limited_body(request, settings.max_savedvariables_bytes)
-    try:
-        exported = json.loads(data)
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        raise HTTPException(status_code=422, detail={"error": "invalid_export", "detail": "not valid JSON"}) from None
-    if not isinstance(exported, dict):
-        raise HTTPException(status_code=422, detail={"error": "invalid_export", "detail": "expected a JSON object"})
-    # JSON keys are strings: the addon's encoder writes Lua list positions as "1", "2"...
-    return _ingest_export(db, settings, {"ForeverTrackerDB": exported}, data, "export_string", string_indices=True)
+    return await offload(request, settings, _ingest_export_string, settings, data)
 
 
-def _ingest_export(db: Session, settings: Settings, parsed: dict, data: bytes, source: str, *, string_indices: bool = False) -> dict:
+def _ingest_export(settings: Settings, parsed: dict, data: bytes, source: str, *, string_indices: bool = False) -> dict:
     try:
         summary = summarize_export(parsed, string_indices=string_indices)
         extraction = extract(
@@ -115,7 +186,12 @@ def _ingest_export(db: Session, settings: Settings, parsed: dict, data: bytes, s
     except SavedVariablesError as err:
         raise HTTPException(status_code=422, detail={"error": "invalid_savedvariables", "detail": str(err)}) from None
     sha = hashlib.sha256(data).hexdigest()
-    results = [_run(db, settings, b, source, sha, len(data)).as_dict() for b in extraction.batches]
+    db = get_sessionmaker()()
+    try:
+        # Each batch commits on its own, as before: a later batch failing does not undo an earlier one.
+        results = [_run(db, settings, b, source, sha, len(data)).as_dict() for b in extraction.batches]
+    finally:
+        db.close()
     return {
         "batches": results,
         "summary": {

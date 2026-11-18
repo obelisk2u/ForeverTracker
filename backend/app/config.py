@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # Ingestion limits (untrusted input).
     max_upload_bytes: int = 8_000_000  # room for addon 0.2.6's batches, which also carried item tooltips
     max_savedvariables_bytes: int = 8_000_000
+    # Tokens a SavedVariables upload may contain. None = max_savedvariables_bytes / 3: the addon's files
+    # average 3.6-4.7 bytes per token, so no file it writes comes near this.
+    max_savedvariables_tokens: int | None = None
+    # Parsing and database work for uploads run on worker threads: this many at once per API process,
+    # with this many more queued; beyond that the API answers 503 (the uploader retries).
+    ingest_concurrency: int = 2
+    ingest_max_waiting: int = 16
     max_observations_per_batch: int = 500
     rate_limit_uploads_per_hour: int = 120
     rate_limit_uploads_per_hour_per_ip: int = 300
