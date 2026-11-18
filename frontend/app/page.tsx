@@ -1,11 +1,10 @@
 import Link from "next/link";
 
-import { OutcomeBadge } from "@/components/Badges";
 import { Freshness } from "@/components/Freshness";
+import { RunList } from "@/components/RunList";
 import { SearchBox } from "@/components/SearchBox";
 import { SectionTitle } from "@/components/States";
 import { api } from "@/lib/api";
-import { formatShortDate } from "@/lib/format";
 import type { ActivityItem, OverviewStats } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +59,7 @@ export default async function HomePage() {
       {overview && (
         <section aria-label="Featured statistics" className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="Characters observed" value={overview.characters} hint="Distinct characters seen in at least one recorded run" href="/characters" />
-          <Stat label="Dungeon runs" value={overview.runs} hint="Canonical runs after merging multiple observers" />
+          <Stat label="Dungeon runs" value={overview.runs} hint="Canonical runs after merging multiple observers" href="/runs" />
           <Stat label="Multi-observer runs" value={overview.reconciled_runs} hint="Runs recorded by two or more ForeverTracker users and reconciled" />
           <Stat label="Confirmed completions" value={overview.confirmed_completions} hint="Runs with an in-game completion event" />
         </section>
@@ -68,26 +67,18 @@ export default async function HomePage() {
 
       <div className="grid lg:grid-cols-[3fr_2fr] gap-8">
         <section>
-          <SectionTitle>Recently observed runs</SectionTitle>
-          {recent.length === 0 ? (
-            <p className="text-sm text-muted">No runs have been uploaded yet.</p>
-          ) : (
-            <ul className="card divide-y divide-line/60">
-              {recent.map((r) => (
-                <li key={r.run_id}>
-                  <Link href={`/runs/${r.run_id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-3/40 focus-ring">
-                    <div className="min-w-0">
-                      <div className="text-text truncate">{r.dungeon.name}</div>
-                      <div className="text-xs text-faint">
-                        {formatShortDate(r.started_at)} · {r.participants} players · {r.observers} observer{r.observers === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                    <OutcomeBadge outcome={r.outcome} confidence={r.completion_confidence} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <SectionTitle
+            aside={
+              overview && overview.runs > recent.length ? (
+                <Link href="/runs" className="text-sm text-gold hover:underline focus-ring">
+                  All {overview.runs.toLocaleString("en-US")} runs →
+                </Link>
+              ) : undefined
+            }
+          >
+            Recently observed runs
+          </SectionTitle>
+          {recent.length === 0 ? <p className="text-sm text-muted">No runs have been uploaded yet.</p> : <RunList runs={recent} />}
         </section>
         <section>
           <SectionTitle>How the data is collected</SectionTitle>
@@ -122,10 +113,14 @@ export default async function HomePage() {
           <SectionTitle>Dungeons</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {overview.dungeons.map((d: Record<string, unknown>) => (
-              <div key={String(d.slug)} className="card p-4">
+              <Link
+                key={String(d.slug)}
+                href={`/runs?dungeon=${encodeURIComponent(String(d.slug))}`}
+                className="card p-4 hover:border-gold-dim focus-ring"
+              >
                 <div className="text-text">{String(d.name)}</div>
                 <div className="text-xs text-faint">{Number(d.runs).toLocaleString("en-US")} observed runs</div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

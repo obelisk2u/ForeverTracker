@@ -21,6 +21,7 @@ from app.schemas.api import (
     ReportOut,
     RunDetail,
     RunHistoryResponse,
+    RunListResponse,
     SearchResponse,
     UploaderRelease,
 )
@@ -164,6 +165,24 @@ def get_character_companions(
 ):
     result = _character_call(characters.companions, db, settings, character_id)
     _cache(response, 60)
+    return result
+
+
+@router.get("/runs", response_model=RunListResponse)
+def list_runs(
+    response: Response,
+    page: int = Query(1, ge=1, le=1000),
+    page_size: int = Query(25, ge=1, le=100),
+    dungeon: str | None = Query(None, max_length=80),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    """Every visible run, newest first (optionally one dungeon's). ``total`` matches the overview's run count."""
+    try:
+        result = site.list_runs(db, settings, page=page, page_size=page_size, dungeon_slug=dungeon)
+    except NotFound:
+        raise HTTPException(status_code=404, detail="dungeon not found") from None
+    _cache(response, 30)
     return result
 
 

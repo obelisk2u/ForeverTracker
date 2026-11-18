@@ -9,9 +9,9 @@ from app.config import Settings
 from app.models import Character, Contributor, Dungeon, DungeonRun, RawObservation, RunDeath, RunParticipant, UploadBatch
 from app.models.base import utcnow
 from app.reconciliation.final_encounters import final_encounters
-from app.schemas.api import ActivityItem, MetaOut, OverviewStats
+from app.schemas.api import ActivityItem, MetaOut, OverviewStats, RunListResponse
 from app.schemas.observations import SCHEMA_VERSION
-from app.services.common import dungeon_ref
+from app.services.common import NotFound, dungeon_ref
 from app.services.visibility import character_visible, hide_synthetic, run_visible
 
 ADDON_INTERFACE = 16001
@@ -73,18 +73,7 @@ def overview(db: Session, settings: Settings) -> OverviewStats:
     )
 
 
-def recent_activity(db: Session, settings: Settings, limit: int = 12) -> list[ActivityItem]:
-    counts = (
-        select(RunParticipant.run_id, func.count().label("n")).group_by(RunParticipant.run_id).subquery()
-    )
-    rows = db.execute(
-        select(DungeonRun, Dungeon, counts.c.n)
-        .join(Dungeon, Dungeon.id == DungeonRun.dungeon_id)
-        .outerjoin(counts, counts.c.run_id == DungeonRun.id)
-        .where(run_visible(settings))
-        .order_by(DungeonRun.started_at.desc())
-        .limit(limit)
-    ).all()
+def _activity_items(rows) -> list[ActivityItem]:
     return [
         ActivityItem(
             run_id=run.public_id,
@@ -98,6 +87,45 @@ def recent_activity(db: Session, settings: Settings, limit: int = 12) -> list[Ac
         )
         for run, d, n in rows
     ]
+
+
+def _runs_query(settings: Settings, dungeon_slug: str | None = None):
+    """Visible runs, newest first: the same filter as the overview's run count."""
+    counts = select(RunParticipant.run_id, func.count().label("n")).group_by(RunParticipant.run_id).subquery()
+    stmt = (
+        select(DungeonRun, Dungeon, counts.c.n)
+        .join(Dungeon, Dungeon.id == DungeonRun.dungeon_id)
+        .outerjoin(counts, counts.c.run_id == DungeonRun.id)
+        .where(run_visible(settings))
+    )
+    if dungeon_slug:
+        stmt = stmt.where(Dungeon.slug == dungeon_slug)
+    return stmt.order_by(DungeonRun.started_at.desc(), DungeonRun.id.desc())
+
+
+def recent_activity(db: Session, settings: Settings, limit: int = 12) -> list[ActivityItem]:
+    return _activity_items(db.execute(_runs_query(settings).limit(limit)).all())
+
+
+def list_runs(
+    db: Session, settings: Settings, *, page: int = 1, page_size: int = 25, dungeon_slug: str | None = None
+) -> RunListResponse:
+    """Every visible run, newest first, so each run counted on the home page can be reached from a list."""
+    count = select(func.count()).select_from(DungeonRun).where(run_visible(settings))
+    dungeon = None
+    if dungeon_slug:
+        dungeon = db.scalar(select(Dungeon).where(Dungeon.slug == dungeon_slug))
+        if dungeon is None or (hide_synthetic(settings) and dungeon.is_synthetic):
+            raise NotFound(dungeon_slug)
+        count = count.where(DungeonRun.dungeon_id == dungeon.id)
+    rows = db.execute(_runs_query(settings, dungeon_slug).offset((page - 1) * page_size).limit(page_size)).all()
+    return RunListResponse(
+        total=db.scalar(count) or 0,
+        page=page,
+        page_size=page_size,
+        dungeon=dungeon_ref(dungeon) if dungeon is not None else None,
+        results=_activity_items(rows),
+    )
 
 
 def dungeons(db: Session, settings: Settings) -> list[dict]:

@@ -304,6 +304,16 @@ class ActivityItem(BaseModel):
     is_synthetic: bool
 
 
+class RunListResponse(BaseModel):
+    """Every visible run, newest first. ``total`` counts the same runs as ``OverviewStats.runs``."""
+
+    total: int
+    page: int
+    page_size: int
+    dungeon: DungeonRef | None = None
+    results: list[ActivityItem]
+
+
 class OverviewStats(BaseModel):
     characters: int
     runs: int
