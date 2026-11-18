@@ -231,10 +231,66 @@ describe("storage", function()
     eq(ForeverTrackerDB.load_count, 2)
   end)
 
-  it("never overwrites data written by a newer schema", function()
-    local future = { format = "forevertracker.savedvariables", schema_version = 99, installation_id = "ft-future", observations = { { x = 1 } } }
-    local ft = boot(nil, { saved = future })
-    eq(ft.readOnlyFuture, future)
-    truthy(ForeverTrackerDB.installation_id ~= "ft-future")
+  -- Deep equality for plain data tables.
+  local function same(a, b, path)
+    path = path or "ForeverTrackerDB"
+    if type(a) ~= "table" or type(b) ~= "table" then
+      eq(a, b, path)
+      return
+    end
+    for k, v in pairs(a) do
+      same(v, b[k], path .. "." .. tostring(k))
+    end
+    for k in pairs(b) do
+      truthy(a[k] ~= nil, path .. "." .. tostring(k) .. " was added")
+    end
+  end
+
+  local function futureData(version)
+    return {
+      format = "forevertracker.savedvariables", schema_version = version, installation_id = "ft-future-00000001",
+      load_count = 7, observations = { { type = "dungeon_run", observation_id = "r-1", revision = 3, future_field = { 1, 2 } } },
+      settings = { collectors = { meter = false } }, unknown_section = { kept = true },
+    }
+  end
+
+  it("leaves data written by a newer schema intact through a session and logout", function()
+    local original = futureData(2)
+    local ft = boot(nil, { saved = Mock.deepcopy(original) })
+    truthy(ft.readOnly, "read-only session")
+    truthy(Mock.chatContains("written by a newer version of ForeverTracker (data format 2"), "the player is told why")
+    -- A whole dungeon run, then logout: the client writes ForeverTrackerDB back as it is.
+    Mock.enterDungeon({ name = "Hall of Thanes", mapId = 990001 })
+    Mock.startCombat()
+    Mock.advance(30)
+    Mock.endCombat(30, { Autumn = { damage_done = 1000 } })
+    Mock.advance(15)
+    Mock.leaveInstance()
+    Mock.advance(5)
+    Mock.fire("GROUP_ROSTER_UPDATE")
+    Mock.advance(5)
+    local written = Mock.saveVariables()
+    same(written, original)
+    eq(ft.Storage.activeRun(), nil, "nothing was recorded")
+  end)
+
+  it("treats a missing or non-numeric schema version as newer and keeps the data", function()
+    for _, version in ipairs({ "two", false }) do
+      Mock.reset()
+      local original = futureData(version)
+      if version == false then
+        original.schema_version = nil
+      end
+      local ft = boot(nil, { saved = Mock.deepcopy(original) })
+      truthy(ft.readOnly, "read-only for " .. tostring(version))
+      same(Mock.saveVariables(), original)
+    end
+  end)
+
+  it("says the session is read-only in /ft status", function()
+    boot(nil, { saved = futureData(5) })
+    Mock.chat = {}
+    SlashCmdList.FOREVERTRACKER("status")
+    truthy(Mock.chatContains("nothing is recorded or saved this session"))
   end)
 end)

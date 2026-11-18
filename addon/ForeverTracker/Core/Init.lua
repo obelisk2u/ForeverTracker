@@ -7,11 +7,13 @@ FT.Events.on("ADDON_LOADED", "init", function(name)
   end
   FT.Storage.init()
   FT.Events.guard("records", FT.Records.init)
-  -- Stored runs that went on into a reset dungeon become two (after the records exist, which
-  -- this rebuilds when it splits one).
-  FT.Events.guard("runtracker", FT.RunTracker.splitStored)
-  FT.RunTracker.register()
-  FT.Group.register()
+  if not FT.readOnly then
+    -- Stored runs that went on into a reset dungeon become two (after the records exist, which
+    -- this rebuilds when it splits one).
+    FT.Events.guard("runtracker", FT.RunTracker.splitStored)
+    FT.RunTracker.register()
+    FT.Group.register()
+  end
   FT.Commands.register()
   FT.Events.guard("ui", FT.MinimapButton.create)
 end)

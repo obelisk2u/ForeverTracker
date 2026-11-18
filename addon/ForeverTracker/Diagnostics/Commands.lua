@@ -19,6 +19,10 @@ local HELP = {
 
 local function status()
   local db = FT.db
+  if FT.readOnly then
+    FT.Util.print(string.format(FT.Storage.READ_ONLY_MESSAGE, FT.readOnly.schema_version, FT.version, FT.SCHEMA_VERSION))
+    return
+  end
   local run = FT.Storage.activeRun()
   local st = db.active_state
   FT.Util.print(string.format("v%s, %d stored record(s), %d dropped, load #%d, installation %s",

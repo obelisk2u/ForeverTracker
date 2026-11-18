@@ -44,14 +44,31 @@ local function migrate(db)
   return db
 end
 
+-- The saved data's schema version as text, without trusting its type.
+local function versionLabel(v)
+  if type(v) == "number" and v == v and v > 0 and v < 1e6 then
+    return tostring(math.floor(v))
+  end
+  return "unknown"
+end
+
+Storage.READ_ONLY_MESSAGE = "your saved data was written by a newer version of ForeverTracker (data format %s; this is "
+  .. "version %s, format %d). To keep that data intact, nothing is recorded or saved this session. Update "
+  .. "ForeverTracker to record again."
+
 function Storage.init()
   local db = ForeverTrackerDB
   local loaded = type(db) == "table" and db.format == FT.SV_FORMAT
   if loaded and (type(db.schema_version) ~= "number" or db.schema_version > FT.SCHEMA_VERSION) then
-    -- Written by a newer addon version; keep it untouched rather than corrupting it.
-    FT.Util.print("saved data was written by a newer version of ForeverTracker; starting a temporary session store.")
-    FT.readOnlyFuture = db
-    loaded = false
+    -- Written by a newer addon version. The client writes ForeverTrackerDB back at logout, so it is left
+    -- exactly as loaded (never reassigned or changed), and this session runs on a store that is never saved.
+    FT.readOnly = { reason = "newer_schema", schema_version = versionLabel(db.schema_version) }
+    FT.db = migrate(fresh())
+    FT.db.load_count = 1
+    FT.db.client = Storage.clientInfo()
+    FT.loadedExistingData = false
+    FT.Util.print(string.format(Storage.READ_ONLY_MESSAGE, FT.readOnly.schema_version, FT.version, FT.SCHEMA_VERSION))
+    return FT.db
   end
   if not loaded then
     db = fresh()
