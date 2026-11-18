@@ -1524,6 +1524,48 @@
         "title": "RunHistoryResponse",
         "type": "object"
       },
+      "RunListResponse": {
+        "description": "Every visible run, newest first. ``total`` counts the same runs as ``OverviewStats.runs``.",
+        "properties": {
+          "dungeon": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DungeonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityItem"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "page_size",
+          "results"
+        ],
+        "title": "RunListResponse",
+        "type": "object"
+      },
       "RunRow": {
         "properties": {
           "completion_confidence": {
@@ -2676,6 +2718,81 @@
           }
         },
         "summary": "Create Report",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "description": "Every visible run, newest first (optionally one dungeon's). ``total`` matches the overview's run count.",
+        "operationId": "list_runs_api_v1_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dungeon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dungeon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Runs",
         "tags": [
           "public"
         ]

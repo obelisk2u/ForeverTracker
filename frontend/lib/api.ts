@@ -6,6 +6,7 @@ import type {
   OverviewStats,
   RunDetail,
   RunHistoryResponse,
+  RunListResponse,
   SearchResponse,
   UploaderRelease,
 } from "./types";
@@ -66,6 +67,8 @@ export const api = {
   character: (ns: string, id: string) => get<CharacterProfile>(`/api/v1/characters/${enc(ns)}/${enc(id)}`),
   runs: (ns: string, id: string, opts: { page?: number; dungeon?: string; role?: string; outcome?: string } = {}) =>
     get<RunHistoryResponse>(`/api/v1/characters/${enc(ns)}/${enc(id)}/runs${qs(opts)}`),
+  runList: (opts: { page?: number; pageSize?: number; dungeon?: string } = {}) =>
+    get<RunListResponse>(`/api/v1/runs${qs({ page: opts.page, page_size: opts.pageSize, dungeon: opts.dungeon })}`),
   run: (id: string) => get<RunDetail>(`/api/v1/runs/${enc(id)}`),
   uploaderRelease: () => get<UploaderRelease>("/api/v1/uploader/latest", 300),
 };

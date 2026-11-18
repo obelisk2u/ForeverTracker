@@ -41,6 +41,33 @@ def test_characters_list_pages_through_everyone_most_seen_first(client):
     assert client.get("/api/v1/characters", params={"page_size": 101}).status_code == 422
 
 
+def test_every_counted_run_is_listed(client):
+    # The home page shows the 8 newest runs; the run list must reach every run the overview counts.
+    for i in range(10):
+        spec = RunSpec(f"r-{i}", observer="u1", start=T0 + i * 7200, map_id=990001 if i % 2 else 990002, name=f"Dungeon {i % 2}")
+        assert post_batch(client, batch("install-aaaa1111", [run_observation(spec)])).status_code == 200
+    hidden = RunSpec("r-quarantined", observer="u1", start=T0 + 30 * 7200, members=[Member("u1", "Lone", "Wolf", "Player-1-00000Z", level=99)])
+    assert post_batch(client, batch("install-aaaa1111", [run_observation(hidden)])).json()["observations"][0]["status"] == "quarantined"
+
+    overview = client.get("/api/v1/stats/overview").json()
+    assert overview["runs"] == 10
+    assert len(client.get("/api/v1/activity/recent", params={"limit": 8}).json()) == 8
+
+    listed = client.get("/api/v1/runs", params={"page_size": 25}).json()
+    assert listed["total"] == overview["runs"] and len(listed["results"]) == 10
+    starts = [r["started_at"] for r in listed["results"]]
+    assert starts == sorted(starts, reverse=True)
+    page2 = client.get("/api/v1/runs", params={"page": 2, "page_size": 4}).json()
+    assert [r["run_id"] for r in page2["results"]] == [r["run_id"] for r in listed["results"][4:8]]
+
+    slug = next(d["slug"] for d in overview["dungeons"] if d["name"] == "Dungeon 1")
+    one = client.get("/api/v1/runs", params={"dungeon": slug}).json()
+    assert one["total"] == 5 and one["dungeon"]["slug"] == slug
+    assert all(r["dungeon"]["slug"] == slug for r in one["results"])
+    assert client.get("/api/v1/runs", params={"dungeon": "no-such-dungeon"}).status_code == 404
+    assert client.get("/api/v1/runs", params={"page_size": 101}).status_code == 422
+
+
 def test_upload_search_profile_history_run_flow(client):
     two_observer_run(client)
     meta = client.get("/api/v1/meta").json()

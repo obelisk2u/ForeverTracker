@@ -20,6 +20,7 @@ export type DeathOut = S["DeathOut"];
 export type WipeOut = S["WipeOut"];
 export type SourceOut = S["SourceOut"];
 export type ActivityItem = S["ActivityItem"];
+export type RunListResponse = S["RunListResponse"];
 export type OverviewStats = S["OverviewStats"];
 export type MetaOut = S["MetaOut"];
 export type UploadResult = S["UploadResult"];

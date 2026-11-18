@@ -236,6 +236,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Runs
+         * @description Every visible run, newest first (optionally one dungeon's). ``total`` matches the overview's run count.
+         */
+        get: operations["list_runs_api_v1_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}": {
         parameters: {
             query?: never;
@@ -864,6 +884,21 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * RunListResponse
+         * @description Every visible run, newest first. ``total`` counts the same runs as ``OverviewStats.runs``.
+         */
+        RunListResponse: {
+            dungeon?: components["schemas"]["DungeonRef"] | null;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Results */
+            results: components["schemas"]["ActivityItem"][];
+            /** Total */
+            total: number;
+        };
         /** RunRow */
         RunRow: {
             /** Completion Confidence */
@@ -1406,6 +1441,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_v1_runs_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                dungeon?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunListResponse"];
                 };
             };
             /** @description Validation Error */
