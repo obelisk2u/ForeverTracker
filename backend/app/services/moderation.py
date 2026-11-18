@@ -15,7 +15,8 @@ from sqlalchemy.orm import Session
 from app.analytics.character_stats import recompute_many
 from app.config import Settings
 from app.ingestion.apply import ApplyContext, apply_dungeon_run, apply_snapshot, detach
-from app.models import AuditLog, Character, CharacterStats, Contributor, DataReport, DungeonRun, RawObservation, UploadBatch
+from app.identity.resolver import apply_name
+from app.models import AuditLog, Character, CharacterStats, Contributor, DataReport, DungeonRun, IdentityClaim, RawObservation, UploadBatch
 from app.models.base import utcnow
 from app.reconciliation.consolidate import rebuild_run
 from app.schemas.observations import CharacterSnapshotObservation, DungeonRunObservation, observation_adapter
@@ -76,9 +77,20 @@ def set_contributor_status(
         raise NotFound(contributor_id)
     if status not in ("active", "flagged", "banned"):
         raise ValueError("status must be active, flagged or banned")
+    previous = {
+        "previous_status": contributor.status,
+        "previous_reason": contributor.status_reason,
+        "flag_evidence_count": contributor.flag_evidence_count,
+        "quarantined_count": contributor.quarantined_count,
+    }
     contributor.status = status
     contributor.status_reason = reason
-    result: dict = {"status": status}
+    if status == "active" and previous["previous_status"] != "active":
+        # Restored: only new quarantined records can flag it again. Its history (counters, quarantined
+        # records, earlier audit entries) is kept.
+        contributor.flag_evidence_count = 0
+        contributor.restored_at = utcnow()
+    result: dict = {"status": status, **previous}
     if invalidate_all:
         raws = list(db.scalars(select(RawObservation).where(RawObservation.contributor_id == contributor_id)))
         result |= invalidate_observations(db, settings, raws, reason, actor)
@@ -146,3 +158,31 @@ def rebuild_all(db: Session, settings: Settings) -> dict:
     recompute_many(db, ctx.dirty_characters, settings)
     db.flush()
     return {"characters_recomputed": len(ctx.dirty_characters)}
+
+
+def resolve_identity_claim(db: Session, claim_id: int, status: str, note: str, actor: str) -> dict:
+    """Accept or reject a claim that contradicts an established identity.
+
+    Accepting a name claim makes it the character's name; accepting a class claim corrects the
+    character's class (observations that left that roster entry unidentified are not re-read).
+    """
+    claim = db.get(IdentityClaim, claim_id)
+    if claim is None:
+        raise NotFound(claim_id)
+    if status not in ("accepted", "rejected"):
+        raise ValueError("status must be accepted or rejected")
+    if claim.status not in ("open",):
+        raise ValueError(f"claim is already {claim.status}")
+    character = db.get(Character, claim.character_id)
+    before = {"full_name": character.full_name, "class_file": character.class_file}
+    if status == "accepted" and claim.kind == "name":
+        name, _, surname = (claim.display_value or claim.value).partition(" ")
+        apply_name(db, character, name, surname or None, claim.last_seen_at)
+    elif status == "accepted" and claim.kind == "class":
+        character.class_file = claim.value
+    claim.status = status
+    claim.resolution_note = note[:500] or None
+    claim.resolved_at = utcnow()
+    _audit(db, actor, "resolve_identity_claim", "identity_claim", claim_id, status=status, kind=claim.kind, value=claim.value, before=before, note=note)
+    db.flush()
+    return {"claim_id": claim_id, "status": status, "character": character.public_id, "full_name": character.full_name, "class_file": character.class_file}

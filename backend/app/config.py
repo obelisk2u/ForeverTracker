@@ -53,11 +53,17 @@ class Settings(BaseSettings):
     earliest_valid_timestamp: int = FOREVER_BETA_START_EPOCH
     max_future_skew_seconds: int = 600
     max_character_level: int = 60
+    # Quarantined records (counted since the contributor was last restored) that flag a contributor.
     contributor_flag_threshold: int = 5
+    # Distinct contributors who must report a known GUID under a new name before the public name changes.
+    identity_rename_min_contributors: int = 2
 
     # Reconciliation.
     match_time_padding_seconds: int = 900
     match_min_shared_characters: int = 2
+    # Different party GUIDs block a match. Turn off if live testing shows members' clients report different
+    # GUIDs for one group; then preview and apply the change to stored runs with `python -m app.cli rematch`.
+    match_party_guid_veto: bool = True
     death_dedupe_window_seconds: int = 3
     metric_agreement_tolerance: float = 0.01
 

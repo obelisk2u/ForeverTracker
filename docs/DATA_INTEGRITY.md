@@ -20,9 +20,9 @@ data to poison another character's profile.
 | Parsing | SavedVariables are parsed by a data-only grammar (no Lua execution), with limits on size, depth, string length, value count and number range, and a token limit (`MAX_SAVEDVARIABLES_TOKENS`, default a third of the byte limit; addon files average 3.6-4.7 bytes per token). Tokens are read one at a time and the limits apply while reading, so a hostile 8 MB upload costs about 2 s of CPU and well under 200 MB; an unterminated block comment is refused at once. Tables that are both a list and a map are refused per record ([`OBSERVATION_SCHEMA.md`](OBSERVATION_SCHEMA.md#lua-table-shapes)) | `packages/savedvariables` |
 | Schema | Strict Pydantic models; unknown fields rejected; bounded strings, lists and numbers | `app/schemas/observations.py` |
 | Plausibility | Reject: internally inconsistent records (end before start, unknown unit references, duplicate GUIDs). Quarantine: timestamps before the Forever beta or in the future, runs over 6 h, more concurrent members than the instance allows, levels above the cap, DPS/HPS above 60,000, implausible counts, meter combat time longer than the run, completion without evidence | `app/integrity/sanity.py` |
-| Identity | GUID/class contradictions are quarantined; names alone never merge characters | `app/identity/resolver.py` |
+| Identity | A known GUID reported under another name or class is a claim for review (`identity_claims`): a name changes only when `IDENTITY_RENAME_MIN_CONTRIBUTORS` (2) contributors report it or a moderator accepts it; a class contradiction leaves that roster entry unidentified. Names alone never merge characters | `app/identity/resolver.py` |
 | Duplicates | Unique constraints on batches and observation revisions; content digests | `app/ingestion/service.py` |
-| Contributor trust | A contributor reaching `CONTRIBUTOR_FLAG_THRESHOLD` (5) quarantined records is `flagged`: everything they upload afterwards is quarantined until review. `banned` contributors are refused. | `ingestion/service.py`, `services/moderation.py` |
+| Contributor trust | A contributor reaching `CONTRIBUTOR_FLAG_THRESHOLD` (5) quarantined records since its last restore is `flagged`: everything they upload afterwards is quarantined until review. Records quarantined only because the contributor was already flagged, or because they contradict another upload's identity (`guid_class_conflict`, `synthetic_mismatch`), do not count. Restoring a contributor resets the count and keeps its history. `banned` contributors are refused. | `ingestion/service.py`, `services/moderation.py` |
 | Publication | Quarantined records are stored but never applied. | `reconciliation/consolidate.py` |
 | Synthetic data | Refused in production; filtered from production responses as a second line of defence | `config.py`, `services/visibility.py` |
 
@@ -37,7 +37,8 @@ data to poison another character's profile.
 | Unavailable | The client did not expose it | Shown as "—" |
 | Quarantined / invalidated | Failed checks or removed by moderators | Nowhere public |
 
-Corroboration resists a single fabricating contributor, but not several colluding installations. Installation IDs
+Corroboration (of metrics, and of renames) resists a single fabricating contributor, but not several colluding
+installations. Installation IDs
 are free to create. All data is therefore labelled as self-reported, and moderators can invalidate a contributor's
 entire history in one action.
 

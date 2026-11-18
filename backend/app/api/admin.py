@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_settings, require_admin
 from app.config import Settings
-from app.models import Contributor, DataReport, RawObservation, RunMatchCandidate
+from app.models import Character, Contributor, DataReport, IdentityClaim, RawObservation, RunMatchCandidate
 from app.services import moderation
 from app.services.common import NotFound
 
@@ -28,6 +28,11 @@ class ContributorStatusIn(ReasonIn):
 
 class VisibilityIn(BaseModel):
     visibility: str = Field(pattern=r"^(public|suppressed)$")
+    note: str = Field(default="", max_length=500)
+
+
+class ClaimResolutionIn(BaseModel):
+    status: str = Field(pattern=r"^(accepted|rejected)$")
     note: str = Field(default="", max_length=500)
 
 
@@ -90,11 +95,44 @@ def list_contributors(status: str | None = None, limit: int = Query(50, le=500),
             "accepted": c.accepted_count,
             "quarantined": c.quarantined_count,
             "rejected": c.rejected_count,
+            "flag_evidence": c.flag_evidence_count,
+            "restored_at": c.restored_at,
             "synthetic": c.is_synthetic,
             "last_seen_at": c.last_seen_at,
         }
         for c in db.scalars(stmt)
     ]
+
+
+@router.get("/identity-claims")
+def list_identity_claims(status: str = "open", limit: int = Query(50, le=500), db: Session = Depends(get_db)):
+    """Reports that contradict an established identity: a known GUID under another name or class."""
+    rows = db.execute(
+        select(IdentityClaim, Character)
+        .join(Character, Character.id == IdentityClaim.character_id)
+        .where(IdentityClaim.status == status)
+        .order_by(IdentityClaim.id.desc())
+        .limit(limit)
+    ).all()
+    return [
+        {
+            "claim_id": claim.id,
+            "kind": claim.kind,
+            "claimed": claim.display_value or claim.value,
+            "character": {"id": character.public_id, "full_name": character.full_name, "class_file": character.class_file},
+            "contributor_id": claim.contributor_id,
+            "raw_observation_id": claim.raw_observation_id,
+            "observations": claim.observation_count,
+            "first_seen_at": claim.first_seen_at,
+            "last_seen_at": claim.last_seen_at,
+        }
+        for claim, character in rows
+    ]
+
+
+@router.post("/identity-claims/{claim_id}/resolve")
+def resolve_identity_claim(claim_id: int, body: ClaimResolutionIn, db: Session = Depends(get_db)):
+    return _do(db, moderation.resolve_identity_claim, db, claim_id, body.status, body.note, "admin")
 
 
 @router.get("/reports")

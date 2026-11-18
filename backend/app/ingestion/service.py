@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.analytics.character_stats import recompute_many
 from app.config import Settings
-from app.identity.resolver import IdentityConflict
+from app.identity.resolver import IdentityConflict, record_claim
 from app.ingestion.apply import ApplyContext, apply_dungeon_run, apply_snapshot, detach
 from app.ingestion.contributors import get_or_create_contributor
 from app.integrity.sanity import check_observation
@@ -44,6 +44,9 @@ from app.schemas.observations import (
 
 INGEST_LOCK_KEY = 7_340_001
 MAX_RECORDED_ERRORS = 50
+# Quarantine reasons that are not evidence against the uploader: the contributor is already flagged, or a
+# record contradicts what *another* upload established about a character (kept as an identity claim).
+NOT_FLAG_EVIDENCE = frozenset({"contributor_flagged", "guid_class_conflict", "synthetic_mismatch"})
 
 
 class IngestError(Exception):
@@ -171,7 +174,10 @@ def ingest_batch(
     contributor.accepted_count += counts.get("accepted", 0)
     contributor.quarantined_count += counts.get("quarantined", 0)
     contributor.rejected_count += counts.get("rejected", 0)
-    if contributor.status == "active" and contributor.quarantined_count >= settings.contributor_flag_threshold:
+    contributor.flag_evidence_count += sum(
+        1 for r in results if r.status == "quarantined" and any(reason not in NOT_FLAG_EVIDENCE for reason in r.reasons)
+    )
+    if contributor.status == "active" and contributor.flag_evidence_count >= settings.contributor_flag_threshold:
         contributor.status = "flagged"
         contributor.status_reason = "quarantine_threshold_reached"
 
@@ -319,7 +325,9 @@ def _ingest_one(db, index, raw_obs, upload, contributor, ctx: ApplyContext, now:
         result.status = "accepted"
     except IdentityConflict as conflict:
         savepoint.rollback()
-        new_row("quarantined", [conflict.reason])
+        held = new_row("quarantined", [conflict.reason])
+        if conflict.claim is not None:
+            record_claim(db, **conflict.claim, contributor_id=contributor.id, raw_observation_id=held.id)
         result.status, result.reasons = "quarantined", [conflict.reason]
     return result
 

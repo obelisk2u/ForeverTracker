@@ -7,6 +7,7 @@ from app.models import (
     CharacterIdentityEvidence,
     DungeonRun,
     EquipmentSnapshot,
+    IdentityClaim,
     MetricObservation,
     RawObservation,
     RunDeath,
@@ -117,15 +118,20 @@ def test_back_to_back_runs_of_same_group_are_not_merged(db, settings):
     assert count(db, DungeonRun) == 2
 
 
-def test_guid_with_contradicting_class_is_quarantined(db, settings):
+def test_a_guid_with_a_contradicting_class_is_a_claim_not_a_merge(db, settings):
     ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-1", observer="u1"))]))
     forged = party()
     forged[1].class_file = "MAGE"  # same GUID as the warrior
     result = ingest(db, settings, batch("install-dddd4444", [run_observation(RunSpec("z-1", observer="u1", members=forged, start=T0 + 7200))]))
-    assert result.observations[0].status == "quarantined"
-    assert result.observations[0].reasons == ["guid_class_conflict"]
-    assert count(db, DungeonRun) == 1
+    # The run is kept; only the contradicting roster entry stays unidentified, for review.
+    assert result.observations[0].status == "accepted"
+    assert count(db, DungeonRun) == 2
+    later = runs(db)[-1]
+    assert later.coverage["roster_entries_unidentified"] == 1 and later.coverage["participants_identified"] == 4
     assert character(db, "Mah Beardlong").class_file == "WARRIOR"
+    (claim,) = db.scalars(select(IdentityClaim)).all()
+    assert (claim.kind, claim.value, claim.status) == ("class", "MAGE", "open")
+    assert claim.character_id == character(db, "Mah Beardlong").id
 
 
 def test_new_revision_supersedes_in_progress_record(db, settings):
@@ -316,20 +322,32 @@ def test_ambiguous_match_is_recorded_not_guessed(db, settings):
     assert runs(db)[-1].match_status == "unresolved"
 
 
-def test_identity_evidence_records_renames(db, settings):
+def test_a_rename_needs_a_second_contributor(db, settings):
     ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-1", observer="u1"))]))
     renamed = party()
     renamed[0].name = "Autumne"
     ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-2", observer="u1", members=renamed, start=T0 + 86400))]))
     assert count(db, Character) == 5
     mage = db.scalar(select(Character).where(Character.class_file == "MAGE"))
-    assert mage.full_name == "Autumne Redleaf"
-    names = db.scalars(
-        select(CharacterIdentityEvidence.display_value).where(
-            CharacterIdentityEvidence.character_id == mage.id, CharacterIdentityEvidence.kind == "name"
+
+    def names():
+        return sorted(
+            db.scalars(
+                select(CharacterIdentityEvidence.display_value).where(
+                    CharacterIdentityEvidence.character_id == mage.id, CharacterIdentityEvidence.kind == "name"
+                )
+            )
         )
-    ).all()
-    assert sorted(names) == ["Autumn Redleaf", "Autumne Redleaf"]
+
+    # One contributor's word does not rename an established character, or enter its public name history.
+    assert mage.full_name == "Autumn Redleaf" and names() == ["Autumn Redleaf"]
+    (claim,) = db.scalars(select(IdentityClaim)).all()
+    assert (claim.kind, claim.display_value, claim.status) == ("name", "Autumne Redleaf", "open")
+    # A second, independent contributor sees the new name: it becomes the name.
+    ingest(db, settings, batch("install-bbbb2222", [run_observation(RunSpec("x-2", observer="u3", members=renamed, start=T0 + 86400 + 30))]))
+    db.refresh(mage)
+    assert mage.full_name == "Autumne Redleaf" and names() == ["Autumn Redleaf", "Autumne Redleaf"]
+    assert {c.status for c in db.scalars(select(IdentityClaim))} == {"applied"}
 
 
 def test_someone_who_left_as_the_run_began_is_not_in_the_run(db, settings):

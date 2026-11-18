@@ -4,6 +4,7 @@ from app.models.characters import (
     CharacterIdentityEvidence,
     CharacterStats,
     EquipmentSnapshot,
+    IdentityClaim,
     LevelObservation,
     Namespace,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "Dungeon",
     "DungeonRun",
     "EquipmentSnapshot",
+    "IdentityClaim",
     "LevelObservation",
     "MetricObservation",
     "Namespace",

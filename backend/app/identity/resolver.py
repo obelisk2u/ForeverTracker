@@ -3,10 +3,13 @@
 Rules (docs/IDENTITY_AND_RECONCILIATION.md):
 
 1. A GUID seen in a namespace belongs to exactly one character (enforced by a partial unique index).
-   A GUID observation links to that character even if the name differs (a rename), and records
-   the new name as additional evidence.
-2. A GUID whose recorded class differs from the character's class is a contradiction: the
-   observation is quarantined, never merged.
+   A GUID observation links to that character even if the name differs. A different name is a
+   *claim* (``identity_claims``): the public name and name history change only once
+   ``rename_min_contributors`` distinct contributors report it (or a moderator accepts it), so one
+   fabricated upload cannot rename an established character.
+2. A GUID whose recorded class differs from the character's class is a contradiction. It is
+   recorded as a claim for review and never merged: the roster entry stays unidentified (a
+   snapshot about that character is quarantined), and it does not count against the uploader.
 3. A name without a GUID is weak evidence. It links only when exactly one class-compatible
    character held that name around that time. Otherwise the roster entry stays unresolved:
    ForeverTracker would rather show "unidentified participant" than merge two people.
@@ -23,14 +26,16 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.identity.names import full_name, normalize_full_name
-from app.models import Character, CharacterIdentityEvidence
+from app.models import Character, CharacterIdentityEvidence, IdentityClaim
+from app.models.base import utcnow
 
 NAME_ONLY_TIME_TOLERANCE = timedelta(days=30)
 
 
 class IdentityConflict(Exception):
-    def __init__(self, reason: str, detail: str = ""):
+    def __init__(self, reason: str, detail: str = "", claim: dict | None = None):
         self.reason = reason
+        self.claim = claim  # an IdentityClaim to record after the savepoint is rolled back
         super().__init__(f"{reason}: {detail}" if detail else reason)
 
 
@@ -96,6 +101,7 @@ class Resolution:
     strength: str | None  # "guid" | "name" | None
     created: bool = False
     flags: list[str] = field(default_factory=list)
+    claim: dict | None = None  # a class conflict: the claim to keep if the caller rolls back
 
 
 def _canonical(db: Session, character: Character) -> Character:
@@ -178,6 +184,72 @@ def _add_evidence(
             ev.strength = "strong"
 
 
+def record_claim(
+    db: Session,
+    character_id: int,
+    kind: str,
+    value: str,
+    display: str | None,
+    observed_at: datetime,
+    *,
+    contributor_id: int | None,
+    raw_observation_id: int | None,
+) -> IdentityClaim:
+    """Record (or refresh) one contributor's claim about a character."""
+    claim = db.scalar(
+        select(IdentityClaim).where(
+            IdentityClaim.character_id == character_id,
+            IdentityClaim.kind == kind,
+            IdentityClaim.value == value,
+            IdentityClaim.contributor_id.is_(None) if contributor_id is None else IdentityClaim.contributor_id == contributor_id,
+        )
+    )
+    if claim is None:
+        claim = IdentityClaim(
+            character_id=character_id, kind=kind, value=value, display_value=display, contributor_id=contributor_id,
+            raw_observation_id=raw_observation_id, observation_count=1, first_seen_at=observed_at, last_seen_at=observed_at,
+        )
+        db.add(claim)
+    else:
+        claim.observation_count += 1
+        claim.first_seen_at = min(claim.first_seen_at, observed_at)
+        claim.last_seen_at = max(claim.last_seen_at, observed_at)
+        claim.raw_observation_id = raw_observation_id or claim.raw_observation_id
+    db.flush()
+    return claim
+
+
+def _name_claim_contributors(db: Session, character_id: int, normalized: str) -> set[int | None]:
+    return set(
+        db.scalars(
+            select(IdentityClaim.contributor_id).where(
+                IdentityClaim.character_id == character_id,
+                IdentityClaim.kind == "name",
+                IdentityClaim.value == normalized,
+                IdentityClaim.status.in_(("open", "applied")),
+            )
+        )
+    )
+
+
+def apply_name(db: Session, character: Character, name: str, surname: str | None, observed_at: datetime, cache=None) -> None:
+    """Make ``name surname`` the character's name (corroborated claim or moderator decision)."""
+    normalized = normalize_full_name(name, surname)
+    _add_evidence(db, character, "name", normalized, full_name(name, surname), "strong", observed_at, cache)
+    character.name = name
+    character.surname = surname
+    character.full_name = full_name(name, surname)
+    character.full_name_normalized = normalized
+    for claim in db.scalars(
+        select(IdentityClaim).where(
+            IdentityClaim.character_id == character.id, IdentityClaim.kind == "name", IdentityClaim.value == normalized,
+            IdentityClaim.status == "open",
+        )
+    ):
+        claim.status = "applied"
+        claim.resolved_at = utcnow()
+
+
 def _create(db: Session, namespace_id: int, subject: Subject, observed_at: datetime, synthetic: bool) -> Character:
     assert subject.name
     character = Character(
@@ -246,10 +318,15 @@ def resolve_character(
     *,
     synthetic: bool,
     cache: IdentityCache | None = None,
+    contributor_id: int | None = None,
+    raw_observation_id: int | None = None,
+    rename_min_contributors: int = 2,
 ) -> Resolution:
     """Find or create the character an observed roster entry refers to.
 
-    Raises :class:`IdentityConflict` when the evidence contradicts itself.
+    Raises :class:`IdentityConflict` when the evidence contradicts itself in a way the caller must hold
+    back (a synthetic/real mix). A class contradiction is returned unresolved with the flag
+    ``class_conflict`` and recorded as a claim.
     """
     if subject.identity_status != "ok" or not subject.name:
         return Resolution(None, None, flags=["identity_unavailable"])
@@ -273,17 +350,45 @@ def resolve_character(
             if character.is_synthetic != synthetic:
                 raise IdentityConflict("synthetic_mismatch", subject.guid)
             if not _class_compatible(character, subject):
-                raise IdentityConflict(
-                    "guid_class_conflict", f"{subject.guid} is {character.class_file}, observed {subject.class_file}"
-                )
+                claim = {"character_id": character.id, "kind": "class", "value": subject.class_file,
+                         "display": subject.class_file, "observed_at": observed_at}
+                record_claim(db, **claim, contributor_id=contributor_id, raw_observation_id=raw_observation_id)
+                return Resolution(None, None, flags=["class_conflict"], claim=claim)
             flags: list[str] = []
             ev.observation_count += 1
             ev.last_seen_at = max(ev.last_seen_at, observed_at)
             ev.first_seen_at = min(ev.first_seen_at, observed_at)
-            if normalized != character.full_name_normalized:
+            if normalized == character.full_name_normalized:
+                _add_evidence(db, character, "name", normalized, display, "strong", observed_at, cache)
+                _touch(db, character, subject, observed_at, update_name=True)
+                return Resolution(character, "guid", flags=flags)
+            newer = observed_at >= character.last_observed_at
+            known = (character.id, "name", normalized) in (cache.evidence if cache is not None else {}) or db.scalar(
+                select(CharacterIdentityEvidence.id).where(
+                    CharacterIdentityEvidence.character_id == character.id,
+                    CharacterIdentityEvidence.kind == "name",
+                    CharacterIdentityEvidence.value == normalized,
+                )
+            ) is not None
+            if known and not newer:
+                # A name it had before, in an older record (a late upload): history, not a rename.
+                _add_evidence(db, character, "name", normalized, display, "strong", observed_at, cache)
+                _touch(db, character, subject, observed_at, update_name=False)
+                return Resolution(character, "guid", flags=flags)
+            record_claim(
+                db, character.id, "name", normalized, display, observed_at,
+                contributor_id=contributor_id, raw_observation_id=raw_observation_id,
+            )
+            if len(_name_claim_contributors(db, character.id, normalized)) >= rename_min_contributors:
                 flags.append("name_changed")
-            _add_evidence(db, character, "name", normalized, display, "strong", observed_at, cache)
-            _touch(db, character, subject, observed_at, update_name=True)
+                _touch(db, character, subject, observed_at, update_name=False)
+                if newer:
+                    apply_name(db, character, subject.name, subject.surname, observed_at, cache)
+                else:
+                    _add_evidence(db, character, "name", normalized, display, "strong", observed_at, cache)
+            else:
+                flags.append("name_claim_pending")
+                _touch(db, character, subject, observed_at, update_name=False)
             return Resolution(character, "guid", flags=flags)
 
         compatible = [

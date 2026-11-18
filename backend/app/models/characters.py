@@ -71,6 +71,39 @@ class Character(TimestampMixin, Base):
     namespace: Mapped[Namespace] = relationship()
 
 
+class IdentityClaim(Base):
+    """A report that contradicts an established identity, kept for review instead of applied.
+
+    ``kind = 'name'``: a GUID already known under one name was reported under another. The public name
+    changes only once ``IDENTITY_RENAME_MIN_CONTRIBUTORS`` distinct contributors report it, or a moderator
+    accepts the claim. ``kind = 'class'``: a known GUID reported with another class (a class never
+    changes, so one side is wrong); that roster entry stays unidentified. One row per contributor.
+    """
+
+    __tablename__ = "identity_claims"
+    __table_args__ = (
+        CheckConstraint("kind IN ('name','class')", name="kind"),
+        CheckConstraint("status IN ('open','applied','accepted','rejected')", name="status"),
+        UniqueConstraint("character_id", "kind", "value", "contributor_id", name="character_kind_value_contributor"),
+        Index("ix_identity_claims_status", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    character_id: Mapped[int] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))
+    value: Mapped[str] = mapped_column(String(160))
+    display_value: Mapped[str | None] = mapped_column(String(160))
+    contributor_id: Mapped[int | None] = mapped_column(ForeignKey("contributors.id", ondelete="SET NULL"))
+    raw_observation_id: Mapped[int | None] = mapped_column(ForeignKey("raw_observations.id", ondelete="SET NULL"))
+    observation_count: Mapped[int] = mapped_column(default=1)
+    first_seen_at: Mapped[datetime]
+    last_seen_at: Mapped[datetime]
+    status: Mapped[str] = mapped_column(String(16), default="open")
+    resolution_note: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    resolved_at: Mapped[datetime | None]
+
+
 class CharacterIdentityEvidence(Base):
     """Why we believe observations belong to a character.
 

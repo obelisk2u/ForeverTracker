@@ -3,6 +3,7 @@
   seed              generate synthetic development data and ingest it (refused in production)
   ingest-dir DIR    ingest every *.json batch in DIR (in file-name order)
   rebuild           recompute every canonical run and character aggregate from raw observations
+  rematch           preview (default) or apply re-matching every observation into runs (cluster.py)
   purge-synthetic   delete all synthetic data and everything derived from it
   export-schema     write the observation JSON Schema
   export-openapi    write the OpenAPI document
@@ -103,6 +104,59 @@ def cmd_rebuild(_args) -> int:
     return 0
 
 
+def cmd_rematch(args) -> int:
+    """Re-match every accepted dungeon_run observation from the evidence, as ingestion now does.
+
+    By default this only prints what would change (moves, merges, new runs, unresolved observations) and
+    writes nothing. ``--apply --yes`` applies it: run it on a disposable copy first; production also
+    needs ``--production``. Raw observations are never changed; a run that loses every observation is
+    merged into the run that received them, so its public ID keeps working.
+    """
+    from collections import Counter
+
+    from sqlalchemy import make_url
+
+    from app.analytics.character_stats import recompute_many
+    from app.config import get_settings
+    from app.db import get_sessionmaker
+    from app.models import AuditLog
+    from app.reconciliation import cluster
+    from app.reconciliation.consolidate import rebuild_run
+
+    settings = get_settings()
+    target = make_url(settings.database_url).render_as_string(hide_password=True)
+    db = get_sessionmaker()()
+    try:
+        _, changes = cluster.plan_all(db, settings)
+        report = {
+            "database": target,
+            "mode": "apply" if args.apply else "dry-run",
+            "summary": dict(Counter(c.kind for c in changes)),
+            "changes": [{"kind": c.kind, **c.detail} for c in changes],
+        }
+        print(json.dumps(report, indent=2, default=str))
+        if not args.apply:
+            db.rollback()
+            return 0
+        if not args.yes:
+            print("refusing to apply without --yes", file=sys.stderr)
+            return 2
+        if settings.environment == "production" and not args.production:
+            print("refusing to apply in production without --production", file=sys.stderr)
+            return 2
+        touched = cluster.apply_all(db, settings)
+        dirty: set[int] = set()
+        for run_id in sorted(touched):
+            dirty |= rebuild_run(db, run_id, settings)
+        recompute_many(db, dirty, settings)
+        db.add(AuditLog(actor="cli", action="rematch", target_type="database", target_id="all", details=report["summary"]))
+        db.commit()
+        print(f"applied: {len(touched)} run(s) rebuilt, {len(dirty)} character(s) recomputed", file=sys.stderr)
+        return 0
+    finally:
+        db.close()
+
+
 def cmd_purge_synthetic(args) -> int:
     from app.db import get_sessionmaker
     from app.models import (
@@ -173,6 +227,11 @@ def main(argv: list[str] | None = None) -> int:
     ing.add_argument("directory")
     ing.set_defaults(fn=cmd_ingest_dir)
     sub.add_parser("rebuild").set_defaults(fn=cmd_rebuild)
+    rematch = sub.add_parser("rematch", help="preview (default) or apply re-matching observations into runs")
+    rematch.add_argument("--apply", action="store_true", help="write the changes (default: only print them)")
+    rematch.add_argument("--yes", action="store_true", help="confirm --apply")
+    rematch.add_argument("--production", action="store_true", help="allow --apply when ENVIRONMENT=production")
+    rematch.set_defaults(fn=cmd_rematch)
     purge = sub.add_parser("purge-synthetic")
     purge.add_argument("--yes", action="store_true")
     purge.set_defaults(fn=cmd_purge_synthetic)

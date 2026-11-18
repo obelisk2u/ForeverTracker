@@ -18,10 +18,15 @@ shows they share one name space. The realm string is stored as `realm_label` and
 
 **Rules**, applied in `resolve_character`:
 
-1. A GUID already known links to its character, even under a different name (a rename). The new name is added as
-   evidence and becomes current if the observation is newer.
-2. A known GUID with a **different class** is a contradiction. The whole observation is quarantined
-   (`guid_class_conflict`) and nothing is merged.
+1. A GUID already known links to its character, even under a different name. A different name is a **claim**
+   (`identity_claims`, one row per contributor): the public name and the name history change only once
+   `IDENTITY_RENAME_MIN_CONTRIBUTORS` (default 2) distinct contributors report it with a newer timestamp, or a
+   moderator accepts the claim. One upload cannot rename an established character. An older record that carries a
+   name the character had before is history, not a claim.
+2. A known GUID with a **different class** is a contradiction (a class never changes, so one side is wrong). It is
+   recorded as a claim for review and nothing is merged: in a run, that roster entry stays unidentified and the rest
+   of the run is kept; a snapshot about that character is quarantined (`guid_class_conflict`). Neither counts
+   against the uploader (see "Contributor trust" in [`DATA_INTEGRITY.md`](DATA_INTEGRITY.md)).
 3. A new GUID upgrades a single class-compatible *name-only* character with the same name. Otherwise it creates a
    new character.
 4. A name without a GUID links only if exactly one class-compatible character holds that name, or if one holder's
@@ -31,28 +36,44 @@ shows they share one name space. The realm string is stored as `realm_label` and
 5. Secret or unavailable identities are never guessed.
 6. Synthetic and real data never link to each other.
 
-Characters are never merged automatically on name alone. A merge (`merged_into_id`) is an administrative action;
-merged characters redirect to the surviving profile URL.
+Characters are never merged automatically. `characters.merged_into_id` is honoured (the old profile URL redirects)
+but nothing sets it yet: there is no character-merge action. Moderators review claims with
+`GET /api/v1/admin/identity-claims` and `POST /api/v1/admin/identity-claims/{id}/resolve` (see
+[`OPERATIONS.md`](OPERATIONS.md)).
 
 ## Run matching
 
-For each incoming `dungeon_run` observation (`app/reconciliation/matcher.py`):
+Code: `app/reconciliation/cluster.py`. Matching is a function of the current accepted observations, not of the
+order uploads, revisions and retries arrive in: whenever a `dungeon_run` observation is applied, the decision is
+recomputed for every observation it could belong with.
 
-1. **Candidates**: canonical runs in the same namespace and dungeon whose `[started_at, ended_at or last_observed_at]`
-   window is within ±15 minutes of the observation's window, with the same synthetic flag.
-2. **Evidence per candidate**:
-   * *Vetoes* (any one blocks a match): both have party GUIDs and they differ; both have difficulties and they differ;
-     the same boss was killed in both more than 10 minutes apart (two instance copies).
-   * *Shared characters*: identified in both, with presence intervals overlapping by at least 60 s. A character cannot
-     be in two instances at once.
+1. **Neighbourhood**: accepted observations in the same namespace and dungeon whose windows are within
+   `MATCH_TIME_PADDING_SECONDS` (15 minutes) and that share a character or party GUID with it, transitively, plus
+   every observation already in a run involved.
+2. **Evidence**, observation against a group of observations (their raw records, never derived rows):
+   * *Vetoes* (any one blocks a match): the group's single party GUID differs (unless `MATCH_PARTY_GUID_VETO=false`);
+     difficulties differ; the same boss killed more than 10 minutes apart (two instance copies; this holds even
+     when another pull of that boss lines up).
+   * *Shared characters*: identified on both sides, with presence overlapping by at least 60 s.
    * *Aligned encounters*: same boss pull within 120 s.
    * Score = 2 × shared characters + 3 × party-GUID match + aligned encounters + time-overlap ratio.
-3. **Decision**:
-   * No veto and at least `MATCH_MIN_SHARED_CHARACTERS` (default 2) shared characters, or a party-GUID match plus one
-     shared character, counts as a match.
-   * An earlier revision of the *same* observation keeps its run unless vetoed (stable run URLs).
-   * One match: link. Several: link to the best only if its score is at least 1.5 times the next. Otherwise create a
-     separate run marked `unresolved` and store every candidate in `run_match_candidates`.
+3. **Clustering**, in start-time order: no veto and at least `MATCH_MIN_SHARED_CHARACTERS` (default 2) shared
+   characters, or a party-GUID match plus one, is a match. One matching group: join it. Several: join the best if
+   its score is at least 1.5 times the next; otherwise the observation becomes its own run marked `unresolved`,
+   its candidates are stored in `run_match_candidates` for review, and no later upload joins it.
+4. **Runs and IDs**: each group keeps the existing run holding most of its observations, so public run IDs stay
+   put (the first part of a run the addon splits keeps the merged run's ID). A run that loses every observation is
+   merged into the run that received them (`merged_into_id`): its URL redirects instead of disappearing. Each move
+   is recorded in the link's `match_evidence.moved_from`.
+
+So an early `/reload` (a first revision covering seconds of the run), a stored run that the addon later splits, a
+second observer arriving before or after either, and retries all end in the same runs
+(`backend/tests/test_reconciliation_convergence.py`).
+
+**Existing data**: `python -m app.cli rematch` prints what re-matching every stored observation would change
+(moves, merges, new runs, unresolved observations) and writes nothing. `--apply --yes` applies it (production also
+needs `--production`): try it on a restored copy first. `python -m app.cli rebuild` recomputes runs' contents and
+statistics but never re-matches.
 
 The matcher was measured against simulator ground truth (`test_simulation_accuracy.py`): **0 false merges, 0 splits,
 every multi-observer run reconciled**. That covers simulated late entries, early leavers, missing party GUIDs and
@@ -115,3 +136,4 @@ Resolution (`app/reconciliation/metrics.py`):
   straight back in (a boss it had killed was pulled again), sending the first part as a new revision and the second as
   a new observation, which must be matched against the corrected run rather than join the merged one.
 * Ingestion holds a transaction-scoped advisory lock, so concurrent uploads of one run cannot create two runs.
+* Re-sending anything (a batch, an older revision, the same file again) leaves the runs as they were.

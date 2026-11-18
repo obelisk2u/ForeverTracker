@@ -46,7 +46,7 @@ Expected: identical results inside and outside, in and out of combat.
 |---|---|
 | All readable everywhere | Collector `identity` stays on (default). |
 | Secret only in combat | No change: the addon reads identity at roster changes; confirm with test 2 that rosters are complete. |
-| GUIDs secret in dungeons | Runs will match on names only (weaker). Raise `MATCH_MIN_SHARED_CHARACTERS` to 3 in the backend environment; note in READINESS. |
+| GUIDs secret in dungeons | Runs will match on names only (weaker). Raise `MATCH_MIN_SHARED_CHARACTERS` to 3 in the backend environment (`python -m app.cli rematch` previews the effect on stored runs); note in READINESS. |
 | `RegionalUniqueNamesEnabled()` is false or the second value is a realm | Set the namespace rule in `app/identity/namespaces.py` and re-check test data; surnames would be wrong in stored names. **Stop and investigate.** |
 | `GetRealmName()` / region values | Record them. If `GetCurrentRegionName()` is empty, confirm `GetCurrentRegion()` maps to the right region in `REGION_BY_ID` (`backend/app/identity/namespaces.py`). |
 
@@ -175,7 +175,7 @@ Action: as test 6.
 | Result | Action |
 |---|---|
 | As expected | The core product promise is validated. |
-| Two runs instead of one | Check the run pages' `party_guid` and timestamps. If party GUIDs differ between members' clients, set the matcher to ignore party GUID vetoes (`matcher.evaluate_candidate`) and re-run `python -m app.cli rebuild`. |
+| Two runs instead of one | Check the run pages' `party_guid` and timestamps. If party GUIDs differ between members' clients, set `MATCH_PARTY_GUID_VETO=false` in the backend environment and restart; new uploads then match. For runs already stored, `python -m app.cli rematch` lists what would change (it writes nothing); apply it with `--apply --yes` only after checking the list on a restored copy. (`rebuild` does not re-match.) |
 
 ---
 
@@ -202,7 +202,7 @@ Action: as test 6.
 | Per-user collector toggle | `/ft enable <name>`, `/ft disable <name>` | Overrides the default for one installation. |
 | Meter retry timing | `Config.LIMITS.meter_retry_delays` | How long the addon waits for secrets to clear. |
 | Meter death semantics | Backend env `METER_DEATH_INTERPRETATION` (`entry_per_death` / `total_amount`), then `python -m app.cli rebuild` | How meter death counts are read. Stored raw data is reinterpreted, nothing is re-uploaded. |
-| Matching strictness | Backend env `MATCH_MIN_SHARED_CHARACTERS` | How many overlapping characters two records need to merge. |
+| Matching strictness | Backend env `MATCH_MIN_SHARED_CHARACTERS`, `MATCH_PARTY_GUID_VETO` | How many overlapping characters two records need to merge; whether different party GUIDs block a match. Preview their effect on stored runs with `python -m app.cli rematch`. |
 | Dungeon catalog | `dungeons.final_encounter_id`, `catalog_status = 'curated'` | Enables *probable* completion from final-boss kills. |
 
 After changing an addon default, bump `## Version` in `ForeverTracker.toc` and `FT.version`, and release the addon.

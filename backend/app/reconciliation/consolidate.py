@@ -168,6 +168,12 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
         db.execute(delete(model).where(model.run_id == run_id))
 
     if not links:
+        if run.merged_into_id is not None:
+            # Its observations now belong to another run: the row stays, so its public ID redirects there.
+            run.observation_count = 0
+            run.contributor_count = 0
+            db.flush()
+            return previous_chars
         db.delete(run)
         db.flush()
         return previous_chars

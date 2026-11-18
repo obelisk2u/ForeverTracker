@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.identity.namespaces import get_or_create_namespace
-from app.identity.resolver import IdentityCache, Subject, resolve_character
+from app.identity.resolver import IdentityCache, IdentityConflict, Subject, resolve_character
 from app.models import (
     DungeonRun,
     EquipmentSnapshot,
@@ -19,7 +19,7 @@ from app.models import (
     RunObservation,
 )
 from app.models.base import from_epoch
-from app.reconciliation import matcher
+from app.reconciliation import cluster
 from app.reconciliation.consolidate import rebuild_run
 from app.reconciliation.dungeons import get_or_create_dungeon
 from app.schemas.observations import CharacterSnapshotObservation, DungeonRunObservation
@@ -42,7 +42,6 @@ def apply_dungeon_run(
     observed_at = from_epoch(obs.timing.started_at)
 
     identities: dict[str, int] = {}
-    members: list[matcher.ObservedMember] = []
     subjects = [
         Subject(
             guid=m.guid,
@@ -58,34 +57,26 @@ def apply_dungeon_run(
     ]
     cache = IdentityCache.preload(db, ns.id, subjects, ctx.synthetic)
     for m, subject in zip(obs.roster, subjects):
-        res = resolve_character(db, ns.id, subject, observed_at, synthetic=ctx.synthetic, cache=cache)
+        res = resolve_character(
+            db, ns.id, subject, observed_at, synthetic=ctx.synthetic, cache=cache, contributor_id=raw.contributor_id,
+            raw_observation_id=raw.id, rename_min_contributors=ctx.settings.identity_rename_min_contributors,
+        )
         if res.character is not None:
             identities[m.ref] = res.character.id
-            members.append(matcher.ObservedMember(res.character.id, matcher.member_intervals(obs, m.ref)))
+        # A class contradiction leaves this roster entry unidentified (recorded as a claim for review).
 
-    decision = matcher.decide(db, ns.id, dungeon.id, obs, members, ctx.synthetic, ctx.settings, preferred_run_id)
-    if decision.run is None:
-        start, end = matcher.observation_window(obs)
-        run = DungeonRun(
-            namespace_id=ns.id,
-            dungeon_id=dungeon.id,
-            difficulty_id=obs.instance.difficulty_id,
-            started_at=start,
-            last_observed_at=end,
-            party_guid=obs.party_guid,
-            is_synthetic=ctx.synthetic,
-        )
-        db.add(run)
-        db.flush()
-        if decision.unresolved_candidates:
-            matcher.record_unresolved(db, raw, decision.unresolved_candidates)
-    else:
-        run = decision.run
-    matcher.link(db, run, raw, decision.evidence, identities)
-    db.flush()
-    ctx.dirty_characters |= rebuild_run(db, run.id, ctx.settings)
-    ctx.dirty_runs.discard(run.id)
-    return run
+    # Match against the current evidence of every observation this one could belong with (not against
+    # derived rows, and not just against what arrived first): see app/reconciliation/cluster.py.
+    seed = cluster.facts(
+        raw, obs, identities, namespace_id=ns.id, dungeon_id=dungeon.id, run_id=None, preferred_run_id=preferred_run_id
+    )
+    extra = {preferred_run_id} if preferred_run_id is not None else set()
+    neighbourhood = cluster.neighbourhood(db, seed, ctx.settings, extra_run_ids=extra)
+    outcome = cluster.apply(db, neighbourhood, ctx.settings, extra_run_ids=extra)
+    for run_id in sorted(outcome.touched_runs):
+        ctx.dirty_characters |= rebuild_run(db, run_id, ctx.settings)
+        ctx.dirty_runs.discard(run_id)
+    return db.get(DungeonRun, outcome.run_of[raw.id])
 
 
 def apply_snapshot(db: Session, raw: RawObservation, obs: CharacterSnapshotObservation, ctx: ApplyContext) -> int | None:
@@ -108,8 +99,14 @@ def apply_snapshot(db: Session, raw: RawObservation, obs: CharacterSnapshotObser
         ),
         observed_at,
         synthetic=ctx.synthetic,
+        contributor_id=raw.contributor_id,
+        raw_observation_id=raw.id,
+        rename_min_contributors=ctx.settings.identity_rename_min_contributors,
     )
     if res.character is None:
+        if res.claim is not None:
+            # The snapshot is about a character whose class it contradicts: hold it for review.
+            raise IdentityConflict("guid_class_conflict", s.guid or "", claim=res.claim)
         return None
     char_id = res.character.id
     if obs.equipment is not None or obs.talents is not None:

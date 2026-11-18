@@ -35,6 +35,11 @@ class Contributor(Base):
     accepted_count: Mapped[int] = mapped_column(default=0)
     quarantined_count: Mapped[int] = mapped_column(default=0)
     rejected_count: Mapped[int] = mapped_column(default=0)
+    # Quarantined records that count toward flagging (CONTRIBUTOR_FLAG_THRESHOLD) since the contributor was
+    # last restored: not those quarantined only because the contributor was flagged, and not identity
+    # conflicts, which are claims about other players' records (see ingestion/service.py).
+    flag_evidence_count: Mapped[int] = mapped_column(default=0, server_default="0")
+    restored_at: Mapped[datetime | None]
     is_synthetic: Mapped[bool] = mapped_column(default=False)
     first_seen_at: Mapped[datetime] = mapped_column(server_default=func.now())
     last_seen_at: Mapped[datetime] = mapped_column(server_default=func.now())
