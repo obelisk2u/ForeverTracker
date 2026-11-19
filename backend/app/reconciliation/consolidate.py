@@ -31,7 +31,8 @@ from app.models import (
     RunParticipant,
 )
 from app.models.base import from_epoch
-from app.reconciliation.final_encounters import final_encounters
+from app.reconciliation.dungeons import wing_dungeon
+from app.reconciliation.final_encounters import final_encounters, wing_for
 from app.reconciliation.matcher import member_intervals
 from app.reconciliation.metrics import (
     Candidate,
@@ -290,6 +291,10 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
         encounter.metrics_status = meter.status
         encounter.combat_seconds = meter.combat_seconds
     encounters.sort(key=lambda e: e.started_at)
+    # A dungeon whose wings share one map: the run belongs to the wing of the first wing boss pulled
+    # (by any observer), or to the whole dungeon when none was.
+    dungeon = wing_dungeon(db, dungeon, wing_for(dungeon.map_id, (e.encounter_id for e in encounters)))
+    run.dungeon_id = dungeon.id
     _learn_encounters(dungeon, encounters)
 
     # Someone who left as the run began (and was replaced) did not take part in it: no participant

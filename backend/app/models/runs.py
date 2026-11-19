@@ -22,13 +22,20 @@ class Dungeon(TimestampMixin, Base):
 
     ``final_encounter_id`` stays NULL until a maintainer verifies it in-game; only then can
     "final boss killed" be used as *probable* completion evidence.
+
+    One row per instance map ID, plus one per wing for a dungeon whose wings share the map
+    (``wing``, from final_encounters.json; empty for the whole dungeon).
     """
 
     __tablename__ = "dungeons"
-    __table_args__ = (CheckConstraint("catalog_status IN ('observed','curated')", name="catalog_status"),)
+    __table_args__ = (
+        CheckConstraint("catalog_status IN ('observed','curated')", name="catalog_status"),
+        UniqueConstraint("map_id", "wing"),  # uq_dungeons_map_id
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    map_id: Mapped[int] = mapped_column(unique=True)
+    map_id: Mapped[int]
+    wing: Mapped[str] = mapped_column(String(40), default="", server_default="")
     slug: Mapped[str] = mapped_column(String(80), unique=True)
     name: Mapped[str] = mapped_column(String(120))
     instance_type: Mapped[str] = mapped_column(String(16))

@@ -15,7 +15,17 @@ from sqlalchemy.orm import Session
 from app.analytics.character_stats import recompute_many
 from app.config import Settings
 from app.ingestion.apply import ApplyContext, apply_dungeon_run, apply_snapshot, detach
-from app.models import AuditLog, Character, CharacterStats, Contributor, DataReport, DungeonRun, RawObservation, UploadBatch
+from app.models import (
+    AuditLog,
+    Character,
+    CharacterStats,
+    Contributor,
+    DataReport,
+    Dungeon,
+    DungeonRun,
+    RawObservation,
+    UploadBatch,
+)
 from app.models.base import utcnow
 from app.reconciliation.consolidate import rebuild_run
 from app.schemas.observations import CharacterSnapshotObservation, DungeonRunObservation, observation_adapter
@@ -140,6 +150,10 @@ def resolve_report(db: Session, report_public_id: str, status: str, note: str, a
 def rebuild_all(db: Session, settings: Settings) -> dict:
     """Recompute every canonical run and every character's statistics from linked raw observations."""
     ctx = ApplyContext(settings=settings, synthetic=False)
+    # The bosses each dungeon has shown are learned from its runs, so they are learned again (a run can
+    # move to another wing's dungeon).
+    for dungeon in db.scalars(select(Dungeon).where(Dungeon.catalog_status == "observed")):
+        dungeon.encounters = []
     for run_id in db.scalars(select(DungeonRun.id).order_by(DungeonRun.id)):
         ctx.dirty_characters |= rebuild_run(db, run_id, settings)
     ctx.dirty_characters |= set(db.scalars(select(CharacterStats.character_id)))

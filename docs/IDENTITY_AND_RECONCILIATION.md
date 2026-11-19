@@ -38,11 +38,13 @@ merged characters redirect to the surviving profile URL.
 
 For each incoming `dungeon_run` observation (`app/reconciliation/matcher.py`):
 
-1. **Candidates**: canonical runs in the same namespace and dungeon whose `[started_at, ended_at or last_observed_at]`
-   window is within ±15 minutes of the observation's window, with the same synthetic flag.
+1. **Candidates**: canonical runs in the same namespace and dungeon (in any of its wings, below) whose
+   `[started_at, ended_at or last_observed_at]` window is within ±15 minutes of the observation's window, with the
+   same synthetic flag.
 2. **Evidence per candidate**:
    * *Vetoes* (any one blocks a match): both have party GUIDs and they differ; both have difficulties and they differ;
-     the same boss was killed in both more than 10 minutes apart (two instance copies).
+     the same boss was killed in both more than 10 minutes apart (two instance copies); both are in a wing and the
+     wings differ.
    * *Shared characters*: identified in both, with presence intervals overlapping by at least 60 s. A character cannot
      be in two instances at once.
    * *Aligned encounters*: same boss pull within 120 s.
@@ -63,6 +65,13 @@ name-only members. Real data may differ.
 `rebuild_run` recomputes everything derived for a run from its accepted observations. It is deterministic and
 idempotent.
 
+* **Dungeon and wing**: Scarlet Monastery's Graveyard, Library, Armory and Cathedral share instance map 189, so the
+  client reports them as one dungeon. `final_encounters.json` lists each wing's bosses (`wings`); a run belongs to
+  the wing of the first of those bosses pulled by any observer, and is shown as that wing's own dungeon
+  ("Scarlet Monastery: Library", one `dungeons` row per wing beside the whole dungeon's). A run that pulled none
+  stays the whole dungeon. A run moves to its wing when rebuilt, keeping its ID. The addon names wings the same way
+  in its records (`FT.WINGS`, kept in sync by a test), and starts a new run when the group goes from one wing into
+  another.
 * **Timing**: earliest start, latest end among finished records (an observer still "in progress" does not hold the
   run open once another observer has finished it).
 * **Outcome**: `completed/verified` if any observer saw a completion event; `completed/probable` if the curated final

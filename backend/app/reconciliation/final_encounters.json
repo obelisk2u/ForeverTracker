@@ -1,5 +1,5 @@
 {
-  "about": "The boss whose kill finishes each Forever dungeon, keyed by the instance map ID (8th return of GetInstanceInfo). A run that kills one of these counts as completed even without a completion event (groups formed outside the dungeon finder never get one). Source: the last boss in each dungeon's encounter order in the Forever client's DungeonEncounter table (build 1.60.1.70862, wago.tools branch wowf). Where wings share one map, each wing's last boss is listed. Kept in sync with addon/ForeverTracker/Data/Dungeons.lua by a test.",
+  "about": "The boss whose kill finishes each Forever dungeon, keyed by the instance map ID (8th return of GetInstanceInfo). A run that kills one of these counts as completed even without a completion event (groups formed outside the dungeon finder never get one). Source: the last boss in each dungeon's encounter order in the Forever client's DungeonEncounter table (build 1.60.1.70862, wago.tools branch wowf). Where wings share one map, each wing's last boss is listed. `wings`: the bosses of each wing of a dungeon whose wings share one map ID; a run counts as the wing of the first of these bosses it pulls, and a run that pulls none stays the whole dungeon. Kept in sync with addon/ForeverTracker/Data/Dungeons.lua by a test.",
   "dungeons": {
     "33": { "name": "Shadowfang Keep", "final": { "2755": "Archmage Arugal" } },
     "34": { "name": "Stormwind Stockade", "final": { "2760": "Bazil Thredd" } },
@@ -12,7 +12,14 @@
     "129": { "name": "Razorfen Downs", "final": { "2785": "Amnennar the Coldbringer" } },
     "189": {
       "name": "Scarlet Monastery",
-      "final": { "2779": "Bloodmage Thalnos", "447": "Arcanist Doan", "448": "Herod", "450": "High Inquisitor Whitemane" }
+      "final": { "2779": "Bloodmage Thalnos", "447": "Arcanist Doan", "448": "Herod", "450": "High Inquisitor Whitemane" },
+      "wings": {
+        "graveyard": { "name": "Graveyard", "encounters": { "444": "Interrogator Vishas", "2779": "Bloodmage Thalnos" } },
+        "library": { "name": "Library", "encounters": { "446": "Houndmaster Loksey", "447": "Arcanist Doan" } },
+        "armory": { "name": "Armory", "encounters": { "448": "Herod" } },
+        "cathedral": { "name": "Cathedral", "encounters": { "449": "High Inquisitor Fairbanks", "450": "High Inquisitor Whitemane" } }
+      },
+      "wings_verified_in_game": "2026-11-18"
     },
     "209": { "name": "Zul'Farrak", "final": { "600": "Chief Ukorz Sandscalp" } },
     "229": { "name": "Blackrock Spire", "final": { "275": "Overlord Wyrmthalak", "3069": "General Drakkisath" } },

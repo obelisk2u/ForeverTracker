@@ -21,7 +21,7 @@ from app.models import (
 from app.models.base import from_epoch
 from app.reconciliation import matcher
 from app.reconciliation.consolidate import rebuild_run
-from app.reconciliation.dungeons import get_or_create_dungeon
+from app.reconciliation.dungeons import get_or_create_dungeon, observation_wing
 from app.schemas.observations import CharacterSnapshotObservation, DungeonRunObservation
 
 
@@ -38,7 +38,7 @@ def apply_dungeon_run(
 ) -> DungeonRun:
     ns = get_or_create_namespace(db, obs.namespace)
     raw.namespace_id = ns.id
-    dungeon = get_or_create_dungeon(db, obs.instance, synthetic=ctx.synthetic)
+    dungeon = get_or_create_dungeon(db, obs.instance, synthetic=ctx.synthetic, wing=observation_wing(obs))
     observed_at = from_epoch(obs.timing.started_at)
 
     identities: dict[str, int] = {}
@@ -63,7 +63,7 @@ def apply_dungeon_run(
             identities[m.ref] = res.character.id
             members.append(matcher.ObservedMember(res.character.id, matcher.member_intervals(obs, m.ref)))
 
-    decision = matcher.decide(db, ns.id, dungeon.id, obs, members, ctx.synthetic, ctx.settings, preferred_run_id)
+    decision = matcher.decide(db, ns.id, dungeon, obs, members, ctx.synthetic, ctx.settings, preferred_run_id)
     if decision.run is None:
         start, end = matcher.observation_window(obs)
         run = DungeonRun(

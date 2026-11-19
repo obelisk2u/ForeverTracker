@@ -28,8 +28,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.models import DungeonRun, RawObservation, RunEncounter, RunMatchCandidate, RunObservation, RunParticipant
+from app.models import Dungeon, DungeonRun, RawObservation, RunEncounter, RunMatchCandidate, RunObservation, RunParticipant
 from app.models.base import from_epoch
+from app.reconciliation.dungeons import observation_wing
 from app.schemas.observations import DungeonRunObservation
 
 MIN_OVERLAP_SECONDS = 60
@@ -110,6 +111,11 @@ def evaluate_candidate(
     if obs.instance.difficulty_id is not None and run.difficulty_id is not None:
         if obs.instance.difficulty_id != run.difficulty_id:
             ev.vetoes.append("difficulty_mismatch")
+    # Different wings of one dungeon (Scarlet Monastery) are different instances.
+    obs_wing = observation_wing(obs)
+    run_wing = db.scalar(select(Dungeon.wing).where(Dungeon.id == run.dungeon_id))
+    if obs_wing is not None and run_wing and obs_wing.key != run_wing:
+        ev.vetoes.append("wing_mismatch")
 
     run_end = run.ended_at or run.last_observed_at
     participants = db.scalars(select(RunParticipant).where(RunParticipant.run_id == run.id)).all()
@@ -156,8 +162,10 @@ def is_match(ev: MatchEvidence, settings: Settings) -> bool:
 
 
 def find_candidates(
-    db: Session, namespace_id: int, dungeon_id: int, obs: DungeonRunObservation, synthetic: bool, settings: Settings
+    db: Session, namespace_id: int, dungeon: Dungeon, obs: DungeonRunObservation, synthetic: bool, settings: Settings
 ) -> list[DungeonRun]:
+    """Runs in the same dungeon, in any of its wings: a run's wing is known only once a boss is pulled, so
+    an observer who saw no boss can still join a run that is in a wing (and the reverse)."""
     start, end = observation_window(obs)
     pad = timedelta(seconds=settings.match_time_padding_seconds)
     run_end = func.coalesce(DungeonRun.ended_at, DungeonRun.last_observed_at)
@@ -165,7 +173,7 @@ def find_candidates(
         db.scalars(
             select(DungeonRun).where(
                 DungeonRun.namespace_id == namespace_id,
-                DungeonRun.dungeon_id == dungeon_id,
+                DungeonRun.dungeon_id.in_(select(Dungeon.id).where(Dungeon.map_id == dungeon.map_id)),
                 DungeonRun.is_synthetic == synthetic,
                 DungeonRun.merged_into_id.is_(None),
                 DungeonRun.quarantined.is_(False),
@@ -186,7 +194,7 @@ class MatchDecision:
 def decide(
     db: Session,
     namespace_id: int,
-    dungeon_id: int,
+    dungeon: Dungeon,
     obs: DungeonRunObservation,
     members: list[ObservedMember],
     synthetic: bool,
@@ -195,7 +203,7 @@ def decide(
 ) -> MatchDecision:
     evaluations = [
         evaluate_candidate(db, run, obs, members, settings)
-        for run in find_candidates(db, namespace_id, dungeon_id, obs, synthetic, settings)
+        for run in find_candidates(db, namespace_id, dungeon, obs, synthetic, settings)
     ]
     matches = sorted((e for e in evaluations if is_match(e, settings)), key=lambda e: e.score, reverse=True)
     if preferred_run_id is not None:
