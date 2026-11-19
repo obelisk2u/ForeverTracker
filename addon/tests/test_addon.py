@@ -28,3 +28,22 @@ def test_final_bosses_match_the_website():
     catalog = json.loads((REPO / "backend" / "app" / "reconciliation" / "final_encounters.json").read_text(encoding="utf-8"))
     on_website = {int(map_id): {int(e) for e in d["final"]} for map_id, d in catalog["dungeons"].items()}
     assert in_addon == on_website
+
+
+def test_wings_match_the_website():
+    """The records window and the website must split a dungeon's wings by the same bosses."""
+    lua = new_runtime()
+    lua.execute("Mock.loadAddon(nil)")
+    table = lua.eval("Mock.ft.WINGS")
+    in_addon = {
+        int(map_id): {w["key"]: (w["name"], {int(e) for e in w["bosses"].keys()}) for w in wings.values()}
+        for map_id, wings in table.items()
+    }
+    catalog = json.loads((REPO / "backend" / "app" / "reconciliation" / "final_encounters.json").read_text(encoding="utf-8"))
+    on_website = {
+        int(map_id): {key: (w["name"], {int(e) for e in w["encounters"]}) for key, w in d["wings"].items()}
+        for map_id, d in catalog["dungeons"].items()
+        if d.get("wings")
+    }
+    assert in_addon == on_website
+    assert on_website, "the catalog lists wings"

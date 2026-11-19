@@ -28,3 +28,50 @@ FT.FINAL_ENCOUNTERS = {
   [2998] = { [3482] = true }, -- Excavation Site: Wetlands: Relic Guardian
   [3065] = { [3496] = true }, -- The Hall of Thanes: Durgen Dirgehammer
 }
+
+-- Dungeons whose wings share one instance map ID, by map ID: each wing's bosses. A run is in the
+-- wing of the first of these bosses it pulls; one that pulls none is the whole dungeon. A copy of
+-- the "wings" in backend/app/reconciliation/final_encounters.json, kept in sync by the same test.
+FT.WINGS = {
+  [189] = { -- Scarlet Monastery
+    { key = "graveyard", name = "Graveyard", bosses = { [444] = true, [2779] = true } }, -- Interrogator Vishas, Bloodmage Thalnos
+    { key = "library", name = "Library", bosses = { [446] = true, [447] = true } }, -- Houndmaster Loksey, Arcanist Doan
+    { key = "armory", name = "Armory", bosses = { [448] = true } }, -- Herod
+    { key = "cathedral", name = "Cathedral", bosses = { [449] = true, [450] = true } }, -- High Inquisitor Fairbanks, High Inquisitor Whitemane
+  },
+}
+
+-- The wing a boss belongs to, or nil.
+function FT.wingOfBoss(mapId, encounterId)
+  for _, wing in ipairs((mapId and FT.WINGS[mapId]) or {}) do
+    if wing.bosses[encounterId] then
+      return wing
+    end
+  end
+  return nil
+end
+
+-- The wing a run is in (that of the first wing boss it pulled), or nil.
+function FT.wingOf(run)
+  local mapId = type(run) == "table" and type(run.instance) == "table" and run.instance.map_id
+  if not (mapId and FT.WINGS[mapId]) then
+    return nil
+  end
+  for _, e in ipairs(run.encounters or {}) do
+    local wing = FT.wingOfBoss(mapId, e.encounter_id)
+    if wing then
+      return wing
+    end
+  end
+  return nil
+end
+
+-- The run's dungeon as players name it: "Scarlet Monastery: Library" once a Library boss is pulled.
+function FT.dungeonName(run)
+  local name = type(run) == "table" and type(run.instance) == "table" and run.instance.name or nil
+  local wing = FT.wingOf(run)
+  if name and wing then
+    return name .. ": " .. wing.name
+  end
+  return name
+end

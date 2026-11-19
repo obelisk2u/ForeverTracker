@@ -1027,7 +1027,7 @@ local function scoreboardTab(content)
       return
     end
     local run = board.run
-    local parts = { dungeonLabel(run.instance and run.instance.name, run.instance and run.instance.difficulty_name) }
+    local parts = { dungeonLabel(FT.dungeonName(run), run.instance and run.instance.difficulty_name) }
     if liveFight then
       parts[#parts + 1] = hex(C.good) .. "Live: this fight|r"
     elseif board.active then
@@ -1219,7 +1219,7 @@ function UI.refresh()
   local status = ""
   local run = FT.Storage.activeRun()
   if run and run.instance then
-    local where = run.instance.name or "this dungeon"
+    local where = FT.dungeonName(run) or "this dungeon"
     local st = FT.db.active_state
     if st and st.phase == "suspended" then
       -- Outside the dungeon: the run stays open a while in case the player goes back in.

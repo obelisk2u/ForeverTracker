@@ -194,7 +194,9 @@ end
 -- The same happens to any version when a group finishes a dungeon whose final boss is not in
 -- FT.FINAL_ENCOUNTERS, resets it and goes straight back in: the run never ended. A boss dies once
 -- per instance, so pulling one this run already killed means a new run; RT.splitOnRepeat splits
--- the open run then, and RT.splitStored splits runs stored that way when the addon loads.
+-- the open run then, and RT.splitStored splits runs stored that way when the addon loads. A group
+-- that goes from one wing of Scarlet Monastery into another (FT.WINGS: they share one map ID)
+-- before killing the first wing's last boss is split the same way, at its first boss of the new wing.
 
 -- When the player left the first run and when they went back in for the second, or nil.
 local function mergedAt(run)
@@ -284,13 +286,19 @@ local REENTRY = { reentered = true, login = true }
 
 -- Boss `encounterId` is pulled at `at`. If this run already killed it, the dungeon was reset: the
 -- new run began the first time the player went back in after the run's last kill before `at`
--- (later than any corpse run of the old run, which comes before one of its kills). Returns when
--- the player left the old instance and when they went back in, or nil.
+-- (later than any corpse run of the old run, which comes before one of its kills). The same when
+-- it belongs to another wing (FT.WINGS) than a boss the run pulled before: the group went from
+-- one wing into the next, which is another instance, counting that boss's pull as a kill. Returns
+-- when the player left the old instance and when they went back in, or nil.
 local function newInstanceAt(run, encounterId, at)
+  local mapId = run.instance and run.instance.map_id
+  local wing = FT.wingOfBoss(mapId, encounterId)
   local killed, lastKill = false, nil
   for _, e in ipairs(run.encounters or {}) do
-    if e.success == true and e.started_at and e.started_at < at then
-      killed = killed or e.encounter_id == encounterId
+    local other = FT.wingOfBoss(mapId, e.encounter_id)
+    local otherWing = wing ~= nil and other ~= nil and other ~= wing
+    if (e.success == true or otherWing) and e.started_at and e.started_at < at then
+      killed = killed or otherWing or e.encounter_id == encounterId
       local t = e.ended_at or e.started_at
       if lastKill == nil or t > lastKill then
         lastKill = t
@@ -318,11 +326,14 @@ local function newInstanceAt(run, encounterId, at)
   return leftAt, backAt
 end
 
--- Where a run already holds a second copy of the dungeon (a killed boss pulled again), or nil.
+-- Where a run already holds a second copy of the dungeon (a killed boss pulled again, or a boss of
+-- another wing), or nil.
 local function repeatAt(run)
-  local killed = {}
+  local killed, firstWing = {}, nil
+  local mapId = run.instance and run.instance.map_id
   for _, e in ipairs(run.encounters or {}) do
-    if killed[e.encounter_id] and e.started_at then
+    local wing = FT.wingOfBoss(mapId, e.encounter_id)
+    if (killed[e.encounter_id] or (wing and firstWing and wing ~= firstWing)) and e.started_at then
       local leftAt, backAt = newInstanceAt(run, e.encounter_id, e.started_at)
       if backAt then
         return leftAt, backAt
@@ -331,6 +342,7 @@ local function repeatAt(run)
     if e.success == true then
       killed[e.encounter_id] = true
     end
+    firstWing = firstWing or wing
   end
   return nil
 end

@@ -14,8 +14,9 @@ FT.Records = Records
 -- Version 2 counts a final-boss kill as a completion; older records are rebuilt from stored runs.
 -- Version 3 adds The Hall of Thanes to the final bosses.
 -- Version 4 leaves out of the group whoever only passed through.
--- Since then the records note which final bosses they were made with (`finals`): an update that
--- adds one rebuilds them from stored runs (Records.init), with no new version.
+-- Since then the records note which final bosses and wings they were made with (`finals`): an
+-- update that adds one rebuilds them from stored runs (Records.init), with no new version.
+-- Scarlet Monastery's wings share one map ID; each wing has its own records (FT.WINGS).
 Records.VERSION = 4
 Records.MAX_HISTORY = 500
 Records.MAX_PARTY = 8
@@ -25,12 +26,20 @@ Records.PASSED_THROUGH_SECONDS = 300
 -- A run with less combat than this does not set a DPS/HPS record (one quick pull is not a run).
 Records.MIN_RATE_COMBAT_SECONDS = 60
 
--- The final bosses this version knows, as one string: "map:encounter,..." in sorted order.
+-- The final bosses and wings this version knows, as one string: "map:encounter,..." and
+-- "wing:map:key:encounter,..." in sorted order.
 local function finalsKey()
   local keys = {}
   for map, bosses in pairs(FT.FINAL_ENCOUNTERS or {}) do
     for id in pairs(bosses) do
       keys[#keys + 1] = map .. ":" .. id
+    end
+  end
+  for map, wings in pairs(FT.WINGS or {}) do
+    for _, wing in ipairs(wings) do
+      for id in pairs(wing.bosses) do
+        keys[#keys + 1] = "wing:" .. map .. ":" .. wing.key .. ":" .. id
+      end
     end
   end
   table.sort(keys)
@@ -77,7 +86,8 @@ local function myMetric(run, ref, metric)
 end
 
 function Records.dungeonKey(s)
-  return tostring(s.map_id or s.dungeon or "?") .. ":" .. tostring(s.difficulty_id or 0)
+  local key = tostring(s.map_id or s.dungeon or "?") .. ":" .. tostring(s.difficulty_id or 0)
+  return s.wing and (key .. ":" .. s.wing) or key
 end
 
 local function passedThrough(run, entry, started, ended)
@@ -147,6 +157,7 @@ function Records.summarize(run)
     end
   end
   local combat = run.meter and run.meter.combat_seconds
+  local wing = FT.wingOf(run)
   return {
     id = run.observation_id,
     char = key,
@@ -154,7 +165,8 @@ function Records.summarize(run)
     surname = (me and me.surname) or (run.recorded_by and run.recorded_by.surname),
     class_file = me and me.class_file,
     map_id = run.instance.map_id,
-    dungeon = run.instance.name,
+    wing = wing and wing.key,
+    dungeon = FT.dungeonName(run),
     difficulty = run.instance.difficulty_name,
     difficulty_id = run.instance.difficulty_id,
     started_at = started,
