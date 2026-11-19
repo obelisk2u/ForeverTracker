@@ -72,9 +72,10 @@ never guessed at; such roster entries stay unidentified.
 }
 ```
 
-`flags.marked_completed` (addon 0.2.10): the player marked the run as completed in the addon (the records window's
-button or `/ft complete`). The run still ends `unknown` (or `left` from outside), since no completion event came; the
-website counts it as completed with `reported` confidence.
+`flags.ended_by_player` (addon 0.2.12): the player stopped recording the run by hand (the records window's
+**End run** or `/ft end`). The run ends `unknown` (or `left` from outside) and claims nothing: whether it was
+completed is inferred from a completion event or the dungeon's final boss, as for any run. Addon 0.2.10 sent
+`flags.marked_completed` for the same button ("Mark as completed"); it is treated the same way.
 
 All timestamps are **server epoch seconds** (`GetServerTime()`), so different observers' records share one clock.
 `local_clock_offset` records the gap between the local and server clocks.

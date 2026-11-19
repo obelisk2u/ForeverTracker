@@ -75,9 +75,9 @@ idempotent.
 * **Timing**: earliest start, latest end among finished records (an observer still "in progress" does not hold the
   run open once another observer has finished it).
 * **Outcome**: `completed/verified` if any observer saw a completion event; `completed/probable` if the curated final
-  boss was killed; else `abandoned` if an abandon vote passed; else `completed/reported` if an observer marked the run
-  as completed in the addon (`flags.marked_completed`); else `in_progress`, `disconnected`, `left` or `unknown`. Only
-  `verified` completions count in completion statistics.
+  boss was killed; else `abandoned` if an abandon vote passed; else `in_progress`, `disconnected`, `left` or
+  `unknown`. A run the player ended by hand in the addon (`flags.ended_by_player`, or `flags.marked_completed` from
+  0.2.10) is judged the same way. Only `verified` completions count in completion statistics.
 * **Participants**: union of presence intervals, most frequent assigned role, highest level, count of observers that
   saw them. Someone in the group for under `PASSED_THROUGH_SECONDS` (5 minutes) and at no boss pull only passed
   through (left as the run began and was replaced): they are not a participant, so the run does not appear in their

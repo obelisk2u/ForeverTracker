@@ -145,10 +145,3 @@ describe("character profile", () => {
     expect(screen.queryByRole("link", { name: /Report incorrect data/ })).not.toBeInTheDocument();
   });
 });
-
-describe("run page notes", () => {
-  it("says when the player marked the run as completed", () => {
-    render(<RunDetailView run={{ ...r, outcome: "completed", completion_confidence: "reported" }} />);
-    expect(screen.getByText(/marked it as completed in the addon/)).toBeInTheDocument();
-  });
-});

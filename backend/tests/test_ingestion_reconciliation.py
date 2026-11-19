@@ -447,24 +447,23 @@ def test_short_fights_recorded_by_addon_0_2_10_are_trusted(db, settings):
     assert (damage.value, damage.status, damage.coverage) == (301_000.0, "observed", "complete_session")
 
 
-def test_a_run_the_player_marked_as_completed(db, settings):
-    spec = RunSpec("r-1", observer="u1", state="unknown", verified=False, encounters=[(3001, 300, True)])
-    obs = run_observation(spec)
-    obs["flags"] = {"marked_completed": True}
-    result = ingest(db, settings, batch("install-aaaa1111", [obs]))
-    assert [o.status for o in result.observations] == ["accepted"]
-    (run,) = runs(db)
-    raw = db.scalar(select(RawObservation))
-    assert (run.outcome, run.completion_confidence) == ("completed", "reported")
-    assert run.outcome_evidence == [{"kind": "marked_by_player", "observation": raw.id}]
-    assert run_detail(db, settings, run.public_id).completion_confidence == "reported"
+def test_a_run_the_player_ended_is_judged_by_the_evidence(db, settings):
+    # "End run" (flags.ended_by_player), or "Mark as completed" in addon 0.2.10 (flags.marked_completed):
+    # neither makes a run completed.
+    for i, flag in enumerate(("ended_by_player", "marked_completed")):
+        spec = RunSpec(f"r-{i}", observer="u1", state="unknown", verified=False, start=T0 + i * 7200, encounters=[(3001, 300, True)])
+        obs = run_observation(spec)
+        obs["flags"] = {flag: True}
+        result = ingest(db, settings, batch("install-aaaa1111", [obs]))
+        assert [o.status for o in result.observations] == ["accepted"]
+    assert [(r.outcome, r.completion_confidence, r.outcome_evidence) for r in runs(db)] == [("unknown", "none", [])] * 2
 
 
-def test_game_evidence_outranks_the_players_mark(db, settings):
-    # Deadmines ends at Edwin VanCleef: the kill is better evidence than the mark.
+def test_a_run_the_player_ended_after_the_final_boss_is_completed(db, settings):
+    # Deadmines ends at Edwin VanCleef.
     spec = RunSpec("r-1", observer="u1", map_id=36, name="Deadmines", state="left", verified=False, encounters=[(2747, 900, True)])
     obs = run_observation(spec)
-    obs["flags"] = {"marked_completed": True}
+    obs["flags"] = {"ended_by_player": True}
     ingest(db, settings, batch("install-aaaa1111", [obs]))
     (run,) = runs(db)
     assert (run.outcome, run.completion_confidence) == ("completed", "probable")

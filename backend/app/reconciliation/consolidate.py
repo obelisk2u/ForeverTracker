@@ -119,10 +119,8 @@ def _outcome(links: list[LinkedObservation], dungeon: Dungeon, encounters: list[
     states = [link.obs.state for link in links]
     if "abandoned" in states:
         return "abandoned", "none", [{"kind": "abandon_vote_passed"}]
-    # The player marked the run as completed in the addon: their word, below any game evidence.
-    marked = [link.raw.id for link in links if link.obs.flags.get("marked_completed")]
-    if marked:
-        return "completed", "reported", [{"kind": "marked_by_player", "observation": marked[0]}]
+    # A run the player ended by hand (flags.ended_by_player, or flags.marked_completed from addon
+    # 0.2.10) is judged by the same evidence as any other: the flag claims nothing.
     if all(s == "in_progress" for s in states):
         return "in_progress", "none", []
     finished = [s for s in states if s != "in_progress"]
