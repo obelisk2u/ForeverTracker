@@ -17,6 +17,7 @@ FT.Records = Records
 -- Since then the records note which final bosses and wings they were made with (`finals`): an
 -- update that adds one rebuilds them from stored runs (Records.init), with no new version.
 -- Scarlet Monastery's wings share one map ID; each wing has its own records (FT.WINGS).
+-- RULES changes when the way a summary is made changes, rebuilding them the same way.
 Records.VERSION = 4
 Records.MAX_HISTORY = 500
 Records.MAX_PARTY = 8
@@ -25,6 +26,8 @@ Records.MAX_PARTY = 8
 Records.PASSED_THROUGH_SECONDS = 300
 -- A run with less combat than this does not set a DPS/HPS record (one quick pull is not a run).
 Records.MIN_RATE_COMBAT_SECONDS = 60
+-- 2: a run marked as completed in 0.2.10 (flags.marked_completed) is judged like any other.
+Records.RULES = 2
 
 -- The final bosses and wings this version knows, as one string: "map:encounter,..." and
 -- "wing:map:key:encounter,..." in sorted order.
@@ -43,6 +46,7 @@ local function finalsKey()
     end
   end
   table.sort(keys)
+  keys[#keys + 1] = "rules:" .. Records.RULES
   return table.concat(keys, ",")
 end
 
@@ -137,11 +141,9 @@ function Records.summarize(run)
       wipes = wipes + 1
     end
   end
-  -- No completion event (a group formed outside the dungeon finder) but the final boss died, or
-  -- the player marked the run as completed.
+  -- No completion event (a group formed outside the dungeon finder) but the final boss died.
   local result = run.state
-  local marked = type(run.flags) == "table" and run.flags.marked_completed == true
-  if result ~= "completed" and result ~= "abandoned" and (finalBoss or marked) then
+  if result ~= "completed" and result ~= "abandoned" and finalBoss then
     result = "completed"
   end
   local deaths = 0
@@ -174,7 +176,6 @@ function Records.summarize(run)
     duration = math.max(0, ended - started),
     result = result,
     final_boss = finalBoss,
-    marked = marked or nil,
     bosses = bosses,
     wipes = wipes,
     deaths = deaths,

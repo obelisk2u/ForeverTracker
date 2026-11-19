@@ -405,8 +405,6 @@ local function runsTab(content)
     tooltipLine("Result", r[1], r[2])
     if s.result == "completed" and s.final_boss then
       tooltipLine("The final boss was killed.", nil, C.faint)
-    elseif s.result == "completed" and s.marked then
-      tooltipLine("You marked this run as completed.", nil, C.faint)
     elseif s.result == "left" or s.result == "disconnected" then
       tooltipLine("No completion event was seen. That does not mean the group failed.", nil, C.faint)
     end
@@ -904,8 +902,8 @@ local function scoreboardTab(content)
   end
   page.chips = { run = chip("Whole run", 0, "run"), fight = chip("Last fight", 104, "fight") }
 
-  -- A backup for a run that does not end on its own: no completion event, and the addon does not
-  -- know this dungeon's final boss. The first click asks; a second within 5 seconds marks it.
+  -- For a run that does not end on its own: stops recording it, claiming nothing (whether it was
+  -- completed is inferred as usual). The first click asks; a second within 5 seconds ends it.
   local done = create("Button", nil, page, "BackdropTemplate")
   paint(done, C.surface2, C.line)
   done:SetSize(150, 22)
@@ -915,18 +913,18 @@ local function scoreboardTab(content)
   local armed -- the pending first click, if any
   function done.reset()
     armed = nil
-    done.text:SetText("Mark as completed")
+    done.text:SetText("End run")
     done.text:SetTextColor(C.muted[1], C.muted[2], C.muted[3])
   end
   done:SetScript("OnClick", function()
     if armed then
       done.reset()
-      UI.markCompleted()
+      UI.endRun()
       return
     end
     local token = {}
     armed = token
-    done.text:SetText("Click again to confirm")
+    done.text:SetText("Click again to end it")
     done.text:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
     FT.Events.after(5, "records", function()
       if armed == token then
@@ -936,8 +934,8 @@ local function scoreboardTab(content)
   end)
   done:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-    tooltipLine("Mark as completed", nil, C.text)
-    tooltipLine("Ends this run now and counts it as completed. For when it doesn't end on its own after the last boss.", nil, C.faint)
+    tooltipLine("End run", nil, C.text)
+    tooltipLine("Stops recording this run now, for when it doesn't end on its own. Whether you finished it is worked out as usual, from the dungeon's last boss. It uploads after your next /reload or logout.", nil, C.faint)
     GameTooltip:Show()
   end)
   done:SetScript("OnLeave", function()
@@ -1252,15 +1250,15 @@ function UI.refresh()
   return view
 end
 
--- Mark the open run as completed: the scoreboard's button and /ft complete.
-function UI.markCompleted()
-  local ok, why = FT.RunTracker.markCompleted()
+-- Stop recording the open run: the scoreboard's "End run" and /ft end.
+function UI.endRun()
+  local ok, why = FT.RunTracker.endRun()
   if ok then
-    FT.Util.print("run marked as completed.")
+    FT.Util.print("run ended. It uploads after your next /reload or logout.")
   elseif why == "in_combat" then
-    FT.Util.print("finish the fight first, then mark the run as completed.")
+    FT.Util.print("finish the fight first, then end the run.")
   else
-    FT.Util.print("there is no dungeon run to mark as completed.")
+    FT.Util.print("there is no dungeon run to end.")
   end
   UI.refresh()
   return ok

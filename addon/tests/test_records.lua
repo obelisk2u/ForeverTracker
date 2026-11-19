@@ -937,7 +937,7 @@ describe("scoreboard", function()
   end)
 end)
 
-describe("mark as completed", function()
+describe("end run", function()
   -- A dungeon whose final boss the addon does not know: the run never ends on its own inside.
   local SOMEWHERE = { name = "City of Somewhere", mapId = 990002 }
 
@@ -949,7 +949,7 @@ describe("mark as completed", function()
     b._scripts.OnClick(b)
   end
 
-  it("ends the run from the scoreboard after a second click, and counts it as completed", function()
+  it("stops recording the run after a second click, claiming nothing about how it went", function()
     local ft = boot()
     Mock.slash("records")
     falsy(button(ft):IsShown(), "no run, no button")
@@ -959,12 +959,13 @@ describe("mark as completed", function()
     Mock.advance(30)
     local b = button(ft)
     truthy(b:IsShown())
+    eq(b.text:GetText(), "End run")
 
     click(b)
     truthy(activeRun(), "the first click only asks")
-    eq(b.text:GetText(), "Click again to confirm")
+    eq(b.text:GetText(), "Click again to end it")
     Mock.advance(6)
-    eq(b.text:GetText(), "Mark as completed", "the question goes away on its own")
+    eq(b.text:GetText(), "End run", "the question goes away on its own")
     click(b)
     truthy(activeRun())
     local endedAt = Mock.clock
@@ -972,50 +973,80 @@ describe("mark as completed", function()
 
     falsy(activeRun(), "the second click ended the run")
     local run = lastObservation("dungeon_run")
-    truthy(run.flags.marked_completed)
-    eq(run.state, "unknown", "not a completion event: the website and the records count the mark")
+    truthy(run.flags.ended_by_player)
+    falsy(run.flags.marked_completed, "not marked as completed")
+    for _, e in ipairs(run.timeline) do
+      truthy(e.kind ~= "completed", "no completion in the timeline")
+    end
+    eq(run.state, "unknown", "no completion event came")
     eq(run.timing.ended_at, endedAt)
     eq(run.addon_version, ft.version)
-    eq(records().history[1].result, "completed")
-    truthy(records().history[1].marked)
-    falsy(b:IsShown(), "nothing left to mark")
-    truthy(Mock.chatContains("marked as completed"))
+    eq(records().history[1].result, "unknown", "the addon does not know this dungeon's last boss")
+    falsy(b:IsShown(), "nothing left to end")
+    truthy(Mock.chatContains("run ended"))
 
     Mock.reload() -- still inside: not a new run
     falsy(activeRun())
   end)
 
-  it("marks a run the player already left, ending it when they left", function()
+  it("leaves a run ended before its last boss uncompleted", function()
+    boot()
+    Mock.enterDungeon({ name = "Scarlet Monastery", mapId = 189 })
+    boss(444, "Interrogator Vishas", true)
+    Mock.advance(30)
+    Mock.slash("end")
+    falsy(activeRun())
+    eq(records().history[1].dungeon, "Scarlet Monastery: Graveyard")
+    eq(records().history[1].result, "unknown", "Bloodmage Thalnos was not killed")
+  end)
+
+  it("ends a run the player already left, when they left", function()
     boot()
     Mock.enterDungeon(SOMEWHERE)
     boss(3001, "First Boss", true)
     Mock.leaveInstance()
     local leftAt = Mock.clock
     Mock.advance(120)
-    Mock.slash("complete")
+    Mock.slash("end")
     falsy(activeRun())
     local run = lastObservation("dungeon_run")
-    truthy(run.flags.marked_completed)
+    truthy(run.flags.ended_by_player)
     eq(run.state, "left")
     eq(run.timing.ended_at, leftAt)
-    eq(records().history[1].result, "completed")
+    eq(records().history[1].result, "left")
   end)
 
   it("waits for the fight to end, and needs a run", function()
     boot()
-    Mock.slash("complete")
+    Mock.slash("end")
     truthy(Mock.chatContains("no dungeon run"))
     Mock.enterDungeon(SOMEWHERE)
     Mock.startCombat()
-    Mock.slash("complete")
+    Mock.slash("end")
     truthy(activeRun(), "not during a fight")
     truthy(Mock.chatContains("finish the fight first"))
     Mock.advance(30)
     Mock.endCombat(30, { Autumn = { damage_done = 5000 } })
     Mock.advance(12)
-    Mock.slash("complete")
+    Mock.slash("complete") -- its 0.2.10 name still works
     falsy(activeRun())
     eq(#lastObservation("dungeon_run").meter.sessions, 1, "the fight's numbers are in the run")
+  end)
+
+  it("judges a run marked as completed in 0.2.10 like any other", function()
+    boot()
+    Mock.enterDungeon(SOMEWHERE)
+    boss(3001, "First Boss", true)
+    Mock.slash("end")
+    -- As 0.2.10 stored it: marked, and counted as completed in the records.
+    local run = lastObservation("dungeon_run")
+    run.flags.marked_completed = true
+    ForeverTrackerDB.records.history[1].result = "completed"
+    ForeverTrackerDB.records.finals = nil
+
+    Mock.reload()
+    eq(#records().history, 1)
+    eq(records().history[1].result, "unknown")
   end)
 end)
 

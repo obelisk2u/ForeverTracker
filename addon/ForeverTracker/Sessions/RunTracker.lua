@@ -16,8 +16,8 @@
 --   Final states (observation `state`):
 --     completed     only with a completion event (LFG_COMPLETION_REWARD, SCENARIO_COMPLETED,
 --                   CHALLENGE_MODE_COMPLETED). Leaving an instance is NEVER a completion.
---                   (A run the player marks as completed ends "unknown", or "left" from outside,
---                   with flags.marked_completed: the records and the website count it.)
+--                   (A run the player ends by hand ends "unknown", or "left" from outside, with
+--                   flags.ended_by_player: whether it was completed is inferred as for any run.)
 --     abandoned     an instance-abandon vote passed.
 --     left          the observer left the dungeon and did not come back within the grace period.
 --     disconnected  the observer's game session ended inside the dungeon (logout, disconnect or
@@ -899,12 +899,12 @@ function RT.onCompletion(kind)
   touch(run)
 end
 
--- The player says the run is complete (the records window or /ft complete): a backup for when no
--- completion event comes and the addon does not know the dungeon's final boss. It ends the run now,
--- or when the player left the dungeon if they are outside it. The website shows it as completed
--- "as marked by the player", below a completion event or a final-boss kill.
+-- The player stops recording the run (the records window's "End run" or /ft end): for a run that
+-- does not end on its own. It ends the run now, or when the player left the dungeon if they are
+-- outside it, and claims nothing: whether it was completed is inferred from what happened (a
+-- completion event or the dungeon's final boss), by the records and the website alike.
 -- Returns true, or false and why not ("no_run", "in_combat").
-function RT.markCompleted()
+function RT.endRun()
   local run, st = active(), state()
   if not run or not st then
     return false, "no_run"
@@ -913,8 +913,7 @@ function RT.markCompleted()
   if inside and FT.Meter.inCombat() then
     return false, "in_combat" -- the fight's numbers come after it ends
   end
-  run.flags.marked_completed = true
-  RT.mark("completed", { source = "player" })
+  run.flags.ended_by_player = true
   if inside then
     RT.finalize("unknown", now())
   else
