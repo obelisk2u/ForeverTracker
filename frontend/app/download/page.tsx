@@ -68,7 +68,7 @@ export default async function DownloadPage() {
             <div className="mt-auto flex flex-col gap-3 pt-2">
               <DownloadButton release={release} />
               <p className="text-sm text-faint">
-                The app keeps itself up to date; the addon updates through CurseForge. See the{" "}
+                The app keeps itself and the addon up to date. See the{" "}
                 <Link href="/code-signing" className="text-muted-foreground underline decoration-faint underline-offset-4 hover:text-foreground">
                   code signing policy
                 </Link>
@@ -99,9 +99,9 @@ export default async function DownloadPage() {
           </h2>
           <p className="leading-relaxed text-muted-foreground">
             Addons cannot connect to the internet, so this small program is what gets your runs onto ForeverTracker. It
-            watches the addon&apos;s SavedVariables file and uploads new records after you log out. It only reads files, never
-            changes anything in your WoW folder, keeps a local copy of every version it sees, can be paused at any time, and
-            shows exactly what it will send before sending it.
+            watches the addon&apos;s SavedVariables file and uploads new records after you log out. It keeps a local copy of
+            every version it sees, can be paused at any time, and shows exactly what it will send before sending it. It also
+            keeps the addon up to date while the game is closed, and changes nothing else in your WoW folder.
           </p>
         </section>
       </div>

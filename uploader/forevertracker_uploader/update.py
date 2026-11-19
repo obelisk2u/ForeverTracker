@@ -4,8 +4,8 @@ Once a day the background app asks its server for the newest release (``/api/v1/
 A newer installer is downloaded, checked against the SHA-256 the server published, and run only if
 Windows reports a valid Authenticode signature from the same publisher as the running exe, so a
 compromised server or download host cannot push its own program. The installer runs silently with
-``/UPDATE=1``: it keeps the player's settings, never touches the addon (CurseForge updates that),
-and starts the new version.
+``/UPDATE=1``: it keeps the player's settings, leaves the addon it carries in the app's folder (addon.py
+installs it into the game once the game is closed) and starts the new version.
 
 Only the packaged exe updates itself. A pip install is updated with pip, and an unsigned build
 (every development build) never installs anything.

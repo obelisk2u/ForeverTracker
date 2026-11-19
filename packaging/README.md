@@ -141,6 +141,7 @@ working; signing with a different identity would change the publisher, and insta
 | Pause / check / see what's uploaded | `ForeverTrackerUploader.exe pause` / `status` / `disclose`, or `ForeverTrackerUploader.exe gui` for a status window |
 | Read the log | `%APPDATA%\ForeverTracker\uploader\uploader.log` |
 | Turn off self-update | Set `"auto_update": false` in `%APPDATA%\ForeverTracker\uploader\config.json` |
+| Stop it updating the addon | Set `"update_addon": false` in the same file (the app otherwise installs the addon it carries when the game's is older and the game is closed) |
 | Uninstall | Add/Remove Programs → ForeverTracker (the addon stays; remove it in CurseForge or the AddOns folder) |
 
 > **Note:** the packaged exe includes Tkinter for the cards (the notice and the tray icon's status

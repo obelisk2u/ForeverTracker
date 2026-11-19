@@ -27,10 +27,12 @@ export default function PrivacyPage() {
       <p>
         After you log out, exit or type /reload, the ForeverTracker companion app reads one file, the addon&apos;s saved data,
         and uploads the runs recorded there over HTTPS: the dungeon, the characters in your group, boss kills, deaths,
-        damage-meter totals and equipment; the name, surname, class and race (not level) of everyone you group with,
+        damage-meter totals and equipment, with each item&apos;s tooltip text; the name, surname, class and race (not level) of everyone you group with,
         outside dungeons too; and the addon&apos;s check of which game features work and its installation ID. Once a day it also asks for a newer version of itself, sending only its version number. It sends no account
-        names, e-mail addresses, chat or information about your computer, and never changes anything in your game folder.
-        The installer shows this before it installs anything.
+        names, e-mail addresses, chat or information about your computer. Each of its updates carries the newest addon,
+        and when that is newer than yours it replaces the ForeverTracker addon folder while the game is closed. It never
+        installs an addon you removed and changes nothing else in your game folder. The installer shows this before it
+        installs anything.
       </p>
       <h2 className="mt-6 text-lg font-semibold tracking-tight text-foreground">What we do not keep</h2>
       <p>
@@ -51,7 +53,8 @@ export default function PrivacyPage() {
         For the companion app: turn off starting with Windows in Settings → Apps → Startup; pause uploads with{" "}
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground">ForeverTrackerUploader.exe pause</code>; see exactly what would be sent with{" "}
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground">ForeverTrackerUploader.exe disclose</code>; turn off self-updates by setting{" "}
-        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground">&quot;auto_update&quot;: false</code> in{" "}
+        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground">&quot;auto_update&quot;: false</code> (and addon updates with{" "}
+        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground">&quot;update_addon&quot;: false</code>) in{" "}
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground">%APPDATA%\ForeverTracker\uploader\config.json</code>; or uninstall it from Settings →
         Apps, which stops all uploads.
       </p>

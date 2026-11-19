@@ -4,8 +4,12 @@ WHAT IT DOES
 After you log out, exit or type /reload, the app reads one file: the ForeverTracker addon's saved
 data (ForeverTracker.lua in your World of Warcraft folder). It uploads the dungeon runs recorded
 there to the ForeverTracker server over HTTPS, and keeps a copy of each version of that file in its
-own folder so nothing is lost if the game overwrites it. It never changes anything in your WoW
-folder and reads no other files there.
+own folder so nothing is lost if the game overwrites it. It reads no other files there.
+
+The app also keeps the ForeverTracker addon up to date: each of its updates carries the newest
+addon, and when that is newer than the one in your AddOns folder, the app replaces the
+ForeverTracker addon folder with it while the game is closed. It never installs an addon you
+removed and never changes anything else in your WoW folder.
 
 WHAT IT SENDS
 - The runs the addon recorded: the dungeon, the characters in your group (names, class, race,
@@ -31,6 +35,7 @@ YOUR CHOICES
 - See exactly what would be sent: ForeverTrackerUploader.exe disclose
 - Turn off self-updates: set "auto_update": false in
   %APPDATA%\ForeverTracker\uploader\config.json
+- Stop it updating the addon: set "update_addon": false in the same file.
 - Uninstall from Settings > Apps. This stops all uploads.
 
 The full privacy notice is on the ForeverTracker website, under Privacy.

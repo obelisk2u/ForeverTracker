@@ -140,11 +140,12 @@ export default async function HomePage() {
           )}
           <div>
             <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl">
-              Look up anyone you have grouped with.
+              <span className="block">Track your dungeon runs.</span>
+              <span className="block text-muted-foreground">Look up anyone you&apos;ve grouped with.</span>
             </h1>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Dungeon histories for World of Warcraft: Forever, recorded by players running the ForeverTracker addon: who
-              was there, who died, what the damage meter saw and how gear improved.
+              The ForeverTracker addon records your World of Warcraft: Forever dungeon runs: who was there, who died, what
+              the damage meter saw and how gear improved. Everyone in them gets a history you can search.
             </p>
           </div>
           <div className="w-full max-w-2xl">

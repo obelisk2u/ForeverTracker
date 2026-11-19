@@ -27,6 +27,7 @@ class Config:
     stability_seconds: float = 5.0
     upload_archived_versions: bool = True
     auto_update: bool = True  # packaged Windows app only; see update.py
+    update_addon: bool = True  # packaged Windows app only: install the addon it carries; see addon.py
 
     @classmethod
     def load(cls, home: Path) -> "Config":

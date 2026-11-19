@@ -11,7 +11,7 @@ import threading
 import time
 from pathlib import Path
 
-from forevertracker_uploader import __version__, autostart, background, files, notice, update
+from forevertracker_uploader import __version__, addon, autostart, background, files, notice, update
 from forevertracker_uploader.client import Uploader, check_server_url
 from forevertracker_uploader.config import Config, State, default_home
 from forevertracker_uploader.singleinstance import AlreadyRunning, SingleInstance
@@ -149,7 +149,12 @@ def _run_app(home: Path, greeting: str | None) -> int:
     worker = threading.Thread(
         target=background.run_background,
         args=(home,),
-        kwargs={"updater": update.updater_for_this_build(), "stop": stop, "single_instance": False},
+        kwargs={
+            "updater": update.updater_for_this_build(),
+            "addon_keeper": addon.keeper_for_this_build(),
+            "stop": stop,
+            "single_instance": False,
+        },
         name="uploads",
     )
     try:

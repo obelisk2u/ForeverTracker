@@ -1,7 +1,8 @@
 ; ForeverTracker installer (Inno Setup 6).
 ;
 ; One download that installs two things the player can see and remove:
-;   1. the ForeverTracker addon, into <game folder>\Interface\AddOns\ForeverTracker
+;   1. the ForeverTracker addon, into <game folder>\Interface\AddOns\ForeverTracker (and a copy in the app's
+;      folder, which the app installs into the game when it is newer than the game's: addon.py)
 ;   2. ForeverTrackerUploader.exe, a background app with a tray icon that uploads each run as the game
 ;      saves it, plus a Start menu shortcut (searchable in Windows) and an optional desktop shortcut
 ;
@@ -13,11 +14,12 @@
 ;     start-with-Windows entry is visible in Settings > Apps > Startup and can be turned off there.
 ;   * Start-with-Windows is a checkbox the user sees, not a silent default decision.
 ;   * The uninstaller removes the autostart entry, stops the helper, and deletes the app. The addon
-;     stays: after install it belongs to the player, and CurseForge keeps it up to date.
+;     stays: after install it belongs to the player.
 ;
 ; Self-update: the running app downloads a newer installer, checks it is signed by the same publisher,
 ; and runs it with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE=1. Update mode keeps the existing
-; settings, never touches the addon, and starts the new version when done.
+; settings, replaces the copy of the addon in the app's folder (never the game's: the app updates that
+; once the game is closed), and starts the new version when done.
 
 #define MyAppName "ForeverTracker"
 ; build.ps1 passes the uploader's __version__ (/DMyAppVersion=...), so the two always match.
@@ -72,10 +74,14 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 [InstallDelete]
 ; The app's libraries are replaced as a whole, so an update never leaves an older version's files behind.
 Type: filesandordirs; Name: "{app}\_internal"
+Type: filesandordirs; Name: "{app}\addon"
 
 [Files]
 ; The app: ForeverTrackerUploader.exe and its _internal folder (PyInstaller one-dir build).
 Source: "..\dist\ForeverTrackerUploader\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; The addon this release carries, kept in the app's folder: the app installs it into the game when the
+; game's copy is older and the game is closed (addon.py). Replaced as a whole on every install and update.
+Source: "..\addon\ForeverTracker\*"; DestDir: "{app}\addon\ForeverTracker"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; The addon, copied into the game's AddOns folder chosen on the custom page, only if it is not there yet
 ; (see PrepareToInstall). Left in place on uninstall, since CurseForge may be managing it by then.
 Source: "..\addon\ForeverTracker\*"; DestDir: "{code:AddonsDir}"; \
@@ -280,8 +286,8 @@ var
   RC: Integer;
 begin
   Result := '';
-  // The addon is only added when it is missing. Once installed, CurseForge keeps it up to date, so
-  // reinstalls and self-updates never overwrite (or downgrade) it.
+  // The addon is only added when it is missing. Once installed, the app updates it (addon.py) when
+  // the game is closed, never to an older version, so reinstalls and self-updates leave it alone.
   InstallAddon := (not IsUpdate()) and not FileExists(AddonsDir('') + '\ForeverTracker.toc');
   // Stop a running uploader so its exe can be replaced (a first install has none to stop). After a
   // self-update it has normally exited already.

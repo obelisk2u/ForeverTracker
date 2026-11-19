@@ -28,8 +28,9 @@ export default function AboutPage() {
         </p>
         <p>
           The ForeverTracker companion app does this. When the game saves the file, the app uploads any new runs a few
-          seconds later, so there is nothing to remember. It only reads the addon&apos;s file: it never changes anything in
-          your WoW folder and does not interact with the game itself.
+          seconds later, so there is nothing to remember. It also keeps the addon up to date: each app update carries the
+          newest addon, and the app installs it while the game is closed. Apart from that one addon folder it never changes
+          anything in your WoW folder, and it does not interact with the game itself.
         </p>
         <p>
           You can pause it at any time, and it can show you exactly what it will send before sending it.{" "}
@@ -53,7 +54,7 @@ export default function AboutPage() {
           <li>Boss encounters and whether they ended in a kill, and the completion event when the game sends one.</li>
           <li>Deaths of group members, seen as changes in their alive/dead state.</li>
           <li>Totals from Blizzard&apos;s built-in damage meter (damage, healing, interrupts, dispels, damage taken, deaths) once combat has ended and the game lets addons read them.</li>
-          <li>Equipped items of you and of group members you can inspect, out of combat only.</li>
+          <li>Equipped items of you and of group members you can inspect, with each item&apos;s tooltip text as the game shows it, out of combat only.</li>
         </ul>
         <p>
           Everything comes from Blizzard&apos;s addon API, which only exposes what the game client shows you. The addon does

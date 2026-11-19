@@ -5,7 +5,8 @@ It watches the SavedVariables file's modification time. WoW rewrites that file o
 and /reload, so a change is exactly the moment there is something new to send; between those
 moments the loop only stats a file every few seconds. It never crashes the loop on an error, and
 a single-instance lock means a manual launch and the login launch cannot both run. Once a day it
-also checks for a newer version of itself (update.py) and exits when the installer takes over.
+also checks for a newer version of itself (update.py) and exits when the installer takes over, and
+once a minute it installs the addon it carries if the game has an older one and is closed (addon.py).
 
 No window, but not hidden: on Windows a tray icon (tray.py) shows it is running and offers Quit, and
 autostart.py explains why start-with-Windows uses the visible Run key.
@@ -72,6 +73,8 @@ def run_background(
     retry_every: int = 30,
     updater=None,
     update_every: float = 24 * 3600,
+    addon_keeper=None,
+    addon_every: float = 60,
     clock=time.monotonic,
     stop: threading.Event | None = None,
     single_instance: bool = True,
@@ -80,7 +83,8 @@ def run_background(
 
     ``updater(home, config)`` runs at start and then every ``update_every`` seconds; when it returns
     True an installer has taken over and the loop stops. Setting ``stop`` (the tray icon's Quit) ends
-    the loop at once instead of after the current wait. ``single_instance=False`` is for a caller that
+    the loop at once instead of after the current wait. ``addon_keeper(config)`` runs at start and then
+    every ``addon_every`` seconds. ``single_instance=False`` is for a caller that
     already holds the lock. Returns the number of passes that uploaded at least one batch.
     """
     lock = None
@@ -96,6 +100,7 @@ def run_background(
     first = True
     idle = 0
     next_update = clock()
+    next_addon = clock()
     try:
         i = 0
         while (iterations is None or i < iterations) and not (stop and stop.is_set()):
@@ -122,6 +127,12 @@ def run_background(
                     first = False
             except Exception:  # noqa: BLE001 - a background loop must never die on one bad pass
                 log.exception("sync pass failed; continuing")
+            if addon_keeper is not None and clock() >= next_addon:
+                next_addon = clock() + addon_every
+                try:
+                    addon_keeper(Config.load(home))
+                except Exception:  # noqa: BLE001 - a failed addon update must not stop uploads
+                    log.exception("addon update failed; trying again later")
             if updater is not None and clock() >= next_update:
                 next_update = clock() + update_every
                 try:
