@@ -20,6 +20,13 @@ vi.mock("next/navigation", () => {
   };
 });
 
+// jsdom has no ResizeObserver, which Radix uses to place an open tooltip.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // jsdom has <dialog> but not its methods.
 HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
   this.open = true;

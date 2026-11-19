@@ -123,6 +123,27 @@ class EquipmentSnapshot(Base):
     is_synthetic: Mapped[bool] = mapped_column(default=False)
 
 
+class ItemTooltipReport(Base):
+    """One installation's reading of an item's tooltip, from one snapshot. An item shows the version
+    the most installations agree on (app/services/items.py)."""
+
+    __tablename__ = "item_tooltip_reports"
+    __table_args__ = (
+        Index("ix_item_tooltip_reports_item_key", "item_key"),
+        UniqueConstraint("raw_observation_id", "item_key", name="raw_observation_item"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    item_key: Mapped[str] = mapped_column(String(160))
+    item_id: Mapped[int]
+    raw_observation_id: Mapped[int] = mapped_column(ForeignKey("raw_observations.id", ondelete="CASCADE"))
+    contributor_id: Mapped[int] = mapped_column(ForeignKey("contributors.id"))
+    digest: Mapped[str] = mapped_column(String(64))
+    lines: Mapped[list[Any]]
+    reported_at: Mapped[datetime]
+    is_synthetic: Mapped[bool] = mapped_column(default=False)
+
+
 class LevelObservation(Base):
     __tablename__ = "level_observations"
     __table_args__ = (

@@ -562,6 +562,8 @@ export interface components {
             slot: number;
             /** Slot Name */
             slot_name: string;
+            /** Tooltip */
+            tooltip?: components["schemas"]["TooltipLineOut"][] | null;
         };
         /** GearSnapshotOut */
         GearSnapshotOut: {
@@ -1009,6 +1011,17 @@ export interface components {
              * Format: date-time
              */
             uploaded_at: string;
+        };
+        /** TooltipLineOut */
+        TooltipLineOut: {
+            /** Color */
+            color?: string | null;
+            /** Left */
+            left: string;
+            /** Right */
+            right?: string | null;
+            /** Right Color */
+            right_color?: string | null;
         };
         /** UploadObservationOut */
         UploadObservationOut: {

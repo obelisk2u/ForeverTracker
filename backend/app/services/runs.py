@@ -35,6 +35,7 @@ from app.schemas.api import (
     WipeOut,
 )
 from app.services.common import NotFound, dungeon_ref, gear_out, metric_out, observer_labels, summaries
+from app.services.items import snapshot_keys, tooltips_for
 from app.services.visibility import hide_synthetic
 
 ROLE_ORDER = {"TANK": 0, "HEALER": 1, "DAMAGER": 2}
@@ -114,6 +115,7 @@ def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
     gear = run_gear(
         db, [p.character_id for p in participants if p.character_id not in hidden], run.started_at, run.ended_at or run.last_observed_at
     )
+    tooltips = tooltips_for(db, snapshot_keys(gear.values()))
 
     encounters = list(db.scalars(select(RunEncounter).where(RunEncounter.run_id == run.id).order_by(RunEncounter.started_at)))
     deaths = list(db.scalars(select(RunDeath).where(RunDeath.run_id == run.id).order_by(RunDeath.occurred_at)))
@@ -178,7 +180,7 @@ def run_detail(db: Session, settings: Settings, public_id: str) -> RunDetail:
                 metrics={} if p.character_id in hidden else metrics[p.character_id],
                 candidates={} if p.character_id in hidden else {k: v for k, v in candidates[p.character_id].items()},
                 conflicts={} if p.character_id in hidden else conflicts[p.character_id],
-                gear=gear_out(gear[p.character_id]) if p.character_id in gear else None,
+                gear=gear_out(gear[p.character_id], tooltips) if p.character_id in gear else None,
             )
             for p in ordered
             if p.character_id in people

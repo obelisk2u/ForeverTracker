@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import string
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.models import Character, CharacterStats, Dungeon, EquipmentSnapshot, Namespace, ParticipantMetric
-from app.schemas.api import CharacterSummary, DungeonRef, GearItemOut, GearSnapshotOut, HiddenCharacter, MetricOut
+from app.schemas.api import CharacterSummary, DungeonRef, GearItemOut, GearSnapshotOut, HiddenCharacter, MetricOut, TooltipLineOut
+from app.services.items import item_key
 
 SLOT_NAMES = {
     1: "Head", 2: "Neck", 3: "Shoulder", 4: "Shirt", 5: "Chest", 6: "Waist", 7: "Legs", 8: "Feet",
@@ -17,7 +19,11 @@ SLOT_NAMES = {
 }
 
 
-def gear_out(snapshot: EquipmentSnapshot) -> GearSnapshotOut:
+def gear_out(snapshot: EquipmentSnapshot, tooltips: Mapping[str, list[dict[str, Any]]] | None = None) -> GearSnapshotOut:
+    def tooltip(item: dict) -> list[TooltipLineOut] | None:
+        lines = (tooltips or {}).get(item_key(item.get("link"), item["item_id"]))
+        return [TooltipLineOut(**line) for line in lines] if lines else None
+
     return GearSnapshotOut(
         observed_at=snapshot.observed_at,
         source=snapshot.source,
@@ -34,6 +40,7 @@ def gear_out(snapshot: EquipmentSnapshot) -> GearSnapshotOut:
                 gem_ids=i.get("gem_ids") or [],
                 quality=i.get("quality"),
                 link=i.get("link"),
+                tooltip=tooltip(i),
             )
             for i in sorted(snapshot.items, key=lambda i: i["slot"])
         ],

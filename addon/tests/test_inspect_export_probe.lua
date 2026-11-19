@@ -189,4 +189,103 @@ describe("item details", function()
     ft.Inspect.selfSnapshot(true)
     eq(#selfSnapshots(), 2, "the same gear, now with names, is recorded again")
   end)
+
+  it("records each item's tooltip as the game shows it", function()
+    boot()
+    Mock.enterDungeon({})
+    Mock.advance(60)
+    local snap
+    for _, s in ipairs(observationsOf("character_snapshot")) do
+      if s.subject.name == "Mah" then
+        snap = s
+      end
+    end
+    local lines = snap.equipment.items[1].tooltip
+    eq(#lines, 5, "everything but the sell price")
+    eq(lines[1].left, "Item")
+    eq(lines[1].color, "0070dd")
+    eq(lines[2].color, nil, "white is the default")
+    eq(lines[3].left, "Head")
+    eq(lines[3].right, "Plate")
+    eq(lines[5].color, "00ff00")
+  end)
+
+  it("records an item's tooltip once, not in every snapshot", function()
+    local ft = boot()
+    local first = selfSnapshots()[1]
+    for _, item in ipairs(first.equipment.items) do
+      truthy(item.tooltip, "slot " .. item.slot)
+    end
+    local reads = Mock.tooltipReads
+    Mock.unitByName("Autumn").gear[1] = { id = 9999, name = "New Helm" }
+    ft.Inspect.selfSnapshot(true)
+    local second = selfSnapshots()[2]
+    truthy(second, "new gear is recorded")
+    for _, item in ipairs(second.equipment.items) do
+      if item.item_id == 9999 then
+        eq(item.tooltip[1].left, "New Helm")
+      else
+        eq(item.tooltip, nil, "already recorded: slot " .. item.slot)
+      end
+    end
+    eq(Mock.tooltipReads, reads + 1, "only the new item's tooltip is read")
+  end)
+
+  it("records gear without tooltips when the client has none to give", function()
+    Mock.withoutApis({ "C_TooltipInfo" })
+    boot()
+    local snap = selfSnapshots()[1]
+    truthy(snap, "the snapshot is still taken")
+    eq(snap.equipment.items[1].tooltip, nil)
+    eq(snap.equipment.items[1].item_id, 1001)
+  end)
+
+  it("records unchanged gear again once to add the tooltips an earlier version did not record", function()
+    -- Without tooltips the signature is the one earlier versions stored.
+    local tooltips = C_TooltipInfo
+    Mock.withoutApis({ "C_TooltipInfo" })
+    local ft = boot()
+    eq(#selfSnapshots(), 1)
+    eq(ForeverTrackerDB.snapshot_sigs["g:Player-4620-0000A1"], "1:1001:nil,5:1005:nil,16:1016:33|18", "what 0.2.12 stored")
+    ft.Inspect.selfSnapshot(true)
+    eq(#selfSnapshots(), 1, "unchanged")
+    _G.C_TooltipInfo = tooltips
+    ft.Inspect.selfSnapshot(true)
+    eq(#selfSnapshots(), 2, "the same gear, now with tooltips")
+    truthy(selfSnapshots()[2].equipment.items[1].tooltip)
+    ft.Inspect.selfSnapshot(true)
+    eq(#selfSnapshots(), 2, "and only once")
+  end)
+
+  it("reads no tooltip from an item that is still loading, and records it once it has", function()
+    local party = setUnloaded(DefaultParty())
+    local request = C_Item.RequestLoadItemDataByID
+    C_Item.RequestLoadItemDataByID = function() end -- the client never answers
+    local ft = boot(party)
+    Mock.advance(20)
+    C_Item.RequestLoadItemDataByID = request
+    eq(selfSnapshots()[1].equipment.items[1].tooltip, nil)
+    for _, item in pairs(party[1].gear) do
+      Mock.loadedItems[item.id] = true
+    end
+    ft.Inspect.selfSnapshot(true)
+    eq(selfSnapshots()[2].equipment.items[1].tooltip[1].left, "Loaded Name")
+  end)
+
+  it("skips a tooltip that came back without its item's name", function()
+    local ft = boot()
+    eq(ft.Inspect.tooltipLines({ lines = { { leftText = "Retrieving item information" } } }), nil)
+    eq(ft.Inspect.tooltipLines({ lines = {} }), nil)
+    eq(ft.Inspect.tooltipLines(nil), nil)
+  end)
+
+  it("keys a tooltip by the item and what changes it, not by who holds it", function()
+    local ft = boot()
+    local real = "|cnIQ2:|Hitem:2985::::::::18:1484::1::1:28:5240:::::|h[Inscribed Leather Breastplate]|h|r"
+    eq(ft.Inspect.itemKey(real), "2985" .. string.rep(":", 11) .. "1::1:28:5240", "level and spec dropped")
+    eq(ft.Inspect.itemKey("|Hitem:6591:0:0:0:0:0:772:123456:25:0|h[Battleforge Wristguards of the Whale]|h"), "6591:0:0:0:0:0:772")
+    eq(ft.Inspect.itemKey("|Hitem:100:0:0:0:0:0:-12:99:25|h[X]|h"), "100:0:0:0:0:0:-12:99", "a negative suffix scales with the unique ID")
+    eq(ft.Inspect.itemKey("|Hitem:7|h[Y]|h"), "7")
+    eq(ft.Inspect.itemKey(nil), nil)
+  end)
 end)

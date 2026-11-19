@@ -546,6 +546,34 @@ function M.installGlobals()
       addTimer(1, function() M.loadedItems[id] = true end)
     end,
   }
+  -- Tooltip data as the client returns it: the item name in its quality colour, white lines, a
+  -- green "Equip:" line and the sell price. An item's `tooltip` (a list of lines) replaces that.
+  G.RETRIEVING_ITEM_INFO = "Retrieving item information"
+  M.tooltipReads = 0
+  local function tooltipData(item)
+    if not item then return nil end
+    M.tooltipReads = M.tooltipReads + 1
+    if item.unloaded and not M.loadedItems[item.id] then
+      return { lines = { { leftText = G.RETRIEVING_ITEM_INFO, leftColor = { r = 1, g = 0.125, b = 0.125 } } } }
+    end
+    return {
+      lines = item.tooltip or {
+        { leftText = item.name or "Item", leftColor = { r = 0, g = 0.439, b = 0.867 } },
+        { leftText = "Binds when picked up", leftColor = { r = 1, g = 1, b = 1 } },
+        { leftText = "Head", leftColor = { r = 1, g = 1, b = 1 }, rightText = "Plate", rightColor = { r = 1, g = 1, b = 1 } },
+        { leftText = "+5 Stamina", leftColor = { r = 1, g = 1, b = 1 } },
+        { leftText = "Equip: Increases your defense by 3.", leftColor = { r = 0, g = 1, b = 0 } },
+        { leftText = "Sell Price:", price = 1234 },
+      },
+    }
+  end
+  G.C_TooltipInfo = {
+    GetInventoryItem = function(t, slot)
+      local u = unit(t)
+      return tooltipData(u and u.gear and u.gear[slot])
+    end,
+    GetHyperlink = function() return nil end,
+  }
   G.C_Traits = {
     GenerateInspectImportString = function(t) local u = unit(t) return u and u.talents end,
     GenerateImportString = function() local u = unit("player") return u and u.talents end,

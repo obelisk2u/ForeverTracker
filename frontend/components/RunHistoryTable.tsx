@@ -1,11 +1,12 @@
 import Link from "next/link";
 
-import { OutcomeBadge } from "@/components/Badges";
-import { CharacterLink } from "@/components/CharacterLink";
+import { ClassDot, OutcomeBadge, RoleIcon } from "@/components/Badges";
+import { LocalTime } from "@/components/LocalTime";
 import { MetricValue } from "@/components/MetricValue";
-import { formatDuration, formatShortDate } from "@/lib/format";
-import { roleLabel } from "@/lib/game";
-import type { RunRow } from "@/lib/types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatDuration } from "@/lib/format";
+import { classColor, roleLabel } from "@/lib/game";
+import { isHidden, type RunRow } from "@/lib/types";
 
 function PerformanceCell({ row }: { row: RunRow }) {
   const healer = row.role === "HEALER";
@@ -18,79 +19,96 @@ function PerformanceCell({ row }: { row: RunRow }) {
   );
 }
 
+const HEAD = "h-9 px-3 text-xs font-medium text-muted-foreground";
+
 // Desktop: a table. Mobile: a card per run. Both render the same data.
 export function RunHistoryTable({ rows, characterId }: { rows: RunRow[]; characterId: string }) {
   return (
     <div>
-      <div className="hidden md:block relative overflow-x-auto card" data-testid="history-table">
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-faint border-b border-line">
-            <tr>
-              <th className="px-4 py-3 font-medium">Dungeon</th>
-              <th className="px-3 py-3 font-medium">Date</th>
-              <th className="px-3 py-3 font-medium">Duration</th>
-              <th className="px-3 py-3 font-medium">Role</th>
-              <th className="px-3 py-3 font-medium">Party</th>
-              <th className="px-3 py-3 font-medium text-right">Output</th>
-              <th className="px-3 py-3 font-medium text-right">Deaths</th>
-              <th className="px-3 py-3 font-medium text-right">Interrupts</th>
-              <th className="px-4 py-3 font-medium">Outcome</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="hidden md:block overflow-hidden rounded-xl border bg-card" data-testid="history-table">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className={`${HEAD} pl-4`}>Dungeon</TableHead>
+              <TableHead className={HEAD}>Date</TableHead>
+              <TableHead className={HEAD}>Duration</TableHead>
+              <TableHead className={HEAD}>Party</TableHead>
+              <TableHead className={`${HEAD} text-right`}>Output</TableHead>
+              <TableHead className={`${HEAD} text-right`}>Deaths</TableHead>
+              <TableHead className={`${HEAD} text-right`}>Interrupts</TableHead>
+              <TableHead className={`${HEAD} pr-4`}>Outcome</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((row) => (
-              <tr key={row.run_id} className="border-b border-line/60 last:border-0 hover:bg-surface-3/40">
-                <td className="px-4 py-3">
-                  <Link href={`/runs/${row.run_id}`} className="font-medium text-gold hover:underline focus-ring rounded-sm">
-                    {row.dungeon.name}
-                  </Link>
-                  {row.observers > 1 && <div className="text-xs text-faint">{row.observers} observers</div>}
-                </td>
-                <td className="px-3 py-3 whitespace-nowrap text-muted">
-                  <time dateTime={row.started_at}>{formatShortDate(row.started_at)}</time>
-                </td>
-                <td className="px-3 py-3 tabular text-muted">{formatDuration(row.duration_seconds)}</td>
-                <td className="px-3 py-3 text-muted">{roleLabel(row.role)}</td>
-                <td className="px-3 py-3">
-                  <ul className="flex flex-col gap-0.5 max-w-[14rem]" aria-label="Party">
+              <TableRow key={row.run_id}>
+                <TableCell className="py-2.5 pl-4">
+                  <div className="flex items-center gap-2.5">
+                    <RoleIcon role={row.role} />
+                    <div>
+                      <Link href={`/runs/${row.run_id}`} className="focus-ring rounded-sm font-medium text-foreground hover:text-primary">
+                        {row.dungeon.name}
+                      </Link>
+                      {row.observers > 1 && <div className="text-xs text-faint">{row.observers} observers</div>}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="px-3 text-muted-foreground">
+                  <LocalTime iso={row.started_at} format="short" />
+                </TableCell>
+                <TableCell className="px-3 text-muted-foreground tabular">{formatDuration(row.duration_seconds)}</TableCell>
+                <TableCell className="px-3 whitespace-normal">
+                  <ul className="flex max-w-[17rem] flex-wrap gap-x-2.5 gap-y-0.5" aria-label="Party">
                     {row.party
                       .filter((p) => !("id" in p.character) || p.character.id !== characterId)
                       .map((p, i) => (
-                        <li key={i} className="text-xs truncate">
-                          <CharacterLink character={p.character} />
+                        <li key={i} className="inline-flex items-center gap-1 text-xs">
+                          {isHidden(p.character) ? (
+                            <span className="text-faint italic">Hidden</span>
+                          ) : (
+                            <Link
+                              href={`/character/${p.character.namespace}/${p.character.id}`}
+                              title={p.character.full_name}
+                              className="focus-ring inline-flex items-center gap-1 rounded-sm hover:underline"
+                              style={{ color: classColor(p.character.class_file) }}
+                            >
+                              <ClassDot classFile={p.character.class_file} className="size-1.5" />
+                              {p.character.name}
+                            </Link>
+                          )}
                         </li>
                       ))}
                   </ul>
-                </td>
-                <td className="px-3 py-3 text-right">
+                </TableCell>
+                <TableCell className="px-3 text-right text-foreground tabular">
                   <PerformanceCell row={row} />
-                </td>
-                <td className="px-3 py-3 text-right">
+                </TableCell>
+                <TableCell className="px-3 text-right text-foreground tabular">
                   <MetricValue metric={row.metrics.deaths} />
-                </td>
-                <td className="px-3 py-3 text-right">
+                </TableCell>
+                <TableCell className="px-3 text-right text-foreground tabular">
                   <MetricValue metric={row.metrics.interrupts} />
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell className="pr-4">
                   <OutcomeBadge outcome={row.outcome} confidence={row.completion_confidence} />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <ul className="md:hidden flex flex-col gap-3" data-testid="history-cards">
+      <ul className="md:hidden flex flex-col divide-y overflow-hidden rounded-xl border bg-card" data-testid="history-cards">
         {rows.map((row) => (
-          <li key={row.run_id} className="card p-4">
+          <li key={row.run_id} className="p-4">
             <div className="flex items-start justify-between gap-2">
-              <Link href={`/runs/${row.run_id}`} className="font-medium text-gold hover:underline">
+              <Link href={`/runs/${row.run_id}`} className="font-medium text-foreground hover:text-primary">
                 {row.dungeon.name}
               </Link>
               <OutcomeBadge outcome={row.outcome} confidence={row.completion_confidence} />
             </div>
-            <div className="mt-1 text-xs text-muted flex flex-wrap gap-x-3">
-              <time dateTime={row.started_at}>{formatShortDate(row.started_at)}</time>
+            <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+              <LocalTime iso={row.started_at} format="short" />
               <span>{formatDuration(row.duration_seconds)}</span>
               <span>{roleLabel(row.role)}</span>
             </div>

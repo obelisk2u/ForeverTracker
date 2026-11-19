@@ -1,60 +1,122 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@theme {
-  --color-ink: #0a0e16;
-  --color-surface: #111724;
-  --color-surface-2: #172031;
-  --color-surface-3: #1f2a3f;
-  --color-line: #263249;
-  --color-line-strong: #34425f;
-  --color-text: #e7eaf1;
-  --color-muted: #96a2bb;
-  --color-faint: #66728b;
-  --color-gold: #e2b356;
-  --color-gold-strong: #f3c86e;
-  --color-gold-dim: #7a5d25;
-  --color-good: #4fd07f;
-  --color-bad: #f0626a;
-  --color-warn: #f2a93b;
-  --color-info: #6aa8ff;
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Cinzel", Georgia, serif;
+@custom-variant dark (&:is(.dark *));
+
+/* Dark only. Cool neutral greys; the one accent is the gold of the game's own interface text.
+   The rest of the colour on the page comes from the game: class colours on characters and item
+   quality colours on gear. */
+:root {
+  --radius: 0.5rem;
+
+  --background: oklch(0.16 0.006 264);
+  --foreground: oklch(0.965 0.003 264);
+  --card: oklch(0.19 0.007 264);
+  --card-foreground: oklch(0.965 0.003 264);
+  --popover: oklch(0.205 0.008 264);
+  --popover-foreground: oklch(0.965 0.003 264);
+  --primary: oklch(0.86 0.165 88);
+  --primary-foreground: oklch(0.22 0.04 80);
+  --secondary: oklch(0.24 0.008 264);
+  --secondary-foreground: oklch(0.965 0.003 264);
+  --muted: oklch(0.235 0.008 264);
+  --muted-foreground: oklch(0.7 0.012 264);
+  --accent: oklch(0.25 0.009 264);
+  --accent-foreground: oklch(0.965 0.003 264);
+  --destructive: oklch(0.68 0.19 24);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.86 0.165 88 / 55%);
+
+  --faint: oklch(0.54 0.012 264);
+  --success: oklch(0.77 0.15 152);
+  --warning: oklch(0.8 0.14 68);
+  --info: oklch(0.74 0.11 245);
+
+  --chart-1: oklch(0.86 0.165 88);
+  --chart-2: oklch(0.7 0.012 264);
+  --chart-3: oklch(0.54 0.012 264);
+  --chart-4: oklch(0.4 0.01 264);
+  --chart-5: oklch(0.3 0.008 264);
 }
 
-html {
-  color-scheme: dark;
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-faint: var(--faint);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-body {
-  background:
-    radial-gradient(1200px 500px at 50% -120px, rgb(226 179 86 / 0.09), transparent 70%),
-    var(--color-ink);
-  color: var(--color-text);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  a {
+    color: inherit;
+  }
+  ::selection {
+    background: oklch(0.86 0.165 88 / 30%);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
-a {
-  color: inherit;
-}
-
-::selection {
-  background: rgb(226 179 86 / 0.35);
-}
-
-.card {
-  background: linear-gradient(180deg, var(--color-surface-2), var(--color-surface));
-  border: 1px solid var(--color-line);
-  border-radius: 0.75rem;
-}
-
-.focus-ring {
-  outline: none;
-}
-.focus-ring:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-gold);
-}
-
-.tabular {
+@utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard focus for plain links and native controls that are not shadcn components. */
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--ring);
+  }
 }

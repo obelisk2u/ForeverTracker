@@ -88,11 +88,20 @@ session's sources has an observed 0 for that metric, because the meter covered t
 ## `character_snapshot`
 
 `observed_at`, `source` (`self` or `inspect`), `subject` (identity, class, race, level), `equipment` (`status`,
-`average_item_level`, `items[]` with `slot`, `item_id`, `item_level`, `enchant_id`, `gem_ids`, `quality`, `link`) and
-`talents` (`status`, `spec_id`, `import_string`).
+`average_item_level`, `items[]` with `slot`, `item_id`, `item_level`, `enchant_id`, `gem_ids`, `quality`, `link` and
+`tooltip`) and `talents` (`status`, `spec_id`, `import_string`).
 
-Addon 0.2.6 also sent each item's tooltip text as `tooltip`. The server accepts the field so those snapshots are not
-rejected, and drops it: it is never stored or shown.
+`tooltip` is the game's own tooltip for the item, read with `C_TooltipInfo` for the wearer's slot (the item link's
+tooltip when that is unavailable): up to 40 lines of `left` and optional `right` text, each with an optional
+`color`/`right_color` as `rrggbb` (missing means white). The sell price is left out, and it is missing while the client
+has not loaded the item. Addon 0.2.13 and later send an item's tooltip once per installation (the first snapshot it
+appears in), not in every snapshot; addon 0.2.6 sent it every time.
+
+The server keeps tooltips per item, not with each snapshot (`app/services/items.py`): keyed by the item link without
+the unique ID (kept with a negative suffix, which scales with it) and the level and specialization it was linked at,
+so any gear with that item shows it, including gear recorded before the tooltip was. An item shows the version the
+most installations report, each counting its latest reading once. A tooltip whose first line is not the item's name in
+`link` is dropped, and game escape codes are removed from the text.
 
 `source: "group"` is a group member seen anywhere, not only in a dungeon (`Collectors/Group.lua`): `subject` carries
 GUID, name, surname, class and race only, never level or role, and there is no `equipment` or `talents`. The addon

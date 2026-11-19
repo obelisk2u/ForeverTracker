@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { CharacterDirectory } from "@/components/CharacterDirectory";
-import { EmptyState, Notice } from "@/components/States";
+import { EmptyState, Notice, PageHeader } from "@/components/States";
 import { api } from "@/lib/api";
 import type { CharacterListResponse } from "@/lib/types";
 
@@ -17,10 +17,7 @@ export default async function CharactersPage() {
   }
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-3xl">Characters</h1>
-        <p className="text-muted mt-2">Everyone seen in a recorded dungeon run, most-seen first.</p>
-      </div>
+      <PageHeader title="Characters" description="Everyone seen in a recorded dungeon run, most-seen first." />
       {data === null ? (
         <Notice tone="warn">The character list is unavailable right now.</Notice>
       ) : data.total === 0 ? (

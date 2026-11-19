@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 
 import { SearchBox } from "@/components/SearchBox";
 import { SearchResults } from "@/components/SearchResults";
-import { Notice, Pagination } from "@/components/States";
+import { Notice, PageHeader, Pagination } from "@/components/States";
+import { Button } from "@/components/ui/button";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ApiError, api } from "@/lib/api";
 import { CLASS_INFO } from "@/lib/game";
 import type { SearchResponse } from "@/lib/types";
@@ -31,30 +33,32 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (sp.class) base.set("class", sp.class);
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-3xl">Find a character</h1>
-      <SearchBox initialQuery={q} initialNamespace={sp.namespace ?? ""} />
-      <form className="flex flex-wrap items-center gap-3 text-sm" action="/search">
-        <input type="hidden" name="q" value={q} />
-        {sp.namespace && <input type="hidden" name="namespace" value={sp.namespace} />}
-        <label className="flex items-center gap-2">
-          <span className="text-muted">Class</span>
-          <select name="class" defaultValue={sp.class ?? ""} className="h-9 rounded-md bg-surface-2 border border-line px-2">
-            <option value="">Any</option>
-            {Object.entries(CLASS_INFO).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="exact" value="true" defaultChecked={sp.exact === "true"} />
-          <span className="text-muted">Exact name</span>
-        </label>
-        <button type="submit" className="h-9 px-3 rounded-md border border-line hover:bg-surface-2">
-          Apply
-        </button>
-      </form>
+      <PageHeader title="Find a character" />
+      <div className="flex flex-col gap-3">
+        <SearchBox initialQuery={q} initialNamespace={sp.namespace ?? ""} />
+        <form className="flex flex-wrap items-center gap-3 text-sm" action="/search">
+          <input type="hidden" name="q" value={q} />
+          {sp.namespace && <input type="hidden" name="namespace" value={sp.namespace} />}
+          <label className="flex items-center gap-2">
+            <span className="text-muted-foreground">Class</span>
+            <NativeSelect name="class" defaultValue={sp.class ?? ""} size="sm">
+              <NativeSelectOption value="">Any</NativeSelectOption>
+              {Object.entries(CLASS_INFO).map(([k, v]) => (
+                <NativeSelectOption key={k} value={k}>
+                  {v.name}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="exact" value="true" defaultChecked={sp.exact === "true"} className="size-4 accent-primary" />
+            <span className="text-muted-foreground">Exact name</span>
+          </label>
+          <Button type="submit" variant="outline" size="sm">
+            Apply
+          </Button>
+        </form>
+      </div>
       {error && <Notice tone="warn">{error}</Notice>}
       {data && <SearchResults data={data} />}
       {data && (
@@ -70,7 +74,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           }}
         />
       )}
-      {!q && <p className="text-muted text-sm">Enter part of a character name. Forever names have two parts, for example “Asha Brightvale”.</p>}
+      {!q && (
+        <p className="text-sm text-muted-foreground">
+          Enter part of a character name. Forever names have two parts, for example “Asha Brightvale”.
+        </p>
+      )}
     </div>
   );
 }

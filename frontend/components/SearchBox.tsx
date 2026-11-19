@@ -1,12 +1,19 @@
 "use client";
 
+import { CornerDownLeft, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
+import { ClassDot } from "@/components/Badges";
 import { characterPath } from "@/components/CharacterLink";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Kbd } from "@/components/ui/kbd";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { apiBase } from "@/lib/api";
 import { className, classColor, namespaceLabel } from "@/lib/game";
 import type { CharacterSummary, SearchResponse } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const NAMESPACES = [
   { value: "", label: "All regions" },
@@ -53,6 +60,21 @@ export function SearchBox({
   const [suggestions, setSuggestions] = useState<CharacterSummary[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  const input = useRef<HTMLInputElement>(null);
+
+  // "/" jumps to the header search from anywhere that is not already a text field.
+  useEffect(() => {
+    if (!compact) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      input.current?.focus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [compact]);
 
   useEffect(() => {
     const q = query.trim();
@@ -119,16 +141,25 @@ export function SearchBox({
   }
 
   const optionId = (i: number) => `${listId}-${i}`;
+  const inputId = compact ? "search-compact" : "search-main";
 
   return (
     <form role="search" onSubmit={submit} className="w-full">
-      <div className={`flex items-stretch gap-2 ${compact ? "" : "flex-col sm:flex-row"}`}>
-        <label className="sr-only" htmlFor={compact ? "search-compact" : "search-main"}>
+      <div className={cn("flex items-stretch gap-2", !compact && "flex-col sm:flex-row")}>
+        <label className="sr-only" htmlFor={inputId}>
           Character name
         </label>
-        <div className="relative flex-1 min-w-0 flex">
-          <input
-            id={compact ? "search-compact" : "search-main"}
+        <div className="relative flex min-w-0 flex-1">
+          <Search
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute top-1/2 -translate-y-1/2 text-faint",
+              compact ? "left-2.5 size-3.5" : "left-3.5 size-4",
+            )}
+          />
+          <Input
+            ref={input}
+            id={inputId}
             type="search"
             role="combobox"
             aria-autocomplete="list"
@@ -143,21 +174,28 @@ export function SearchBox({
             onFocus={() => setOpen(true)}
             onBlur={() => setOpen(false)}
             onKeyDown={onKeyDown}
-            placeholder={compact ? "Search characters…" : "Character name, e.g. Asha Brightvale"}
+            placeholder={compact ? "Search characters" : "Character name, e.g. Asha Brightvale"}
             maxLength={64}
             autoComplete="off"
-            className={`flex-1 min-w-0 rounded-lg bg-surface-2 border border-line placeholder:text-faint focus-ring ${
-              compact ? "h-9 px-3 text-sm" : "h-12 px-4 text-base"
-            }`}
+            className={cn(
+              "[&::-webkit-search-cancel-button]:hidden",
+              compact ? "h-8 pr-8 pl-8 text-sm" : "h-11 pl-10 text-base md:text-base",
+            )}
           />
+          {compact && (
+            <Kbd className="absolute top-1/2 right-1.5 -translate-y-1/2 border bg-background font-mono" aria-hidden="true">
+              /
+            </Kbd>
+          )}
           {showList && (
             <ul
               id={listId}
               role="listbox"
               aria-label="Matching characters"
-              className={`card absolute top-full z-50 mt-1 py-1 overflow-hidden text-left shadow-xl shadow-black/40 ${
-                compact ? "right-0 w-[min(22rem,calc(100vw-2rem))]" : "left-0 right-0"
-              }`}
+              className={cn(
+                "absolute top-full z-50 mt-1.5 overflow-hidden rounded-lg border bg-popover p-1 text-left shadow-2xl shadow-black/50",
+                compact ? "right-0 w-[min(22rem,calc(100vw-2rem))]" : "right-0 left-0",
+              )}
             >
               {suggestions.map((c, i) => (
                 <li
@@ -169,14 +207,20 @@ export function SearchBox({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => choose(i)}
                   onMouseEnter={() => setActive(i)}
-                  className={`px-3 py-2 cursor-pointer ${i === active ? "bg-surface-3" : ""}`}
+                  className={cn("flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-2", i === active && "bg-accent")}
                 >
-                  <div className="font-medium truncate" style={{ color: classColor(c.class_file) }}>
-                    {c.full_name}
+                  <ClassDot classFile={c.class_file} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium" style={{ color: classColor(c.class_file) }}>
+                      {c.full_name}
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {className(c.class_file)} · {namespaceLabel(c.namespace)}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted truncate">
-                    {className(c.class_file)} · {namespaceLabel(c.namespace)} · {c.runs_observed} run{c.runs_observed === 1 ? "" : "s"}
-                  </div>
+                  <span className="shrink-0 text-xs text-faint tabular">
+                    {c.runs_observed} run{c.runs_observed === 1 ? "" : "s"}
+                  </span>
                 </li>
               ))}
               <li
@@ -186,10 +230,12 @@ export function SearchBox({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(suggestions.length)}
                 onMouseEnter={() => setActive(suggestions.length)}
-                className={`px-3 py-2 cursor-pointer text-sm text-gold border-t border-line ${
-                  active === suggestions.length ? "bg-surface-3" : ""
-                }`}
+                className={cn(
+                  "mt-1 flex cursor-pointer items-center gap-2 rounded-md border-t px-2.5 py-2 text-sm text-muted-foreground",
+                  active === suggestions.length && "bg-accent text-foreground",
+                )}
               >
+                <CornerDownLeft aria-hidden="true" className="size-3.5" />
                 See all results for “{query.trim()}”
               </li>
             </ul>
@@ -200,29 +246,26 @@ export function SearchBox({
             <label className="sr-only" htmlFor="search-namespace">
               Region and ruleset
             </label>
-            <select
+            <NativeSelect
               id="search-namespace"
               value={namespace}
               onChange={(e) => setNamespace(e.target.value)}
-              className="h-12 rounded-lg bg-surface-2 border border-line px-3 text-sm focus-ring"
+              className="w-full sm:w-auto [&_select]:h-11 [&_select]:pr-9 [&_select]:pl-3"
             >
               {NAMESPACES.map((n) => (
-                <option key={n.value} value={n.value}>
+                <NativeSelectOption key={n.value} value={n.value}>
                   {n.label}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-            <button
-              type="submit"
-              className="h-12 px-6 rounded-lg bg-gold text-ink font-semibold hover:bg-gold-strong focus-ring"
-            >
+            </NativeSelect>
+            <Button type="submit" className="h-11 px-5 text-sm font-semibold">
               Search
-            </button>
+            </Button>
           </>
         )}
       </div>
       {error && !compact && (
-        <p role="alert" className="mt-2 text-sm text-warn">
+        <p role="alert" className="mt-2 text-sm text-warning">
           {error}
         </p>
       )}

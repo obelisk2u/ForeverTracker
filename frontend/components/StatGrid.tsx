@@ -1,3 +1,4 @@
+import { Hint } from "@/components/Hint";
 import { formatDuration, formatRate, percent } from "@/lib/format";
 import type { StatValue } from "@/lib/types";
 
@@ -28,9 +29,12 @@ function StatCard({
   const value = stat?.value;
   const exclusions = stat ? describeExclusions(stat) : null;
   return (
-    <div className="card p-4 flex flex-col gap-1" title={help}>
-      <span className="text-xs uppercase tracking-wide text-faint">{label}</span>
-      <span className="text-2xl font-semibold tabular text-text">
+    <div className="flex flex-col gap-1 bg-card p-4">
+      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        {label}
+        <Hint label={label}>{help}</Hint>
+      </span>
+      <span className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
         {value === null || value === undefined ? <span className="text-faint">—</span> : format(value)}
       </span>
       <span className="text-xs text-faint">
@@ -51,7 +55,7 @@ export function StatGrid({ stats }: { stats: Record<string, unknown> }) {
   const s = stats as Record<string, StatValue>;
   const count = (v: number) => String(Math.round(v));
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-4">
       <StatCard label="Observed runs" stat={s.runs_observed} format={count} help="Dungeon runs in which this character was observed by a ForeverTracker user." />
       <StatCard
         label="Confirmed completions"

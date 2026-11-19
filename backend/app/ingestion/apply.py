@@ -23,6 +23,7 @@ from app.reconciliation import matcher
 from app.reconciliation.consolidate import rebuild_run
 from app.reconciliation.dungeons import get_or_create_dungeon, observation_wing
 from app.schemas.observations import CharacterSnapshotObservation, DungeonRunObservation
+from app.services.items import forget_tooltips, record_tooltips
 
 
 @dataclass
@@ -121,12 +122,14 @@ def apply_snapshot(db: Session, raw: RawObservation, obs: CharacterSnapshotObser
                 source=obs.source,
                 status=obs.equipment.status if obs.equipment else "unavailable",
                 average_item_level=obs.equipment.average_item_level if obs.equipment else None,
-                items=[i.model_dump(mode="json") for i in obs.equipment.items] if obs.equipment else [],
+                # Tooltips are kept per item (record_tooltips), not with each character's gear.
+                items=[i.model_dump(mode="json", exclude={"tooltip"}) for i in obs.equipment.items] if obs.equipment else [],
                 talents=obs.talents.model_dump(mode="json") if obs.talents else None,
                 level=s.level,
                 is_synthetic=ctx.synthetic,
             )
         )
+        record_tooltips(db, raw, obs, synthetic=ctx.synthetic)
     if s.level is not None:
         db.add(
             LevelObservation(
@@ -144,6 +147,7 @@ def detach(db: Session, raw: RawObservation, ctx: ApplyContext, *, rebuild: bool
     if link is not None:
         db.delete(link)
     db.execute(delete(RunMatchCandidate).where(RunMatchCandidate.raw_observation_id == raw.id))
+    forget_tooltips(db, raw)
     for model in (EquipmentSnapshot, LevelObservation):
         ctx.dirty_characters |= set(db.scalars(select(model.character_id).where(model.raw_observation_id == raw.id)))
         db.execute(delete(model).where(model.raw_observation_id == raw.id))

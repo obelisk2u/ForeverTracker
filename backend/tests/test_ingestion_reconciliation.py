@@ -392,22 +392,6 @@ def test_a_run_the_addon_splits_after_uploading_it_becomes_two_runs(db, settings
     assert (b.started_at, b.ended_at) == (from_epoch(T0 + 3100), from_epoch(T0 + 4000))
 
 
-def test_tooltips_sent_by_addon_0_2_6_are_accepted_and_dropped(db, settings):
-    autumn, mah, *_ = party()
-    snap = gear_snapshot("s-1", autumn, mah, T0 + 600, [22] * 2)
-    snap["equipment"]["items"][0]["tooltip"] = [{"left": "Test Item 1", "color": "1eff00"}, {"left": "Head", "right": "Plate"}]
-    result = ingest(db, settings, batch("install-aaaa1111", [run_observation(RunSpec("r-1", observer="u1")), snap]))
-    assert [o.status for o in result.observations] == ["accepted", "accepted"]
-
-    stored = db.scalar(select(RawObservation).where(RawObservation.type == "character_snapshot"))
-    assert "tooltip" not in json.dumps(stored.payload)
-    (gear,) = db.scalars(select(EquipmentSnapshot)).all()
-    assert all("tooltip" not in item for item in gear.items)
-    (run,) = runs(db)
-    served = next(p.gear for p in run_detail(db, settings, run.public_id).participants if p.character.full_name == "Mah Beardlong")
-    assert "tooltip" not in served.items[0].model_dump()
-
-
 def _sessions(lost: int, read: int) -> list[dict]:
     """Meter sessions: `lost` read as the group pulled (0 s), then `read` whole 60 s fights."""
     return [{"session_id": 100 + i, "duration_sec": 0.0, "status": "captured"} for i in range(lost)] + [

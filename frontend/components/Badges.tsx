@@ -1,21 +1,47 @@
-import { OUTCOME, classColor, className } from "@/lib/game";
+import { Cross, Shield, Sword } from "lucide-react";
+
+import { Badge as UiBadge } from "@/components/ui/badge";
+import { OUTCOME, classColor, className, roleLabel } from "@/lib/game";
+import { cn } from "@/lib/utils";
 
 type Tone = "good" | "bad" | "warn" | "neutral" | "info" | "gold";
 
 const TONES: Record<Tone, string> = {
-  good: "bg-good/12 text-good border-good/30",
-  bad: "bg-bad/12 text-bad border-bad/30",
-  warn: "bg-warn/12 text-warn border-warn/30",
-  neutral: "bg-surface-3 text-muted border-line-strong",
-  info: "bg-info/12 text-info border-info/30",
-  gold: "bg-gold/12 text-gold border-gold/30",
+  good: "border-success/25 bg-success/10 text-success",
+  bad: "border-destructive/25 bg-destructive/10 text-destructive",
+  warn: "border-warning/25 bg-warning/10 text-warning",
+  neutral: "border-border bg-muted text-muted-foreground",
+  info: "border-info/25 bg-info/10 text-info",
+  gold: "border-primary/25 bg-primary/10 text-primary",
 };
 
-export function Badge({ tone = "neutral", children, title }: { tone?: Tone; children: React.ReactNode; title?: string }) {
+const DOTS: Record<Tone, string> = {
+  good: "bg-success",
+  bad: "bg-destructive",
+  warn: "bg-warning",
+  neutral: "bg-faint",
+  info: "bg-info",
+  gold: "bg-primary",
+};
+
+export function Badge({
+  tone = "neutral",
+  dot = false,
+  children,
+  title,
+  className: extra,
+}: {
+  tone?: Tone;
+  dot?: boolean;
+  children: React.ReactNode;
+  title?: string;
+  className?: string;
+}) {
   return (
-    <span title={title} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${TONES[tone]}`}>
+    <UiBadge variant="outline" title={title} className={cn("rounded-md font-medium", TONES[tone], extra)}>
+      {dot && <span aria-hidden="true" className={cn("size-1.5 rounded-full", DOTS[tone])} />}
       {children}
-    </span>
+    </UiBadge>
   );
 }
 
@@ -30,7 +56,7 @@ export function OutcomeBadge({ outcome, confidence }: { outcome: string; confide
         ? "Observers left before any completion event; this does not mean the group failed"
         : undefined;
   return (
-    <Badge tone={info.tone} title={title}>
+    <Badge tone={info.tone} title={title} dot>
       {info.label}
     </Badge>
   );
@@ -44,13 +70,27 @@ export function ClassName({ classFile, children }: { classFile: string | null | 
   );
 }
 
-export function ClassDot({ classFile }: { classFile: string | null | undefined }) {
+export function ClassDot({ classFile, className: extra }: { classFile: string | null | undefined; className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+      className={cn("inline-block size-2 rounded-full shrink-0", extra)}
       style={{ backgroundColor: classColor(classFile) }}
     />
+  );
+}
+
+const ROLE_ICONS = { TANK: Shield, HEALER: Cross, DAMAGER: Sword } as const;
+
+// The group finder's three roles. Unknown roles get an empty slot so names stay aligned.
+export function RoleIcon({ role, className: extra }: { role: string | null | undefined; className?: string }) {
+  const Icon = role ? ROLE_ICONS[role as keyof typeof ROLE_ICONS] : undefined;
+  const label = roleLabel(role);
+  return (
+    <span title={label} className={cn("inline-flex size-4 shrink-0 items-center justify-center text-faint", extra)}>
+      {Icon ? <Icon className="size-3.5" strokeWidth={2.25} aria-hidden="true" /> : null}
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }
 

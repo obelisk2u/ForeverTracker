@@ -6,7 +6,7 @@ import type { ActivityItem, RunListResponse } from "@/lib/types";
 const runList = vi.fn();
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
-  return { ...actual, api: { ...actual.api, runList: (...args: unknown[]) => runList(...args) } };
+  return { ...actual, api: { ...actual.api, runList: (...args: unknown[]) => runList(...args), dungeons: async () => [] } };
 });
 
 const { default: RunsPage } = await import("@/app/runs/page");

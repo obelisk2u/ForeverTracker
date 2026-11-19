@@ -29,28 +29,36 @@ export function formatDuration(seconds: number | null | undefined): string {
   return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
 
-const absolute = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-  timeZoneName: "short",
-});
-const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-const numericDate = new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric", year: "2-digit", timeZone: "UTC" });
+// Dates are written in UTC on the server, which cannot know the viewer's timezone; LocalTime rewrites
+// them in the browser's own zone (an IANA name such as "America/Chicago").
+const DATE_STYLES = {
+  absolute: { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" },
+  short: { month: "short", day: "numeric" },
+  numeric: { month: "numeric", day: "numeric", year: "2-digit" },
+} satisfies Record<string, Intl.DateTimeFormatOptions>;
 
-export function formatDateTime(iso: string): string {
-  return absolute.format(new Date(iso));
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatIn(style: keyof typeof DATE_STYLES, iso: string, timeZone: string): string {
+  const key = `${style}|${timeZone}`;
+  let f = formatters.get(key);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { ...DATE_STYLES[style], timeZone });
+    formatters.set(key, f);
+  }
+  return f.format(new Date(iso));
 }
 
-export function formatShortDate(iso: string): string {
-  return shortDate.format(new Date(iso));
+export function formatDateTime(iso: string, timeZone = "UTC"): string {
+  return formatIn("absolute", iso, timeZone);
 }
 
-export function formatNumericDate(iso: string): string {
-  return numericDate.format(new Date(iso));
+export function formatShortDate(iso: string, timeZone = "UTC"): string {
+  return formatIn("short", iso, timeZone);
+}
+
+export function formatNumericDate(iso: string, timeZone = "UTC"): string {
+  return formatIn("numeric", iso, timeZone);
 }
 
 export function relativeTime(iso: string, now: Date = new Date()): string {
@@ -68,4 +76,14 @@ export function relativeTime(iso: string, now: Date = new Date()): string {
 
 export function percent(v: number | null | undefined): string {
   return v === null || v === undefined ? "—" : `${oneDp.format(v)}%`;
+}
+
+// Time since the start of a run, like a stopwatch: "+4:07", "+1:02:09".
+export function formatOffset(fromIso: string, toIso: string): string {
+  const total = Math.max(0, Math.round((Date.parse(toIso) - Date.parse(fromIso)) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const ss = s.toString().padStart(2, "0");
+  return h > 0 ? `+${h}:${m.toString().padStart(2, "0")}:${ss}` : `+${m}:${ss}`;
 }

@@ -3,7 +3,9 @@
 -- Inspection is out of combat only, one request at a time, at least inspect_interval_seconds
 -- apart, never while the player has the Inspect window open, and each GUID is refreshed at
 -- most every inspect_refresh_seconds. Item details come from the documented item-link format
--- ("item:itemID:enchantID:gem1:gem2:gem3:gem4:...").
+-- ("item:itemID:enchantID:gem1:gem2:gem3:gem4:..."), and each item's tooltip, line by line, from
+-- C_TooltipInfo, so the website can show it as the game does. A tooltip is recorded once per item
+-- (FT.db.tooltip_keys), not in every snapshot.
 local _, FT = ...
 
 local Inspect = {}
@@ -63,9 +65,103 @@ local function unloaded(item)
   return item.link ~= nil and string.find(item.link, "|h%[%]|h") ~= nil
 end
 
--- Returns the equipment and how many items were not loaded yet (they are requested now).
+Inspect.TOOLTIP_MAX_LINES = 30
+
+-- "rrggbb", or nil for white (the default) and anything unreadable.
+local function hexColor(color)
+  if type(color) ~= "table" or Safe.isSecretTable(color) then
+    return nil
+  end
+  local r, g, b = Safe.num(color.r), Safe.num(color.g), Safe.num(color.b)
+  if not (r and g and b) then
+    return nil
+  end
+  local function byte(v)
+    return math.max(0, math.min(255, math.floor(v * 255 + 0.5)))
+  end
+  local hex = string.format("%02x%02x%02x", byte(r), byte(g), byte(b))
+  return hex ~= "ffffff" and hex or nil
+end
+
+local function lineText(v, maxLen)
+  local s = Safe.str(v, maxLen)
+  return s and (string.gsub(s, "[%z\1-\31]", " ")) or nil
+end
+
+-- The tooltip as the client would draw it: { left, color, right, right_color } per line, without
+-- the sell price. nil when the item is not loaded yet or nothing readable came back.
+function Inspect.tooltipLines(data)
+  if type(data) ~= "table" or Safe.isSecretTable(data) or type(data.lines) ~= "table" then
+    return nil
+  end
+  local lines = {}
+  for _, line in ipairs(data.lines) do
+    if #lines >= Inspect.TOOLTIP_MAX_LINES then
+      break
+    end
+    if type(line) == "table" and not Safe.isSecretTable(line) and type(line.price) == "nil" then
+      local right = lineText(line.rightText, 60)
+      lines[#lines + 1] = {
+        left = lineText(line.leftText, 200) or "",
+        color = hexColor(line.leftColor),
+        right = right,
+        right_color = right and hexColor(line.rightColor) or nil,
+      }
+    end
+  end
+  local title = lines[1] and lines[1].left
+  if not title or title == "" or title == _G.RETRIEVING_ITEM_INFO then
+    return nil
+  end
+  return lines
+end
+
+-- What the unit's own tooltip shows for that slot (the wearer's set pieces, for example); the
+-- link's tooltip when that is unavailable.
+local function tooltip(unit, slot, link)
+  local ok, data = Safe.call("C_TooltipInfo.GetInventoryItem", unit, slot)
+  local lines = ok and Inspect.tooltipLines(data) or nil
+  if not lines then
+    ok, data = Safe.call("C_TooltipInfo.GetHyperlink", link)
+    lines = ok and Inspect.tooltipLines(data) or nil
+  end
+  return lines
+end
+
+-- Which tooltip an item has: its link without what only says who holds it (the unique ID, unless
+-- a negative suffix scales with it, and the level and spec it was linked at). The server keys
+-- tooltips the same way.
+function Inspect.itemKey(link)
+  local s = Safe.str(link, 400)
+  local itemString = s and string.match(s, "item:([%-%d:]+)")
+  if not itemString then
+    return nil
+  end
+  local fields = {}
+  for part in string.gmatch(itemString .. ":", "([^:]*):") do
+    fields[#fields + 1] = part
+  end
+  for i = #fields + 1, 10 do
+    fields[i] = ""
+  end
+  local suffix = tonumber(fields[7])
+  if not (suffix and suffix < 0) then
+    fields[8] = ""
+  end
+  fields[9], fields[10] = "", ""
+  local key = string.gsub(table.concat(fields, ":"), ":+$", "")
+  return key
+end
+
+-- Whether this installation has already recorded the item's tooltip.
+function Inspect.tooltipKnown(key)
+  return key ~= nil and FT.db.tooltip_keys ~= nil and FT.db.tooltip_keys[key] ~= nil
+end
+
+-- Returns the equipment, how many items were not loaded yet (they are requested now) and each
+-- item's tooltip key by slot.
 function Inspect.readEquipment(unit)
-  local items = {}
+  local items, keys = {}, {}
   local missing, loading = 0, 0
   for _, slot in ipairs(SLOTS) do
     local ok, link = Safe.call("GetInventoryItemLink", unit, slot)
@@ -80,6 +176,11 @@ function Inspect.readEquipment(unit)
         if unloaded(item) then
           loading = loading + 1
           Safe.call("C_Item.RequestLoadItemDataByID", item.item_id)
+        else
+          keys[slot] = Inspect.itemKey(link)
+          if keys[slot] and not Inspect.tooltipKnown(keys[slot]) then
+            item.tooltip = tooltip(unit, slot, link)
+          end
         end
       else
         missing = missing + 1
@@ -98,7 +199,7 @@ function Inspect.readEquipment(unit)
     avg = nil
   end
   local status = (#items == 0 and "unavailable") or (missing > 0 and "partial") or "observed"
-  return { status = status, average_item_level = avg, items = items }, loading
+  return { status = status, average_item_level = avg, items = items }, loading, keys
 end
 
 local function talents(unit)
@@ -128,12 +229,15 @@ local function talents(unit)
   return { status = str and "observed" or "unavailable", import_string = str, spec_id = spec }
 end
 
--- Includes whether each item was loaded, so a complete snapshot of the same gear replaces one
--- taken before the client had loaded the items.
-local function signature(equipment)
+-- Includes whether each item was loaded and whether its tooltip has been recorded ("t"), so a
+-- complete snapshot of the same gear replaces one taken before the client had loaded the items or
+-- by a version that did not record tooltips (its signatures have no "t").
+local function signature(equipment, keys)
   local parts = {}
   for _, item in ipairs(equipment.items) do
+    local recorded = item.tooltip ~= nil or Inspect.tooltipKnown(keys[item.slot])
     parts[#parts + 1] = item.slot .. ":" .. item.item_id .. ":" .. tostring(item.enchant_id) .. (unloaded(item) and "?" or "")
+      .. (recorded and "t" or "")
   end
   return table.concat(parts, ",")
 end
@@ -148,7 +252,7 @@ function Inspect.snapshot(unit, source, attempt)
   if not subject or subject.identity_status ~= "ok" then
     return nil
   end
-  local equipment, loading = Inspect.readEquipment(unit)
+  local equipment, loading, keys = Inspect.readEquipment(unit)
   attempt = attempt or 1
   if loading > 0 and unit == "player" and attempt < Inspect.LOAD_RETRIES then
     FT.Events.after(Inspect.LOAD_RETRY_SECONDS, "inspect", function()
@@ -158,7 +262,7 @@ function Inspect.snapshot(unit, source, attempt)
   end
   local key = FT.Identity.key(subject)
   FT.db.snapshot_sigs = FT.db.snapshot_sigs or {}
-  local sig = signature(equipment) .. "|" .. tostring(subject.level)
+  local sig = signature(equipment, keys) .. "|" .. tostring(subject.level)
   if key and FT.db.snapshot_sigs[key] == sig then
     return nil -- unchanged since the last snapshot
   end
@@ -188,6 +292,12 @@ function Inspect.snapshot(unit, source, attempt)
   FT.Storage.push(observation)
   if key then
     FT.db.snapshot_sigs[key] = sig
+  end
+  FT.db.tooltip_keys = FT.db.tooltip_keys or {}
+  for _, item in ipairs(equipment.items) do
+    if item.tooltip and keys[item.slot] then
+      FT.db.tooltip_keys[keys[item.slot]] = observation.observed_at
+    end
   end
   return observation
 end

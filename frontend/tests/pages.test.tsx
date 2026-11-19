@@ -145,3 +145,63 @@ describe("character profile", () => {
     expect(screen.queryByRole("link", { name: /Report incorrect data/ })).not.toBeInTheDocument();
   });
 });
+
+describe("item tooltips", () => {
+  const helm = {
+    slot: 1,
+    slot_name: "Head",
+    item_id: 1001,
+    item_level: 22,
+    enchant_id: null,
+    gem_ids: [],
+    quality: 3,
+    link: "|cff0070dd|Hitem:1001::::::::20:::::|h[Thane's Helm]|h|r",
+    tooltip: [
+      { left: "Thane's Helm", color: "0070dd" },
+      { left: "Binds when picked up" },
+      { left: "Head", right: "Plate" },
+      { left: "Equip: Increases your defense by 3.", color: "1eff00" },
+    ],
+  };
+  const sword = { slot: 16, slot_name: "Main Hand", item_id: 1016, item_level: 21, enchant_id: null, gem_ids: [], quality: 2, link: "|cnIQ2:|Hitem:1016::::::::20:::::|h[Old Sword]|h|r" };
+  const withGear = (): RunDetail => ({
+    ...r,
+    participants: r.participants.map((x) =>
+      !isHidden(x.character) && x.character.full_name === "Mah Beardlong"
+        ? {
+            ...x,
+            gear: { observed_at: "2026-10-14T17:58:00Z", source: "inspect", status: "observed", average_item_level: 21.5, level: 18, talents_status: null, items: [helm, sword] },
+          }
+        : { ...x, gear: null },
+    ),
+  });
+
+  it("shows the item's tooltip as the game did when the pointer is over it", async () => {
+    render(<RunDetailView run={withGear()} />);
+    const item = screen.getByRole("button", { name: /Thane's Helm/ });
+    await userEvent.hover(item);
+    const tip = await screen.findByRole("tooltip");
+    expect(within(tip).getByText("Binds when picked up")).toBeInTheDocument();
+    expect(within(tip).getByText("Plate")).toBeInTheDocument();
+    expect(within(tip).getByText("Equip: Increases your defense by 3.")).toHaveStyle({ color: "#1eff00" });
+    await userEvent.unhover(item);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("shows what is known about an item whose tooltip has not been recorded", async () => {
+    render(<RunDetailView run={withGear()} />);
+    screen.getByRole("button", { name: /Old Sword/ }).focus();
+    const tip = await screen.findByRole("tooltip");
+    expect(within(tip).getByText("Item Level 21")).toBeInTheDocument();
+    expect(within(tip).getByText("Main Hand")).toBeInTheDocument();
+    expect(within(tip).getByText(/appears once a ForeverTracker user sees this item/)).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("opens on a tap, for touch screens", async () => {
+    render(<RunDetailView run={withGear()} />);
+    await userEvent.pointer({ keys: "[TouchA]", target: screen.getByRole("button", { name: /Thane's Helm/ }) });
+    expect(within(await screen.findByRole("tooltip")).getByText("Binds when picked up")).toBeInTheDocument();
+  });
+});

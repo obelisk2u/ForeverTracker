@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { apiBase } from "@/lib/api";
 
 const KINDS = [
@@ -39,40 +42,40 @@ export function ReportForm({ characterId = "", runId = "" }: { characterId?: str
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4 max-w-2xl">
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">What is the problem?</span>
-        <select value={kind} onChange={(e) => setKind(e.target.value)} className="h-10 rounded-md bg-surface-2 border border-line px-2">
+    <form onSubmit={submit} className="flex max-w-2xl flex-col gap-5">
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium text-foreground">What is the problem?</span>
+        <NativeSelect value={kind} onChange={(e) => setKind(e.target.value)} className="w-full [&_select]:h-10">
           {KINDS.map((k) => (
-            <option key={k.value} value={k.value}>
+            <NativeSelectOption key={k.value} value={k.value}>
               {k.label}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       <div className="grid sm:grid-cols-2 gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Character ID (from the profile URL)</span>
-          <input value={character} onChange={(e) => setCharacter(e.target.value)} maxLength={16} className="h-10 rounded-md bg-surface-2 border border-line px-3" />
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="font-medium text-foreground">Character ID (from the profile URL)</span>
+          <Input value={character} onChange={(e) => setCharacter(e.target.value)} maxLength={16} className="h-10 font-mono" />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Run ID (optional)</span>
-          <input value={run} onChange={(e) => setRun(e.target.value)} maxLength={16} className="h-10 rounded-md bg-surface-2 border border-line px-3" />
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="font-medium text-foreground">Run ID (optional)</span>
+          <Input value={run} onChange={(e) => setRun(e.target.value)} maxLength={16} className="h-10 font-mono" />
         </label>
       </div>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">Details</span>
-        <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} maxLength={2000} className="rounded-md bg-surface-2 border border-line p-3" />
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="font-medium text-foreground">Details</span>
+        <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} maxLength={2000} className="rounded-lg border border-input bg-input/30 p-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
       </label>
-      <p className="text-xs text-faint">
+      <p className="text-xs leading-relaxed text-faint">
         We do not ask for contact details. Suppression requests hide the profile and its name in other players&apos; run
         lists; we review requests to prevent abuse.
       </p>
-      <button type="submit" className="self-start h-10 px-5 rounded-lg bg-gold text-ink font-semibold hover:bg-gold-strong focus-ring">
+      <Button type="submit" size="lg" className="self-start px-5 font-semibold">
         Send report
-      </button>
+      </Button>
       {state && (
-        <p role="status" className={state.ok ? "text-good text-sm" : "text-bad text-sm"}>
+        <p role="status" className={state.ok ? "text-sm text-success" : "text-sm text-destructive"}>
           {state.text}
         </p>
       )}

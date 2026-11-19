@@ -6,18 +6,18 @@ export const metadata: Metadata = { title: "How ForeverTracker works" };
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-display text-xl text-gold">{title}</h2>
-      <div className="text-muted flex flex-col gap-2 leading-relaxed">{children}</div>
+      <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+      <div className="flex flex-col gap-2 leading-relaxed text-muted-foreground">{children}</div>
     </section>
   );
 }
 
 export default function AboutPage() {
   return (
-    <article className="max-w-3xl flex flex-col gap-8">
-      <header>
-        <h1 className="font-display text-3xl">How ForeverTracker works</h1>
-        <p className="text-muted mt-2">This page is ForeverTracker&apos;s data collection policy.</p>
+    <article className="flex max-w-3xl flex-col gap-8">
+      <header className="border-b pb-6">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">How ForeverTracker works</h1>
+        <p className="mt-2 text-muted-foreground">This page is ForeverTracker&apos;s data collection policy.</p>
       </header>
 
       <Section title="Why a companion app is needed">
@@ -33,7 +33,7 @@ export default function AboutPage() {
         </p>
         <p>
           You can pause it at any time, and it can show you exactly what it will send before sending it.{" "}
-          <Link href="/download" className="underline">Get the companion app</Link>.
+          <Link href="/download" className="text-foreground underline decoration-faint underline-offset-4 hover:decoration-foreground">Get the companion app</Link>.
         </p>
       </Section>
 
@@ -46,7 +46,7 @@ export default function AboutPage() {
       </Section>
 
       <Section title="What the addon records">
-        <ul className="list-disc pl-5 space-y-1">
+        <ul className="list-disc space-y-1.5 pl-5 marker:text-faint">
           <li>The dungeon (map ID, name and difficulty) and when you entered and left it.</li>
           <li>Your group: character names and surnames, game character IDs (GUIDs), class, race, level and assigned role, and when each member joined or left.</li>
           <li>Everyone you group with outside dungeons too: their name, surname, game character ID, class and race (not their level).</li>

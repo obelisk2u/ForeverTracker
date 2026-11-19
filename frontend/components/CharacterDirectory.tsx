@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-import { CharacterCard } from "@/components/SearchResults";
+import { CharacterCard, CharacterTable } from "@/components/SearchResults";
+import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 import type { CharacterListResponse } from "@/lib/types";
 
@@ -36,29 +37,26 @@ export function CharacterDirectory({ initial }: { initial: CharacterListResponse
   const more = page * initial.page_size < initial.total;
   return (
     <div className="flex flex-col gap-4">
-      <ul className="flex flex-col gap-2">
-        {items.map((c) => (
-          <li key={c.id}>
-            <CharacterCard c={c} />
-          </li>
-        ))}
-      </ul>
+      <CharacterTable>
+        <ul className="divide-y">
+          {items.map((c) => (
+            <li key={c.id}>
+              <CharacterCard c={c} />
+            </li>
+          ))}
+        </ul>
+      </CharacterTable>
       <div className="flex flex-wrap items-center gap-4">
         {more && (
-          <button
-            type="button"
-            onClick={showMore}
-            disabled={loading}
-            className="px-5 py-2 rounded-lg border border-line text-text hover:bg-surface-2 focus-ring disabled:opacity-60"
-          >
+          <Button type="button" variant="outline" size="lg" onClick={showMore} disabled={loading} className="px-4">
             {loading ? "Loading…" : "Show more"}
-          </button>
+          </Button>
         )}
         <span className="text-sm text-faint">
           Showing {items.length.toLocaleString("en-US")} of {initial.total.toLocaleString("en-US")}
         </span>
         {failed && (
-          <span role="alert" className="text-sm text-warn">
+          <span role="alert" className="text-sm text-warning">
             Couldn&apos;t load more characters. Try again.
           </span>
         )}

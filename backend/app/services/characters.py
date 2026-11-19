@@ -36,6 +36,7 @@ from app.schemas.api import (
     SearchResponse,
 )
 from app.services.common import NotFound, Suppressed, dungeon_ref, gear_out, metric_out, summaries, summarize
+from app.services.items import snapshot_keys, tooltips_for
 from app.services.visibility import character_visible, run_visible
 
 HISTORY_METRICS = ("damage_done", "dps", "healing_done", "hps", "deaths", "interrupts")
@@ -136,7 +137,7 @@ def profile(db: Session, settings: Settings, public_id: str) -> CharacterProfile
         .order_by(EquipmentSnapshot.observed_at.desc())
         .limit(1)
     )
-    gear = gear_out(snapshot) if snapshot is not None else None
+    gear = gear_out(snapshot, tooltips_for(db, snapshot_keys([snapshot]))) if snapshot is not None else None
     names = db.scalars(
         select(CharacterIdentityEvidence)
         .where(CharacterIdentityEvidence.character_id == character.id, CharacterIdentityEvidence.kind == "name")

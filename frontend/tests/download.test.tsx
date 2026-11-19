@@ -1,5 +1,4 @@
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 const { uploaderRelease } = vi.hoisted(() => ({ uploaderRelease: vi.fn() }));
@@ -13,44 +12,30 @@ const url = "https://forevertracker.example/ForeverTracker-Setup-0.2.0.exe";
 const release = { version: "0.2.0", download_url: url, sha256: "ab".repeat(32) };
 
 describe("download page", () => {
-  it("explains Windows' warning before an unsigned installer downloads", async () => {
+  it("starts the download straight from the button, with no warning first", async () => {
     uploaderRelease.mockResolvedValue({ ...release, signed: false });
     render(await DownloadPage());
-    const dialog = screen.getByRole("dialog", { hidden: true });
-    expect(dialog).not.toHaveAttribute("open");
-    // The page itself has no direct link to the file: the download starts from the explanation.
-    expect(screen.queryByRole("link", { name: /Download/ })).toBeNull();
-    const button = screen.getByRole("button", { name: /Download for Windows · v0\.2\.0/ });
+    const download = screen.getByRole("link", { name: /Download for Windows · v0\.2\.0/ });
+    expect(download).toHaveAttribute("href", url);
+    expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    expect(screen.queryByText(/Run anyway/)).toBeNull();
     // The installer does everything, so there are no install steps or pre-release warning.
     expect(screen.queryByRole("heading", { name: "Install" })).toBeNull();
     expect(screen.queryByText(/Pre-release/)).toBeNull();
-
-    await userEvent.click(button);
-    expect(dialog).toHaveAttribute("open");
-    expect(within(dialog).getByText(/reviewed by Windows/)).toBeInTheDocument();
-    expect(within(dialog).getByText("AB".repeat(32))).toBeInTheDocument();
-    const download = within(dialog).getByRole("link", { name: "Download ForeverTracker-Setup-0.2.0.exe" });
-    expect(download).toHaveAttribute("href", url);
-    expect(download).toHaveFocus();
-    // Dropdowns for the code and the author, next to "Check the file yourself".
+    // Optional details below the button: the file's hash, the code and the author.
     for (const title of ["Check the file yourself", "See the code", "Meet the author"]) {
-      expect(within(dialog).getByText(title).tagName).toBe("SUMMARY");
+      expect(screen.getByText(title).tagName).toBe("SUMMARY");
     }
-    expect(within(dialog).getByRole("link", { name: "github.com/obelisk2u/ForeverTracker" })).toHaveAttribute("href", REPO_URL);
-    expect(within(dialog).getByRole("link", { name: "jordan-stout.com" })).toHaveAttribute("href", AUTHOR_URL);
-
-    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-    expect(dialog).not.toHaveAttribute("open");
+    expect(screen.getByText("AB".repeat(32))).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "github.com/obelisk2u/ForeverTracker" })).toHaveAttribute("href", REPO_URL);
+    expect(screen.getByRole("link", { name: "jordan-stout.com" })).toHaveAttribute("href", AUTHOR_URL);
   });
 
-  it("still explains Windows' warning for a signed installer, naming the publisher", async () => {
+  it("links a signed installer the same way", async () => {
     uploaderRelease.mockResolvedValue({ ...release, signed: true });
     render(await DownloadPage());
-    await userEvent.click(screen.getByRole("button", { name: /Download for Windows · v0\.2\.0/ }));
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText(/ForeverTracker is signed, but it's new/)).toBeInTheDocument();
-    expect(within(dialog).getByText("Jordan Stout")).toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: "Download ForeverTracker-Setup-0.2.0.exe" })).toHaveAttribute("href", url);
+    expect(screen.getByRole("link", { name: /Download for Windows · v0\.2\.0/ })).toHaveAttribute("href", url);
+    expect(screen.queryByText(/Run anyway/)).toBeNull();
   });
 
   it("has no download button until a release is published", async () => {
@@ -76,7 +61,7 @@ describe("download page", () => {
     expect(curseforge).toHaveAttribute("target", "_blank");
     expect(screen.getByText("Opens curseforge.com")).toBeInTheDocument();
     expect(
-      within(screen.getByRole("region", { name: "Addon + companion app (Windows)" })).getByRole("button", {
+      within(screen.getByRole("region", { name: "Addon + companion app (Windows)" })).getByRole("link", {
         name: /Download for Windows/,
       }),
     ).toBeInTheDocument();
@@ -97,7 +82,7 @@ describe("visitors not on Windows", () => {
     uploaderRelease.mockResolvedValue({ ...release, signed: true });
     render(await DownloadPage());
     expect(await screen.findByText(/won.t run on a Mac/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Download for Windows/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Download for Windows/ })).toBeInTheDocument();
     ua.mockRestore();
   });
 });

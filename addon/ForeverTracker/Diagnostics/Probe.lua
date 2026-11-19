@@ -21,7 +21,7 @@ Probe.OPTIONAL_APIS = {
   "C_DamageMeter.GetAvailableCombatSessions", "C_DamageMeter.GetCombatSessionFromID",
   "C_DamageMeter.GetSessionDurationSeconds", "C_RestrictedActions.GetAddOnRestrictionState",
   "C_CombatLog.IsCombatLogRestricted", "C_GameRules.IsGameRuleActive", "C_EncodingUtil.SerializeJSON",
-  "issecrettable", "CombatLogGetCurrentEventInfo",
+  "issecrettable", "CombatLogGetCurrentEventInfo", "C_TooltipInfo.GetInventoryItem", "C_TooltipInfo.GetHyperlink",
 }
 Probe.EVENTS = {
   "PLAYER_ENTERING_WORLD", "PLAYER_LOGOUT", "GROUP_ROSTER_UPDATE", "GROUP_JOINED", "GROUP_LEFT", "PLAYER_DEAD",

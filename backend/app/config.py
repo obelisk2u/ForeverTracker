@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     allow_synthetic_data: bool | None = None
 
     # Ingestion limits (untrusted input).
-    max_upload_bytes: int = 8_000_000  # room for addon 0.2.6's batches, which also carried item tooltips
+    max_upload_bytes: int = 8_000_000  # room for batches carrying item tooltips (each item once per installation since 0.2.13)
     max_savedvariables_bytes: int = 8_000_000
     max_observations_per_batch: int = 500
     rate_limit_uploads_per_hour: int = 120

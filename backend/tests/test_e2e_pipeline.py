@@ -188,6 +188,9 @@ def test_two_observers_one_run_full_pipeline(client):
     asha = client.get(f"/api/v1/characters/us-pve/{by_name['Asha Brightvale']['id']}").json()
     assert asha["stats"]["death_free_run_pct"]["value"] == 100.0
     assert asha["latest_gear"] is not None and asha["latest_gear"]["source"] == "inspect"
+    # The addon read each item's tooltip in game; the site gets it with the gear.
+    first = asha["latest_gear"]["items"][0]
+    assert first["tooltip"] and first["tooltip"][0]["left"] in first["link"], first
     companions = client.get(f"/api/v1/characters/us-pve/{by_name['Asha Brightvale']['id']}/companions").json()
     assert {c["character"]["full_name"] for c in companions} == set(party) - {"Asha Brightvale"}
 

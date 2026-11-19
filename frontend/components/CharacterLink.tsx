@@ -13,7 +13,7 @@ export function CharacterLink({ character, showDot = true }: { character: Charac
     return <span className="text-faint italic">Hidden character</span>;
   }
   return (
-    <Link href={characterPath(character)} className="inline-flex items-center gap-1.5 hover:underline focus-ring rounded-sm min-w-0">
+    <Link href={characterPath(character)} className="focus-ring inline-flex min-w-0 items-center gap-1.5 rounded-sm decoration-current/40 underline-offset-[3px] hover:underline">
       {showDot && <ClassDot classFile={character.class_file} />}
       <span className="truncate" style={{ color: classColor(character.class_file) }}>
         {character.full_name}

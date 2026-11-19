@@ -1,21 +1,20 @@
-import { formatDateTime, relativeTime } from "@/lib/format";
+import { LocalTime } from "@/components/LocalTime";
 
 export function Freshness({ iso, label = "Last observed", now }: { iso: string; label?: string; now?: Date }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-good" />
+    <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+      <span aria-hidden="true" className="relative flex size-2">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-40 motion-reduce:hidden" />
+        <span className="relative inline-flex size-2 rounded-full bg-success" />
+      </span>
       {label}{" "}
-      <time dateTime={iso} title={formatDateTime(iso)} className="text-text">
-        {relativeTime(iso, now)}
-      </time>
+      <LocalTime iso={iso} format="relative" now={now} className="text-foreground" />
     </span>
   );
 }
 
 export function Timestamp({ iso }: { iso: string }) {
   return (
-    <time dateTime={iso} title={formatDateTime(iso)}>
-      {formatDateTime(iso)}
-    </time>
+    <LocalTime iso={iso} />
   );
 }

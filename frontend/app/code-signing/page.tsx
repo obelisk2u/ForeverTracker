@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic";
 export default async function CodeSigningPage() {
   const release = await api.uploaderRelease().catch(() => null);
   return (
-    <article className="max-w-3xl flex flex-col gap-4 text-muted leading-relaxed">
-      <h1 className="font-display text-3xl text-text">Code signing policy</h1>
-      <p className="text-text">
+    <article className="flex max-w-3xl flex-col gap-4 leading-relaxed text-muted-foreground">
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground">Code signing policy</h1>
+      <p className="text-foreground">
         The Windows app and its installer are signed with{" "}
-        <a href="https://azure.microsoft.com/products/artifact-signing" className="underline">
+        <a href="https://azure.microsoft.com/products/artifact-signing" className="text-foreground underline decoration-faint underline-offset-4 hover:decoration-foreground">
           Azure Artifact Signing
         </a>
         , Microsoft&apos;s code signing service. Windows shows the publisher as Jordan Stout.
@@ -23,36 +23,36 @@ export default async function CodeSigningPage() {
         <p>Signed releases are on their way. Until then, the installer is unsigned and Windows warns about it.</p>
       )}
 
-      <h2 className="font-display text-xl text-gold">What is signed</h2>
+      <h2 className="mt-6 text-lg font-semibold tracking-tight text-foreground">What is signed</h2>
       <p>
         The Windows companion app (ForeverTrackerUploader.exe) and its installer. Both are built by GitHub Actions from the
         public source code in the{" "}
-        <a href={REPO_URL} className="underline">
+        <a href={REPO_URL} className="text-foreground underline decoration-faint underline-offset-4 hover:decoration-foreground">
           ForeverTracker repository
         </a>{" "}
         and signed in that same run. Only builds of the main branch are signed, and the signing certificate is held by
         Microsoft: it is never on anyone&apos;s computer. The addon is plain Lua source and is not signed.
       </p>
 
-      <h2 className="font-display text-xl text-gold">Checking a download</h2>
+      <h2 className="mt-6 text-lg font-semibold tracking-tight text-foreground">Checking a download</h2>
       <p>
         Right-click the installer, choose Properties, and open the Digital Signatures tab: it should list Jordan Stout.
         The app only ever installs an update that carries the same signature, so a tampered download or server cannot
         replace it.
       </p>
 
-      <h2 className="font-display text-xl text-gold">Who can sign</h2>
+      <h2 className="mt-6 text-lg font-semibold tracking-tight text-foreground">Who can sign</h2>
       <p>
-        <a href="https://github.com/obelisk2u" className="underline">
+        <a href="https://github.com/obelisk2u" className="text-foreground underline decoration-faint underline-offset-4 hover:decoration-foreground">
           Jordan Stout
         </a>{" "}
         maintains ForeverTracker and is the only person who can change its code or start a signed release.
       </p>
 
-      <h2 className="font-display text-xl text-gold">Privacy</h2>
+      <h2 className="mt-6 text-lg font-semibold tracking-tight text-foreground">Privacy</h2>
       <p>
         The companion app uploads the dungeon runs recorded by the addon to ForeverTracker, and checks once a day for a newer
-        version. The <Link href="/privacy" className="underline">privacy notice</Link> lists exactly what it sends and how
+        version. The <Link href="/privacy" className="text-foreground underline decoration-faint underline-offset-4 hover:decoration-foreground">privacy notice</Link> lists exactly what it sends and how
         to turn it off, and the installer shows the same information before it installs anything.
       </p>
     </article>
