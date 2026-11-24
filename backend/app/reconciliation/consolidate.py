@@ -45,6 +45,9 @@ from app.reconciliation.metrics import (
 from app.schemas.observations import DungeonRunObservation, EncounterMeter
 
 ENCOUNTER_CLUSTER_SECONDS = 120
+# One observer's two records of a boss pull that start this close are the same pull recorded twice. Further
+# apart they are two pulls (a reset or wipe and a re-pull), however soon the second one came.
+SAME_OBSERVER_DUPLICATE_SECONDS = 5
 
 
 @dataclass
@@ -245,22 +248,27 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
 
     # Encounters: cluster the same boss pull reported by several observers. Each pull keeps the
     # damage meter of the observer who covered it best (alive for the whole fight, then longest).
-    pulls: list[tuple[int, datetime, datetime | None, bool | None, str | None, EncounterMeter | None, dict[str, int]]] = []
-    for link in links:
+    # One observer's separate pulls of a boss stay separate however close together they started
+    # (a reset and a quick re-pull are two attempts, the second possibly the kill).
+    pulls: list[tuple[int, datetime, int, datetime | None, bool | None, str | None, EncounterMeter | None, dict[str, int]]] = []
+    for li, link in enumerate(links):
         for enc in link.obs.encounters:
             pulls.append(
-                (enc.encounter_id, from_epoch(enc.started_at), from_epoch(enc.ended_at), enc.success, enc.name, enc.meter, link.identities)
+                (enc.encounter_id, from_epoch(enc.started_at), li, from_epoch(enc.ended_at), enc.success, enc.name, enc.meter, link.identities)
             )
     pulls.sort(key=lambda p: (p[0], p[1]))
     encounters: list[RunEncounter] = []
+    observed_by: list[set[int]] = []  # per encounter: the links that reported it
     best_meter: dict[int, tuple[tuple[bool, float], EncounterMeter, dict[str, int]]] = {}
-    for enc_id, start, end, success, name, meter, identities in pulls:
+    for enc_id, start, li, end, success, name, meter, identities in pulls:
         current = encounters[-1] if encounters else None
+        gap = abs((start - current.started_at).total_seconds()) if current is not None else None
         if (
             current is not None
             and current.encounter_id == enc_id
-            and abs((start - current.started_at).total_seconds()) <= ENCOUNTER_CLUSTER_SECONDS
+            and gap <= (SAME_OBSERVER_DUPLICATE_SECONDS if li in observed_by[-1] else ENCOUNTER_CLUSTER_SECONDS)
         ):
+            observed_by[-1].add(li)
             current.observation_count += 1
             if end and (current.ended_at is None or end > current.ended_at):
                 current.ended_at = end
@@ -283,6 +291,7 @@ def _rebuild_run(db: Session, run_id: int, settings: Settings) -> set[int]:
                     metrics={},
                 )
             )
+            observed_by.append({li})
         if meter is not None:
             index = len(encounters) - 1
             rank = (meter.status == "observed", meter.combat_seconds or 0.0)
