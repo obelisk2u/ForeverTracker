@@ -81,9 +81,12 @@ Implemented in `addon/ForeverTracker/Sessions/RunTracker.lua`; tested in `addon/
 ```
 
 Final states: `completed` (only with a completion event: `LFG_COMPLETION_REWARD`, `SCENARIO_COMPLETED`,
-`CHALLENGE_MODE_COMPLETED`), `abandoned` (instance-abandon vote passed), `left` (left and did not return),
-`disconnected` (the session ended inside the dungeon and the player did not return), `unknown`. Leaving an instance
-is never a completion. Boss kills are encounters, not completion evidence.
+`CHALLENGE_MODE_COMPLETED`), `abandoned` (instance-abandon vote passed), `left` (left before the final boss died
+and did not return), `disconnected` (the session ended inside the dungeon before the final boss died and the player
+did not return), `unknown` (anything else, including every run whose listed final boss died, however it ended
+afterwards). Leaving an instance is never a completion. Boss kills are encounters, not completion events: a kill of
+the dungeon's final boss (`backend/app/reconciliation/final_encounters.json`) ends the run 20 seconds later and makes
+it a *probable* completion on the website and in the records window.
 
 Each save bumps the record's `revision`. The backend applies the newest revision and keeps older ones as
 `superseded`, so a run first uploaded "in progress" (after a `/reload`) is later replaced by its final version in the

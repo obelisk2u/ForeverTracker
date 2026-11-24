@@ -1,5 +1,5 @@
 {
-  "about": "The boss whose kill finishes each Forever dungeon, keyed by the instance map ID (8th return of GetInstanceInfo). A run that kills one of these counts as completed even without a completion event (groups formed outside the dungeon finder never get one). Source: the last boss in each dungeon's encounter order in the Forever client's DungeonEncounter table (build 1.60.1.70862, wago.tools branch wowf). Where wings share one map, each wing's last boss is listed. Kept in sync with addon/ForeverTracker/Data/Dungeons.lua by a test.",
+  "about": "The boss whose kill finishes each Forever dungeon, keyed by the instance map ID (8th return of GetInstanceInfo); the encounter IDs are the encounterID that ENCOUNTER_START/ENCOUNTER_END report. A run that kills one of these counts as completed even without a completion event (groups formed outside the dungeon finder never get one), and the addon ends the run 20 seconds after the kill. Classic dungeons: the last boss in each dungeon's encounter order in the Forever client's DungeonEncounter table (build 1.60.1.70862, wago.tools branch wowf); where wings share one map, each wing's last boss is listed. Forever's new dungeons are listed only once a live full clear has shown the last boss ('evidence'); the others wait in 'pending', which nothing reads for completion. Kept in sync with addon/ForeverTracker/Data/Dungeons.lua by a test.",
   "dungeons": {
     "33": { "name": "Shadowfang Keep", "final": { "2755": "Archmage Arugal" } },
     "34": { "name": "Stormwind Stockade", "final": { "2760": "Bazil Thredd" } },
@@ -23,8 +23,72 @@
     "389": { "name": "Ragefire Chasm", "final": { "2735": "Bazzalan" } },
     "429": { "name": "Dire Maul", "final": { "346": "Alzzin the Wildshaper", "361": "Prince Tortheldrin", "368": "King Gordok" } },
     "2784": { "name": "Demon Fall Canyon", "final": { "3080": "Azgaloth" } },
-    "2959": { "name": "City of Dalaran", "final": { "3303": "Shade of the Archmage" }, "verified_in_game": "2026-11-16" },
-    "2998": { "name": "Excavation Site: Wetlands", "final": { "3482": "Relic Guardian" }, "verified_in_game": "2026-11-16" },
-    "3065": { "name": "The Hall of Thanes", "final": { "3496": "Durgen Dirgehammer" }, "verified_in_game": "2026-11-10" }
+    "2959": {
+      "name": "City of Dalaran",
+      "final": { "3303": "Shade of the Archmage" },
+      "verified_in_game": "2026-11-16",
+      "evidence": "Last of 9 encounters by OrderIndex in the client's DungeonEncounter table (builds 1.60.1.70862 and 1.60.1.71037). Live full clear uploaded by the addon: forevertracker.org run fpyjdsxmw6 (3311, 3310, 3298, 3300, 3299, 3301, 3302, then 3303). Mana Wraith (3312) is in the table but has not been seen live."
+    },
+    "2970": {
+      "name": "The Drowned City",
+      "final": { "3479": "Min'loth the Serpent" },
+      "verified_in_game": "2026-11-23",
+      "evidence": "Last of 6 encounters by OrderIndex in the client's DungeonEncounter table (builds 1.60.1.70862 and 1.60.1.71037). Live full clear uploaded by the addon: forevertracker.org run sys5kuh3ky killed all six (3474, 3511, 3475, 3476, 3478, then 3479) and was stored as 'left' because this entry was missing. Trace: fixtures/events/forever-drowned-city-full-clear.json."
+    },
+    "2998": {
+      "name": "Excavation Site: Wetlands",
+      "final": { "3482": "Relic Guardian" },
+      "verified_in_game": "2026-11-16",
+      "evidence": "Last by OrderIndex in the client's DungeonEncounter table (builds 1.60.1.70862 and 1.60.1.71037). Live full clears uploaded by the addon: forevertracker.org runs 2ja228eumc (3480, 3481 after two wipes, then 3482) and f9kp7fvtp4 (3480, 3481, 3482). Highland Horror (3644) has different table flags and has not been seen live."
+    },
+    "3065": {
+      "name": "The Hall of Thanes",
+      "final": { "3496": "Durgen Dirgehammer" },
+      "verified_in_game": "2026-11-10",
+      "evidence": "Last of 4 encounters by OrderIndex in the client's DungeonEncounter table (builds 1.60.1.70862 and 1.60.1.71037). Live full clears uploaded by the addon: forevertracker.org runs erpnyy77pw and xewsdabuzk (3493, 3495, 3494, then 3496)."
+    }
+  },
+  "pending": {
+    "about": "Forever dungeons whose final boss is not verified. Nothing reads this section for completion: their runs keep their boss kills, and once an entry moves to 'dungeons', `python -m app.cli recover-outcomes` previews which stored runs a confirmed final kill would complete. Map and encounter IDs below are from the client's Map and DungeonEncounter tables (builds 1.60.1.70862 and 1.60.1.71037) and match DBM-Party-Forever (DeadlyBossMods/DBM-Dungeons 648ae8c, SetZone/SetEncounterID). What is missing is which kill ends the dungeon.",
+    "2999": {
+      "name": "Ruins of Lordaeron",
+      "candidate_final": { "3354": "Rath'mael" },
+      "client_last_by_order": "3354 Rath'mael (OrderIndex 5000 of 7 encounters)",
+      "sources": "Warcraft Tavern guide: 'Rath'mael, the dungeon's final boss'; its walkthrough ends there.",
+      "why_pending": "No live trace. Two side encounters start from interactables (Viktor the Vile 3411, a fireplace; The Abandoned 3357, a statue), Lordaeron Captain (3408) is a rare, and one guide placed Viktor after Rath'mael. The guide also names a 'The Baron' that the client table does not have.",
+      "evidence_needed": "One full clear including Viktor and The Abandoned, recorded by addon 0.2.12 or later: ENCOUNTER_END with success 1 for 3354 on map 2999 and no encounter started after it in that instance."
+    },
+    "3039": {
+      "name": "Krol'dok Stronghold",
+      "candidate_final": { "3451": "Overseer Mugg" },
+      "client_last_by_order": "3451 Overseer Mugg (OrderIndex 5000 of 5 encounters)",
+      "sources": "Warcraft Tavern guide: 'the final boss Overlord Mugg in a house at the very end of the long winding road'.",
+      "why_pending": "No live trace. The guide's names disagree with the client table ('Overlord Mugg' vs 'Overseer Mugg'; a 'Bossman Toof' with no client encounter), and it describes 'some alternate paths'.",
+      "evidence_needed": "One full clear: the encounter ID and name the client reports at the last kill on map 3039, and whether 'Bossman Toof' starts an encounter at all."
+    },
+    "2994": {
+      "name": "Alcaz Prison",
+      "candidate_final": { "3409": "Blazeroar", "3415": "The Questioner" },
+      "client_last_by_order": "3409 Blazeroar (OrderIndex 1000 of 5 encounters)",
+      "sources": "Warcraft Tavern guide: 'Zarla Ober is technically the final boss' (she becomes Blazeroar), but The Questioner, behind a locked door near the entrance, is fought 'on your way out', 'making him the real final boss'.",
+      "why_pending": "Two candidates. Listing Blazeroar would end the run 20 seconds after it, and a Questioner kill on the way out would then not be recorded.",
+      "evidence_needed": "One full clear including The Questioner: which of 3409 and 3415 is killed last on map 2994, and whether Zarla Ober's change into Blazeroar reports one encounter (3409) or two."
+    },
+    "2974": {
+      "name": "Blackmaw Hold",
+      "candidate_final": { "3334": "Varrox Bleakhoof" },
+      "client_last_by_order": "3336 Unbound Spirit (OrderIndex 6000 of 7; the only encounter with table flag 128)",
+      "sources": "Warcraft Tavern: 'Varrox Bleakhoof, the dungeon's final boss'; Wowhead and Method also call him the last boss. Tavern: Unbound Spirit is in a side area, the dungeon has 'no set path', and a ledge drop leads straight to Varrox, after which you 'grab the remaining bosses on your way out'.",
+      "why_pending": "The client table's order and the guides disagree (the order rule would pick the side-area Unbound Spirit), and the ledge route means bosses can be killed after Varrox, which ending the run at Varrox would drop.",
+      "evidence_needed": "Two full clears on map 2974, one along the main path and one using the ledge drop: whether any encounter is started after 3334 in the same instance."
+    },
+    "3001": {
+      "name": "The Shaper's Terrace",
+      "candidate_final": { "3502": "Nanaya" },
+      "client_last_by_order": "3502 Nanaya (OrderIndex 8000 of 11 encounters)",
+      "sources": "Warcraft Tavern: activating all four Archival Devices 'will summon Nanaya, the dungeon's final boss. Defeating her completes the dungeon.'",
+      "why_pending": "No live trace, and the 11 client encounters include summoned and optional bosses (Vitrix can be skipped), so a full clear cannot be recognized by count.",
+      "evidence_needed": "One full clear on map 3001: ENCOUNTER_END with success 1 for 3502 as the last encounter in that instance."
+    }
   }
 }

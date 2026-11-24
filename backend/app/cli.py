@@ -4,6 +4,7 @@
   ingest-dir DIR    ingest every *.json batch in DIR (in file-name order)
   rebuild           recompute every canonical run and character aggregate from raw observations
   rematch           preview (default) or apply re-matching every observation into runs (cluster.py)
+  recover-outcomes  preview (default) or apply completions a newly listed final boss gives stored runs
   purge-synthetic   delete all synthetic data and everything derived from it
   export-schema     write the observation JSON Schema
   export-openapi    write the OpenAPI document
@@ -157,6 +158,51 @@ def cmd_rematch(args) -> int:
         db.close()
 
 
+def cmd_recover_outcomes(args) -> int:
+    """List stored runs that a listed final-boss kill would complete (app/reconciliation/recovery.py).
+
+    Stored outcomes are derived when a run is rebuilt, so adding a final boss to final_encounters.json does
+    not change runs stored before it. By default this only prints those runs and writes nothing.
+    ``--apply --yes`` completes them (``completed``, ``probable``, the kill as evidence) and recomputes their
+    participants' statistics; production also needs ``--production``. Nothing else about a run changes.
+    """
+    from sqlalchemy import make_url
+
+    from app.config import get_settings
+    from app.db import get_sessionmaker
+    from app.models import AuditLog
+    from app.reconciliation import recovery
+
+    settings = get_settings()
+    target = make_url(settings.database_url).render_as_string(hide_password=True)
+    db = get_sessionmaker()()
+    try:
+        found = recovery.find(db)
+        report = {"database": target, "mode": "apply" if args.apply else "dry-run", "runs": [r.report() for r in found]}
+        print(json.dumps(report, indent=2, default=str))
+        if not args.apply:
+            db.rollback()
+            return 0
+        if not args.yes:
+            print("refusing to apply without --yes", file=sys.stderr)
+            return 2
+        if settings.environment == "production" and not args.production:
+            print("refusing to apply in production without --production", file=sys.stderr)
+            return 2
+        characters = recovery.apply(db, found, settings)
+        db.add(
+            AuditLog(
+                actor="cli", action="recover_outcomes", target_type="database", target_id="all",
+                details={"runs": [r.public_id for r in found]},
+            )
+        )
+        db.commit()
+        print(f"applied: {len(found)} run(s) completed, {len(characters)} character(s) recomputed", file=sys.stderr)
+        return 0
+    finally:
+        db.close()
+
+
 def cmd_purge_synthetic(args) -> int:
     from app.db import get_sessionmaker
     from app.models import (
@@ -232,6 +278,11 @@ def main(argv: list[str] | None = None) -> int:
     rematch.add_argument("--yes", action="store_true", help="confirm --apply")
     rematch.add_argument("--production", action="store_true", help="allow --apply when ENVIRONMENT=production")
     rematch.set_defaults(fn=cmd_rematch)
+    recover = sub.add_parser("recover-outcomes", help="preview (default) or apply completions from newly listed final bosses")
+    recover.add_argument("--apply", action="store_true", help="write the changes (default: only print them)")
+    recover.add_argument("--yes", action="store_true", help="confirm --apply")
+    recover.add_argument("--production", action="store_true", help="allow --apply when ENVIRONMENT=production")
+    recover.set_defaults(fn=cmd_recover_outcomes)
     purge = sub.add_parser("purge-synthetic")
     purge.add_argument("--yes", action="store_true")
     purge.set_defaults(fn=cmd_purge_synthetic)

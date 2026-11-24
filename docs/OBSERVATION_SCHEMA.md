@@ -88,6 +88,9 @@ never guessed at; such roster entries stay unidentified.
 button or `/ft complete`). The run still ends `unknown` (or `left` from outside), since no completion event came; the
 website counts it as completed with `reported` confidence.
 
+A run whose dungeon's final boss died ends `unknown` (from addon 0.2.12 also when the player leaves or logs out right
+after the kill; earlier versions wrote `left` then). The website derives the completion from the kill either way.
+
 All timestamps are **server epoch seconds** (`GetServerTime()`), so different observers' records share one clock.
 `local_clock_offset` records the gap between the local and server clocks.
 

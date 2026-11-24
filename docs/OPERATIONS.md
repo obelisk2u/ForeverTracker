@@ -42,6 +42,7 @@ Every action recomputes the affected runs and characters in the same transaction
 |---|---|
 | `rebuild` | After changing an interpretation setting (e.g. `METER_DEATH_INTERPRETATION`) or a statistic definition. It does not re-match observations into runs. |
 | `rematch` | Prints what re-matching every stored observation would change (after a matching setting such as `MATCH_PARTY_GUID_VETO` or `MATCH_MIN_SHARED_CHARACTERS` changes, or to repair runs matched by older versions). Writes nothing. `--apply --yes` applies it, on a restored copy first; production also needs `--production`. |
+| `recover-outcomes` | After a final boss is added to `final_encounters.json`: prints the stored runs whose outcome is `left`, `disconnected` or `unknown` and that killed that boss (stored outcomes are derived when a run is rebuilt, so they keep their old status until then). Writes nothing. `--apply --yes` makes only those runs completed (*probable*) and recomputes their participants; production also needs `--production`. |
 | `seed` | Development and staging only: generate and ingest synthetic data (refused in production) |
 | `purge-synthetic --yes` | Remove every synthetic record (e.g. before turning staging into a demo of real data) |
 | `export-schema`, `export-openapi` | Regenerate contracts (CI checks they are current) |

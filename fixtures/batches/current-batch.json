@@ -2,9 +2,9 @@
   "addon": {
     "name": "ForeverTracker",
     "schema_version": 1,
-    "version": "0.2.11"
+    "version": "0.2.12"
   },
-  "batch_id": "sv-92fe6bc206858d8993077b141eee6cd7448595bd",
+  "batch_id": "sv-341735d13ad337fe3271fee765edc8fe92d276d1",
   "client": {
     "build": "70532",
     "game_version": "1.60.1",
@@ -358,7 +358,7 @@
       "type": "character_snapshot"
     },
     {
-      "addon_version": "0.2.11",
+      "addon_version": "0.2.12",
       "client_build": "70532",
       "collection": {
         "deaths_unit_died": "disabled",
@@ -1021,7 +1021,7 @@
       "type": "dungeon_run"
     },
     {
-      "addon_version": "0.2.11",
+      "addon_version": "0.2.12",
       "client_build": "70532",
       "collection": {
         "deaths_unit_died": "disabled",

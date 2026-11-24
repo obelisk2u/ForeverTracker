@@ -1,9 +1,10 @@
 # Fixtures
 
-Everything here is **synthetic, development-only data**. It does not describe real players.
+Everything here is **synthetic, development-only data** that does not describe real players, except `events/`.
 
 | Path | What | Regenerate |
 |---|---|---|
+| `events/forever-drowned-city-full-clear.json` | **Live** boss-encounter trace of a real Forever run (forevertracker.org run `sys5kuh3ky`, 2026-11-23): instance map ID, encounter IDs, names, timing and kill flags only, no character data. The addon tests replay it; it is the evidence for The Drowned City's final boss in `backend/app/reconciliation/final_encounters.json`. | not regenerated |
 | `savedvariables/ForeverTracker.current.lua` | A SavedVariables file written by the current addon code running in a Lua 5.1 VM against the mocked client: two runs (one completed through the dungeon finder after a wipe, with a death; one the player marks completed), a pet and an unknown player in the meter, group, inspect and self snapshots, and a probe report. `POST` it to `/api/v1/ingest/savedvariables` to try the pipeline. | `python tools/make_fixtures.py` (`--check` only compares) |
 | `batches/current-batch.json` | The same data as an upload batch (`POST /api/v1/ingest/batches`) | same |
 | `savedvariables/ForeverTracker.sample.lua`, `batches/sample-batch.json` | The same kind of file written by **addon 0.1.0**, kept unchanged as the old-payload fixture | not regenerated |

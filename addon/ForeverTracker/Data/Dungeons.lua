@@ -1,7 +1,10 @@
 -- The boss whose kill finishes each dungeon, by instance map ID: a copy of
 -- backend/app/reconciliation/final_encounters.json, kept in sync by addon/tests/test_addon.py.
 -- Groups formed outside the dungeon finder never get a completion event, so the records window
--- counts a run that kills one of these bosses as completed, as the website does.
+-- counts a run that kills one of these bosses as completed, as the website does, and the run
+-- ends shortly after the kill. Forever's new dungeons are listed only once a live full clear has
+-- shown their last boss; the rest wait in the JSON's "pending" section (a wrong entry would end
+-- runs early and lose the kills after it).
 local _, FT = ...
 
 FT.FINAL_ENCOUNTERS = {
@@ -25,6 +28,7 @@ FT.FINAL_ENCOUNTERS = {
   [429] = { [346] = true, [361] = true, [368] = true }, -- Dire Maul: Alzzin the Wildshaper, Prince Tortheldrin, King Gordok
   [2784] = { [3080] = true }, -- Demon Fall Canyon: Azgaloth
   [2959] = { [3303] = true }, -- City of Dalaran: Shade of the Archmage
+  [2970] = { [3479] = true }, -- The Drowned City: Min'loth the Serpent
   [2998] = { [3482] = true }, -- Excavation Site: Wetlands: Relic Guardian
   [3065] = { [3496] = true }, -- The Hall of Thanes: Durgen Dirgehammer
 }

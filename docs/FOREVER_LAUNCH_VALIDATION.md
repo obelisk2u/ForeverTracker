@@ -88,7 +88,7 @@ Run each scenario and note the final `state` of the record after logging out:
 | Scenario | Expected `state` | Expected `completion` |
 |---|---|---|
 | A. Full run via the group finder, kill the last boss, leave | `completed` | `verified`, evidence `lfg_completion_reward` |
-| B. Full run with a manually formed group | **record what happens.** If no completion event fires, `unknown` | `none` |
+| B. Full run with a manually formed group | **record what happens.** If no completion event fires: `unknown` when the dungeon's final boss is listed (the run ends 20 s after the kill), otherwise `left` once the player leaves | `none` |
 | C. Die, release, run back in (corpse run < 15 min) | one record, timeline `left_instance` → `reentered` | — |
 | D. `/reload` inside | one record, `flags.resumed_after_reload = true` | — |
 | E. Log out inside, log back in within 15 min | one record, `flags.resumed_after_login = true` | — |
@@ -96,7 +96,19 @@ Run each scenario and note the final `state` of the record after logging out:
 | G. Leave after two bosses and do not return | `left` (after 15 min) | `none` |
 | H. Instance abandon vote passes | `abandoned` | `none` |
 
-Also run `/dump GetInstanceInfo()` inside each dungeon and record the 8th value (map ID) per dungeon. **Add every map ID and the final boss's encounter ID** to `backend/app/reconciliation/final_encounters.json` and `addon/ForeverTracker/Data/Dungeons.lua` (a test keeps the two in sync), with the date in `verified_in_game`, so "final boss killed" counts as *probable* completion. Four of the 22 listed dungeons are verified so far.
+Also run `/dump GetInstanceInfo()` inside each dungeon and record the 8th value (map ID) per dungeon. **Add every map ID and the final boss's encounter ID** to `backend/app/reconciliation/final_encounters.json` and `addon/ForeverTracker/Data/Dungeons.lua` (a test keeps the two in sync), with the date in `verified_in_game` and the run or file that shows it in `evidence`, so "final boss killed" counts as *probable* completion. Five of the 23 listed dungeons are verified in game (Deadmines, The Hall of Thanes, City of Dalaran, Excavation Site: Wetlands, The Drowned City).
+
+**Forever dungeons still pending** (listed under `pending` in `final_encounters.json`, with candidates, sources and what blocks each). Their map and encounter IDs are known from the client's tables and DBM-Party-Forever; what needs a live run is which kill ends the dungeon. A run whose final boss is listed ends 20 seconds after that kill and ignores later pulls in the same instance, so a wrong or early entry would lose kills, not only mislabel a run. Until then their full clears end `left` ("Left early") with every kill kept. For each, record one full clear with a group formed outside the dungeon finder (addon 0.2.12 or later), log out, keep the SavedVariables file (or upload it), and check the run's `encounters` in time order:
+
+| Dungeon (map ID) | Candidate final (encounter ID) | What the run must show |
+|---|---|---|
+| Ruins of Lordaeron (2999) | Rath'mael (3354) | A clear including the side encounters Viktor the Vile (3411) and The Abandoned (3357): 3354 killed last. |
+| Krol'dok Stronghold (3039) | Overseer Mugg (3451); guides say "Overlord Mugg" | The ID and name the client reports at the last kill, and whether "Bossman Toof" starts an encounter. |
+| Alcaz Prison (2994) | Blazeroar (3409) or The Questioner (3415) | A clear including The Questioner: which is killed last, and whether Zarla Ober's change into Blazeroar reports one encounter or two. |
+| Blackmaw Hold (2974) | Varrox Bleakhoof (3334); the client's order would pick Unbound Spirit (3336) | One clear along the main path and one using the ledge drop: whether any encounter starts after 3334. |
+| The Shaper's Terrace (3001) | Nanaya (3502) | 3502 killed last, with `success` 1. |
+
+Then move the entry from `pending` to `dungeons` (and `Dungeons.lua`), release the addon, and run `python -m app.cli recover-outcomes` to complete the runs already stored.
 
 | Result | Action |
 |---|---|
@@ -211,7 +223,7 @@ Action: as test 6.
 | Meter retry timing | `Config.LIMITS.meter_retry_delays` | How long the addon waits for secrets to clear. |
 | Meter death semantics | Backend env `METER_DEATH_INTERPRETATION` (`entry_per_death` / `total_amount`), then `python -m app.cli rebuild` | How meter death counts are read. Stored raw data is reinterpreted, nothing is re-uploaded. |
 | Matching strictness | Backend env `MATCH_MIN_SHARED_CHARACTERS`, `MATCH_PARTY_GUID_VETO` | How many overlapping characters two records need to merge; whether different party GUIDs block a match. Preview their effect on stored runs with `python -m app.cli rematch`. |
-| Dungeon catalog | `backend/app/reconciliation/final_encounters.json` and `addon/ForeverTracker/Data/Dungeons.lua` | Enables *probable* completion from final-boss kills. |
+| Dungeon catalog | `backend/app/reconciliation/final_encounters.json` and `addon/ForeverTracker/Data/Dungeons.lua` | Enables *probable* completion from final-boss kills. Forever's new dungeons are listed only with live evidence; the JSON's `pending` section says what each missing one needs. After adding one, release the addon and run `python -m app.cli recover-outcomes`. |
 
 After changing an addon default, bump `## Version` in `ForeverTracker.toc` and `FT.version`, and release the addon.
 After changing a backend interpretation setting, run `python -m app.cli rebuild`: aggregates are recalculated from raw observations.

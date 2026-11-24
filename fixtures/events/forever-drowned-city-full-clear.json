@@ -1,0 +1,63 @@
+{
+  "about": "A live World of Warcraft: Forever full clear, as the ForeverTracker addon recorded it and forevertracker.org shows it (public API GET /api/v1/runs/sys5kuh3ky, retrieved 2026-11-23). Only the instance, timing and boss encounters are kept: no character data. Times are seconds after the run started. Stored as outcome 'left' because The Drowned City had no final boss listed.",
+  "source": "https://forevertracker.org/api/v1/runs/sys5kuh3ky",
+  "retrieved": "2026-11-23",
+  "instance": {
+    "map_id": 2970,
+    "name": "The Drowned City",
+    "instance_type": "party",
+    "difficulty_id": 0,
+    "difficulty_name": null
+  },
+  "started_at": "2026-11-23T02:03:17Z",
+  "duration_seconds": 5098,
+  "stored_outcome": [
+    "left",
+    "none"
+  ],
+  "participants": 5,
+  "encounters": [
+    {
+      "encounter_id": 3474,
+      "name": "Zul'Alai",
+      "start": 652,
+      "end": 682,
+      "success": true
+    },
+    {
+      "encounter_id": 3511,
+      "name": "Primeval Elemental",
+      "start": 1707,
+      "end": 1744,
+      "success": true
+    },
+    {
+      "encounter_id": 3475,
+      "name": "Var'Taka",
+      "start": 2435,
+      "end": 2494,
+      "success": true
+    },
+    {
+      "encounter_id": 3476,
+      "name": "Captain Dreadrise",
+      "start": 3824,
+      "end": 3861,
+      "success": true
+    },
+    {
+      "encounter_id": 3478,
+      "name": "Deathless Guardians",
+      "start": 4800,
+      "end": 4892,
+      "success": true
+    },
+    {
+      "encounter_id": 3479,
+      "name": "Min'loth the Serpent",
+      "start": 4977,
+      "end": 5043,
+      "success": true
+    }
+  ]
+}

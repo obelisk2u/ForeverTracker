@@ -10,8 +10,8 @@
 --   meter to read the fight), with state "unknown" unless a completion event came: the final-boss
 --   kill makes it a completion in the records and on the website. Staying inside afterwards
 --   (looting, /reload, a corpse run back in) does not start a new run. Leaving alive before that
---   ends it at once ("left"). Leaving the group while outside also ends the run, and going back in
---   with a different group starts a new one.
+--   ends it at once, also as "unknown". Leaving the group while outside also ends the run, and
+--   going back in with a different group starts a new one.
 --
 --   Final states (observation `state`):
 --     completed     only with a completion event (LFG_COMPLETION_REWARD, SCENARIO_COMPLETED,
@@ -19,10 +19,13 @@
 --                   (A run the player marks as completed ends "unknown", or "left" from outside,
 --                   with flags.marked_completed: the records and the website count it.)
 --     abandoned     an instance-abandon vote passed.
---     left          the observer left the dungeon and did not come back within the grace period.
+--     left          the observer left the dungeon before its final boss died and did not come
+--                   back within the grace period.
 --     disconnected  the observer's game session ended inside the dungeon (logout, disconnect or
---                   crash) and they did not return within the grace period.
---     unknown       anything else.
+--                   crash) before its final boss died, and they did not return within the grace
+--                   period.
+--     unknown       anything else, including every run whose final boss died (however it ended
+--                   afterwards).
 --   Boss kills are recorded as encounters; they are not completion evidence on their own.
 local _, FT = ...
 
@@ -141,6 +144,20 @@ function RT.start(info)
   return run
 end
 
+-- The dungeon's final boss died in this run (FT.FINAL_ENCOUNTERS).
+local function killedFinal(run)
+  local finals = FT.FINAL_ENCOUNTERS and FT.FINAL_ENCOUNTERS[run.instance.map_id]
+  if not finals then
+    return false
+  end
+  for _, e in ipairs(run.encounters or {}) do
+    if e.success == true and finals[e.encounter_id] then
+      return true
+    end
+  end
+  return false
+end
+
 function RT.finalize(final, endedAt)
   local run, st = active(), state()
   if not run then
@@ -159,6 +176,10 @@ function RT.finalize(final, endedAt)
     name = "completed"
   elseif st.abandoned then
     name = "abandoned"
+  elseif (name == "left" or name == "disconnected") and killedFinal(run) then
+    -- The run was over at its final boss: leaving or logging out afterwards is not leaving early,
+    -- whether it came before the meter had read the last fight or after.
+    name = "unknown"
   end
   run.state = name
   local ended = endedAt or t
@@ -587,25 +608,12 @@ function RT.splitStored()
   return count
 end
 
--- The dungeon's final boss died in this run and the player is alive: nothing left to come back for.
-local function killedFinal(run)
-  local finals = FT.FINAL_ENCOUNTERS and FT.FINAL_ENCOUNTERS[run.instance.map_id]
-  if not finals then
-    return false
-  end
-  for _, e in ipairs(run.encounters or {}) do
-    if e.success == true and finals[e.encounter_id] then
-      return true
-    end
-  end
-  return false
-end
-
 local function playerAlive()
   local ok, dead = Safe.call("UnitIsDeadOrGhost", "player")
   return ok and Safe.bool(dead) == false
 end
 
+-- The final boss is dead and the player alive: nothing left to come back for.
 local function finishedAlive(run)
   return killedFinal(run) and playerAlive()
 end
@@ -877,6 +885,11 @@ function RT.onCompletion(kind)
   local run, st = active(), state()
   if not run or not st or st.phase ~= "active" then
     return
+  end
+  for _, ev in ipairs(run.completion.evidence) do
+    if ev.kind == kind then
+      return -- the same event again: the run already holds it
+    end
   end
   local t = now()
   if #run.completion.evidence < 10 then

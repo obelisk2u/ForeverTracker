@@ -47,7 +47,7 @@ collectors marked *needs validation* remain unverified beyond what that live use
 | Party GUID shared across members | Runs split across observers | `MATCH_PARTY_GUID_VETO=false`, then `python -m app.cli rematch` for stored runs |
 | SavedVariables load bug (beta 69893) | Each session overwrites the last | Uploader archives every version; `/ft export` |
 | Deaths meter semantics | Wrong meter death counts | `METER_DEATH_INTERPRETATION` + `rebuild` (no re-upload needed) |
-| Final bosses of 18 of 22 listed dungeons | Runs end "unknown" instead of completed (probable) | Players can `/ft complete`; add bosses to `final_encounters.json` |
+| Final bosses of 18 of 23 listed dungeons (unverified in game), and 5 of Forever's 9 new dungeons not listed | Unlisted: full clears by premade groups end `left` and read "Left early" (kills kept). Listed but wrong: a run ends early and loses later kills | Players can `/ft complete`; the pending five and the evidence each needs are in `final_encounters.json` and `FOREVER_LAUNCH_VALIDATION.md` section 2; after adding one, `python -m app.cli recover-outcomes` |
 | Character level cap (`MAX_CHARACTER_LEVEL=60`) | Max-level runs quarantined | Restore and release in the admin API; quarantines of this kind count toward flagging |
 
 ## Known limitations and follow-ups
