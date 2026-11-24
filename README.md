@@ -61,7 +61,8 @@ SavedVariables files, and checks reconciliation, conflicts and statistics throug
   [identity and reconciliation](docs/IDENTITY_AND_RECONCILIATION.md), [statistic definitions](docs/ANALYTICS_DEFINITIONS.md)
 * [Data integrity](docs/DATA_INTEGRITY.md), [privacy](docs/PRIVACY.md), [operations](docs/OPERATIONS.md),
   [deployment](docs/DEPLOYMENT.md)
-* [Launch-day validation](docs/FOREVER_LAUNCH_VALIDATION.md), [readiness](docs/READINESS.md)
+* [Launch-day validation](docs/FOREVER_LAUNCH_VALIDATION.md), [readiness](docs/READINESS.md),
+  [raid compatibility](docs/RAID_COMPATIBILITY.md)
 
 ## Code signing policy
 

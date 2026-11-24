@@ -87,3 +87,57 @@ describe("group members outside dungeons", function()
     eq(ForeverTrackerDB.observations[1].observation_id, "r-oldest", "the oldest record, a run, survived")
   end)
 end)
+
+describe("raid groups", function()
+  -- A raid group: "player" plus raid1..raidN, the player also being one of the raidN tokens (as in the client).
+  local function raidGroup(size)
+    local party = DefaultParty()
+    Mock.units = {}
+    for i = 1, size do
+      local spec = party[i] or { name = "Raider" .. i, surname = "Clan" .. i, guid = string.format("Player-4620-00B%03d", i), class = "MAGE", race = "Human", level = 60 }
+      spec.dead, spec.connected, spec.token = false, true, "raid" .. i
+      Mock.units["raid" .. i] = spec
+    end
+    Mock.units.player = Mock.units.raid1
+    Mock.group.inRaid = true
+    Mock.group.num = size
+    Mock.fire("GROUP_ROSTER_UPDATE")
+    Mock.advance(1)
+  end
+
+  it("records each raid member once, and not the player", function()
+    boot()
+    local before = #groupRecords()
+    raidGroup(20)
+    local records = groupRecords()
+    local names = {}
+    for i = before + 1, #records do
+      local n = records[i].subject.name
+      falsy(names[n], n .. " recorded twice")
+      names[n] = true
+    end
+    falsy(names.Autumn, "the player is raid1 as well, and is not a group member of their own")
+    eq(#records - before + 4, 19, "everyone else in the raid, counting the four already recorded as a party")
+  end)
+end)
+
+describe("raid groups and inspection", function()
+  it("does not queue the player for inspection when they are one of the raid units", function()
+    boot()
+    local party = DefaultParty()
+    Mock.units = {}
+    for i, spec in ipairs(party) do
+      spec.dead, spec.connected, spec.token = false, true, "raid" .. i
+      Mock.units["raid" .. i] = spec
+    end
+    Mock.units.player = Mock.units.raid1
+    Mock.group.inRaid, Mock.group.num = true, #party
+    Mock.ft.Inspect.queueGroup()
+    local guids = {}
+    for _, q in ipairs(Mock.ft.inspectState.queue) do
+      guids[q.guid] = true
+    end
+    falsy(guids["Player-4620-0000A1"], "the player's own raid unit")
+    truthy(guids["Player-4620-0000A2"], "the others are queued")
+  end)
+end)

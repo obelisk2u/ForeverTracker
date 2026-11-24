@@ -215,11 +215,14 @@ function Inspect.queueGroup()
   end
   local state = FT.inspectState
   local now = FT.Util.now()
+  -- In a raid the player is also one of raid1..raidN; their own equipment comes from selfSnapshot.
+  local okMe, me = Safe.call("UnitGUID", "player")
+  local myGuid = okMe and Safe.str(me, 96)
   for _, unit in ipairs(FT.Roster.units()) do
     if unit ~= "player" then
       local okGuid, guid = Safe.call("UnitGUID", unit)
       local g = okGuid and Safe.str(guid, 96)
-      if g then
+      if g and g ~= myGuid then
         local last = state.last_by_guid[g]
         if not last or now - last >= FT.Config.LIMITS.inspect_refresh_seconds then
           local queued = false

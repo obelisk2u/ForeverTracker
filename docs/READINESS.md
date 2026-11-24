@@ -27,13 +27,13 @@ collectors marked *needs validation* remain unverified beyond what that live use
 | 14 | Deployment configuration prepared | Done; production running | `docker-compose.prod.yml`, Caddyfile, CI workflow, backup script |
 | 15 | Launch-day validation | **Open** | Checklist exists; results table empty |
 
-## Test inventory (2026-11-18, all passing)
+## Test inventory (2026-11-23, all passing)
 
 | Suite | Count | Runs |
 |---|---|---|
-| SavedVariables parser, shapes and extractor | 44 | `pytest packages/savedvariables/tests` |
-| Addon (Lua 5.1 VM, mocked Forever client) | 116 Lua cases in 7 files (8 pytest wrappers) | `pytest addon/tests` or `python addon/tests/harness.py` |
-| Backend: ingestion, reconciliation, convergence, rematch, contributors and claims, contract, limits, API, analytics, e2e, simulation accuracy, uploader integration | 123 | `pytest backend/tests` (needs PostgreSQL; truncates every table in `TEST_DATABASE_URL`'s database) |
+| SavedVariables parser, shapes and extractor | 47 | `pytest packages/savedvariables/tests` |
+| Addon (Lua 5.1 VM, mocked Forever client) | 125 Lua cases in 7 files, plus a live Drowned City encounter trace replayed (12 pytest items) | `pytest addon/tests` or `python addon/tests/harness.py` |
+| Backend: ingestion, reconciliation, convergence, rematch, contributors and claims, contract, limits, API, analytics, e2e, simulation accuracy, uploader integration, final-boss completion and outcome recovery | 133 | `pytest backend/tests` (needs PostgreSQL; truncates every table in `TEST_DATABASE_URL`'s database) |
 | Desktop uploader | 36 (+3 Windows-only, skipped elsewhere) | `pytest uploader/tests` |
 | Frontend components and pages | 42 | `cd frontend && npm test` |
 
@@ -53,6 +53,9 @@ collectors marked *needs validation* remain unverified beyond what that live use
 ## Known limitations and follow-ups
 
 * **Launch-day validation not recorded** (see above).
+* **Raids are not recorded** (they open 2026-12-09). What recording them needs, and the live checks for each part, is
+  in [`RAID_COMPATIBILITY.md`](RAID_COMPATIBILITY.md). A dungeon run during which the group becomes a raid is
+  quarantined (members outside the dungeon count as present).
 * **Blizzard terms review not done** (see `PRIVACY.md`).
 * **No profile claim flow**: intentionally deferred until a verifiable mechanism exists.
 * **No website page for `/ft export` or SavedVariables uploads**, although the addon tells players to paste the export

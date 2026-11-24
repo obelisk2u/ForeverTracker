@@ -134,10 +134,40 @@ def _collect_observations(
     return ordered, skipped, rejected
 
 
+MAX_BATCH_BYTES = 4_000_000  # half the server's default upload limit (8 MB), leaving room for the envelope
+
+
+def _encoded_size(observation: dict[str, Any]) -> int:
+    """Bytes the observation takes in an upload (the uploader sends compact UTF-8 JSON)."""
+    return len(json.dumps(observation, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+
+
+def _chunks(observations: list[dict[str, Any]], max_per_batch: int, max_batch_bytes: int) -> list[list[dict[str, Any]]]:
+    """Consecutive chunks of at most ``max_per_batch`` records and, where records allow, ``max_batch_bytes``.
+
+    A record larger than the byte budget on its own gets a batch to itself. Files whose chunks fit the budget
+    are cut exactly as by count alone, so their batch IDs do not change.
+    """
+    chunks: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    size = 0
+    for obs in observations:
+        n = _encoded_size(obs)
+        if current and (len(current) >= max_per_batch or size + n > max_batch_bytes):
+            chunks.append(current)
+            current, size = [], 0
+        current.append(obs)
+        size += n
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 def extract(
     parsed: dict[str, Any],
     *,
     max_per_batch: int = 200,
+    max_batch_bytes: int = MAX_BATCH_BYTES,
     include_active_run: bool = True,
     created_at: int | None = None,
     string_indices: bool = False,
@@ -145,7 +175,9 @@ def extract(
     """Canonical batches for every usable observation, plus the records left out and why.
 
     Batch IDs are derived from content, so extracting the same file twice yields the same
-    batch IDs, and the server treats a re-upload as a duplicate. ``string_indices`` is for the
+    batch IDs, and the server treats a re-upload as a duplicate. A batch holds at most
+    ``max_per_batch`` records and, unless one record alone is larger, ``max_batch_bytes`` of them
+    (raid-sized runs are hundreds of kilobytes each). ``string_indices`` is for the
     ``/ft export`` JSON string (see :mod:`forevertracker_sv.shapes`).
     """
     db = _load_db(parsed, string_indices)
@@ -158,8 +190,7 @@ def extract(
         "schema_version": db["schema_version"],
     }
     batches: list[dict[str, Any]] = []
-    for start in range(0, len(observations), max_per_batch):
-        chunk = observations[start : start + max_per_batch]
+    for chunk in _chunks(observations, max_per_batch, max_batch_bytes):
         digest = observations_digest(installation_id, chunk)
         batches.append(
             {
@@ -181,6 +212,7 @@ def extract_batches(
     parsed: dict[str, Any],
     *,
     max_per_batch: int = 200,
+    max_batch_bytes: int = MAX_BATCH_BYTES,
     include_active_run: bool = True,
     created_at: int | None = None,
     string_indices: bool = False,
@@ -189,6 +221,7 @@ def extract_batches(
     return extract(
         parsed,
         max_per_batch=max_per_batch,
+        max_batch_bytes=max_batch_bytes,
         include_active_run=include_active_run,
         created_at=created_at,
         string_indices=string_indices,

@@ -33,7 +33,8 @@ function Instance.current()
   return info
 end
 
--- 5-player dungeons only. Raids, scenarios and battlegrounds are out of scope for v1.
+-- 5-player dungeons only. Raids, scenarios and battlegrounds are out of scope for v1: a raid needs
+-- its own end-of-run and completion rules (docs/RAID_COMPATIBILITY.md) before it is recorded.
 function Instance.isDungeon(info)
   return info and info.in_instance and info.instance_type == "party" and info.map_id ~= nil
 end
@@ -46,7 +47,8 @@ function Instance.toObservation(info)
   return {
     map_id = info.map_id,
     name = info.name,
-    instance_type = "party",
+    -- What the client says, so a raid is never stored as a dungeon (and its 5-player limits).
+    instance_type = info.instance_type == "raid" and "raid" or "party",
     difficulty_id = info.difficulty_id,
     difficulty_name = info.difficulty_name,
     max_players = maxPlayers,

@@ -25,11 +25,14 @@ function Group.scan()
   local refresh = FT.Config.LIMITS.group_refresh_seconds
   local player, namespace
   local stored = 0
+  -- In a raid the player is also one of raid1..raidN: they are not a group member of their own.
+  local me = FT.Identity.player()
+  local myKey = me and FT.Identity.key(me)
   for _, unit in ipairs(FT.Roster.units()) do
     if unit ~= "player" then
       local m = FT.Identity.read(unit)
       local key = m and m.identity_status == "ok" and FT.Identity.key(m)
-      if key then
+      if key and key ~= myKey then
         local sig = signature(m)
         local last = seen[key]
         if not last or last.sig ~= sig or now - last.at >= refresh then
